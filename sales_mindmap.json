@@ -1,0 +1,280 @@
+{
+  "sales_mindmap": {
+    "name": "專業銷售話術心智圖",
+    "service_types": [
+      {
+        "id": "address_service",
+        "name": "營業登記地址服務",
+        "components": [
+          {
+            "type": "value_statement",
+            "items": [
+              {
+                "id": "legal_protection",
+                "content": "我們提供符合法規的完整租賃文件與環境",
+                "usage_context": ["legality_concern", "compliance_inquiry"]
+              },
+              {
+                "id": "convenience",
+                "content": "專業代收信件與通知服務，無需親自到場",
+                "usage_context": ["usage_method", "busy_client"]
+              },
+              {
+                "id": "cost_efficiency",
+                "content": "相比傳統辦公室節省80%成本，同樣專業形象",
+                "usage_context": ["pricing_plan", "price_objection"]
+              },
+              {
+                "id": "risk_prevention",
+                "content": "我們了解國稅局查核重點，協助您順利通過",
+                "usage_context": ["tax_impact", "tax_risk"]
+              },
+              {
+                "id": "social_proof_shopee",
+                "content": "超過100位蝦皮等電商創辦人最後選擇我們，綜合評估後認為最具優勢",
+                "usage_context": ["social_proof", "comparing_with_others", "uncertain_benefits"]
+              },
+              {
+                "id": "cost_vs_value",
+                "content": "每天僅多不到20元，即可享有專業會計師與律師顧問團隊支援",
+                "usage_context": ["pricing_plan", "value_comparison"]
+              }
+            ]
+          },
+          {
+            "type": "differentiation",
+            "items": [
+              {
+                "id": "vs_traditional_office",
+                "content": "更靈活、更經濟，無長期租約限制",
+                "usage_context": ["pricing_plan", "cost_efficiency"]
+              },
+              {
+                "id": "vs_home_address",
+                "content": "更專業、更安全，避免私人地址曝光風險",
+                "usage_context": ["legal_compliance", "professional_image"]
+              },
+              {
+                "id": "vs_competitors",
+                "content": "更完善的法律保障與專業配套服務",
+                "usage_context": ["comparing_with_others", "uncertain_benefits"]
+              }
+            ]
+          },
+          {
+            "type": "concern_handling",
+            "items": [
+              {
+                "id": "legal_concern",
+                "content": "我們與國稅局有豐富互動經驗，了解合規要點",
+                "usage_context": ["legality_concern", "shell_company"]
+              },
+              {
+                "id": "price_concern",
+                "content": "考慮到避免的風險成本，我們的服務極具價值",
+                "usage_context": ["price_objection", "value_comparison"]
+              },
+              {
+                "id": "audit_risk",
+                "content": "我們提供完整配套方案，降低被稽查風險",
+                "usage_context": ["tax_audit", "tax_risk"]
+              },
+              {
+                "id": "practicality_concern",
+                "content": "即使不常來辦公，您也能享受專業服務",
+                "usage_context": ["actual_business_location", "remote_work"]
+              },
+              {
+                "id": "tax_penalty_risk",
+                "content": "若未依規定申報，國稅局可能補稅並處以同額罰鍰（補一罰一）",
+                "usage_context": ["tax_risk", "audit_risk", "fear_appeal"]
+              },
+              {
+                "id": "fear_appeal_generic",
+                "content": "若未及時處理，可能面臨補稅、罰鍰或公司登記遭撤銷等風險",
+                "usage_context": ["fear_appeal", "hesitation", "tax_risk"]
+              }
+            ]
+          },
+          {
+            "type": "call_to_action",
+            "items": [
+              {
+                "id": "visit_invitation",
+                "content": "建議您實地了解我們的環境與服務",
+                "usage_context": ["information_gathering", "interest_shown"]
+              },
+              {
+                "id": "consultation_booking",
+                "content": "我們可安排專人為您解答具體情況",
+                "usage_context": ["complex_inquiry", "professional_advice_needed"]
+              },
+              {
+                "id": "trial_offer",
+                "content": "提供短期試用方案，無負擔體驗",
+                "usage_context": ["hesitation", "need_to_consider"]
+              },
+              {
+                "id": "limited_time_offer",
+                "content": "本月新客享有特別優惠",
+                "usage_context": ["price_sensitive", "ready_to_close"]
+              },
+              {
+                "id": "free_tax_check",
+                "content": "帶上近6個月營業資料，我們現場免費試算，立即了解稅務風險與節稅空間",
+                "usage_context": ["interest_shown", "need_to_consider", "tax_planning"]
+              },
+              {
+                "id": "free_cost_estimate",
+                "content": "我們可現場免費試算您的營運成本與稅負，讓您立即看見投資回報",
+                "usage_context": ["need_to_consider", "price_objection", "interest_shown"]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "coworking_desk",
+        "name": "共享辦公桌服務",
+        "components": [
+          {
+            "type": "value_statement",
+            "items": [
+              {
+                "id": "flexibility",
+                "content": "靈活的時間與空間選擇，按需使用不浪費",
+                "usage_context": ["usage_method", "cost_efficiency"]
+              },
+              {
+                "id": "professional_environment",
+                "content": "專業辦公環境，提升工作效率與形象",
+                "usage_context": ["facilities", "professional_image"]
+              },
+              {
+                "id": "networking",
+                "content": "多元創業社群，創造合作與學習機會",
+                "usage_context": ["community", "social_benefits"]
+              },
+              {
+                "id": "all_inclusive",
+                "content": "包含高速網路、茶水、空調等所有基礎設施",
+                "usage_context": ["facility", "pricing_plan"]
+              }
+            ]
+          },
+          {
+            "type": "differentiation",
+            "items": [
+              {
+                "id": "vs_cafe",
+                "content": "比咖啡廳更安靜專業，無消費壓力",
+                "usage_context": ["comparing_with_others", "cost_efficiency"]
+              },
+              {
+                "id": "vs_home",
+                "content": "比在家工作更專注，清晰工作與生活界線",
+                "usage_context": ["lifestyle", "productivity"]
+              },
+              {
+                "id": "vs_competitors",
+                "content": "地理位置與社群資源的獨特優勢",
+                "usage_context": ["comparing_with_others", "location_traffic"]
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "general_techniques": [
+      {
+        "id": "information_gathering",
+        "name": "信息收集技巧",
+        "tactics": [
+          {
+            "id": "open_question",
+            "content": "使用開放式問題了解需求：「您主要是什麼類型的業務？」",
+            "usage_context": ["initial_contact", "need_discovery"]
+          },
+          {
+            "id": "probing_question", 
+            "content": "使用探索性問題挖掘深層需求：「這個空間將主要用於哪些活動？」",
+            "usage_context": ["interest_shown", "need_clarification"]
+          },
+          {
+            "id": "confirmation_question",
+            "content": "使用確認性問題鞏固理解：「所以您需要一個可以偶爾見客戶的專業場所，是嗎？」",
+            "usage_context": ["information_verification", "summarizing"]
+          }
+        ]
+      },
+      {
+        "id": "price_deflection",
+        "name": "價格迴避技巧",
+        "tactics": [
+          {
+            "id": "need_first",
+            "content": "先了解需求再談價格：「為了提供最適合的方案，能否先了解您的使用需求？」",
+            "usage_context": ["price_inquiry", "initial_contact"]
+          },
+          {
+            "id": "value_before_price",
+            "content": "先建立價值再提價格：「我們的服務包含這些獨特價值...關於投資金額，」",
+            "usage_context": ["pricing_discussion", "value_building"]
+          },
+          {
+            "id": "range_not_specific",
+            "content": "提供價格範圍而非具體數字：「根據您的需求，通常投資範圍在X至Y之間」",
+            "usage_context": ["price_negotiation", "budget_discussion"]
+          }
+        ]
+      },
+      {
+        "id": "objection_handling",
+        "name": "異議處理技巧",
+        "tactics": [
+          {
+            "id": "acknowledge_reframe",
+            "content": "確認理解並重塑框架：「我理解您的顧慮，讓我從另一個角度說明」",
+            "usage_context": ["objection_raised", "concern_expressed"]
+          },
+          {
+            "id": "feel_felt_found",
+            "content": "感同身受技巧：「許多客戶最初也有相同感受，但他們發現...」",
+            "usage_context": ["common_objection", "reassurance_needed"]
+          },
+          {
+            "id": "evidence_based",
+            "content": "提供證據支持：「根據我們的數據，超過95%的客戶體驗了這些好處...」",
+            "usage_context": ["skepticism", "proof_needed"]
+          },
+          {
+            "id": "fear_appeal",
+            "content": "點出不採取行動的潛在損失或風險，提升行動動機",
+            "usage_context": ["fear_appeal", "concern_expressed", "hesitation"]
+          }
+        ]
+      },
+      {
+        "id": "closing_techniques",
+        "name": "成交技巧",
+        "tactics": [
+          {
+            "id": "assumptive_close",
+            "content": "假設性成交：「我們安排下週一開始，可以嗎？」",
+            "usage_context": ["high_interest", "decision_ready"]
+          },
+          {
+            "id": "alternative_close",
+            "content": "選擇性成交：「您偏好週間還是週末來辦理手續？」",
+            "usage_context": ["hesitation", "final_push"]
+          },
+          {
+            "id": "urgency_creation",
+            "content": "創造緊迫感：「本月方案僅剩3個名額」或「下週價格將調整」",
+            "usage_context": ["need_catalyst", "fence_sitting"]
+          }
+        ]
+      }
+    ]
+  }
+}

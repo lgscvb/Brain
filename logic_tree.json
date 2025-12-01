@@ -1,0 +1,280 @@
+{
+  "logic_tree": {
+    "name": "客戶詢問邏輯樹",
+    "root_nodes": [
+      {
+        "id": "service_inquiry",
+        "name": "服務諮詢",
+        "children": [
+          {
+            "id": "service_type",
+            "name": "服務類型詢問",
+            "children": [
+              {
+                "id": "address_service",
+                "name": "營業地址服務",
+                "children": [
+                  {
+                    "id": "legality_concern",
+                    "name": "合法性問題",
+                    "keywords": ["合法", "國稅局", "查核", "人頭公司", "實際營業地"]
+                  },
+                  {
+                    "id": "pricing_plan",
+                    "name": "價格方案",
+                    "keywords": ["費用", "多少錢", "報價", "收費", "價格"]
+                  },
+                  {
+                    "id": "contract_term_check",
+                    "name": "合約期限確認",
+                    "keywords": ["合約期限", "租期", "月租", "年約", "短租", "長租"]
+                  },
+                  {
+                    "id": "tax_impact",
+                    "name": "稅務影響",
+                    "keywords": ["稅", "節稅", "報稅", "稅務", "稅負"]
+                  },
+                  {
+                    "id": "setup_type",
+                    "name": "設立類型確認",
+                    "keywords": ["新設立", "成立", "遷址", "搬家", "變更地址"]
+                  },
+                  {
+                    "id": "entity_type",
+                    "name": "組織型態確認",
+                    "children": [
+                      {
+                        "id": "small_business_check",
+                        "name": "小規模營業人資格",
+                        "keywords": ["小規模", "營業人", "未達", "20萬", "免用統一發票", "網拍"]
+                      }
+                    ],
+                    "keywords": [
+                      "公司", "行號", "商號", "商業", "有限公司", "股份有限公司",
+                      "不確定", "差別", "補助", "貸款", "青創貸款", "政府資源" 
+                    ]
+                  }
+                ],
+                "keywords": ["營業地址", "登記地址", "公司地址", "商業地址"]
+              },
+              {
+                "id": "coworking_desk",
+                "name": "共享辦公桌",
+                "children": [
+                  {
+                    "id": "usage_method",
+                    "name": "使用方式",
+                    "keywords": ["怎麼用", "訂位", "預約", "使用", "時間"]
+                  },
+                  {
+                    "id": "desk_pricing",
+                    "name": "價格方案",
+                    "keywords": ["費用", "多少錢", "價格", "收費"]
+                  },
+                  {
+                    "id": "facility",
+                    "name": "設施配套",
+                    "keywords": ["設備", "網路", "列印", "茶水", "冷氣"]
+                  },
+                  {
+                    "id": "meeting_room_need",
+                    "name": "會議室需求",
+                    "keywords": ["會議室", "開會", "租借會議室", "預約會議室", "meeting room"]
+                  }
+                ],
+                "keywords": ["共享辦公桌", "共用工作桌", "工作空間", "辦公位置"]
+              },
+              {
+                "id": "private_office",
+                "name": "專屬辦公室",
+                "children": [
+                  {
+                    "id": "office_usage",
+                    "name": "使用方式",
+                    "keywords": ["怎麼用", "時間", "進出", "鑰匙"]
+                  },
+                  {
+                    "id": "office_pricing",
+                    "name": "價格方案",
+                    "keywords": ["費用", "多少錢", "價格", "收費"]
+                  },
+                  {
+                    "id": "office_facility",
+                    "name": "設施配套",
+                    "keywords": ["設備", "網路", "家具", "會議室"]
+                  }
+                ],
+                "keywords": ["專屬辦公室", "獨立辦公室", "小型辦公室"]
+              }
+            ]
+          },
+          {
+            "id": "venue_environment",
+            "name": "場地與環境",
+            "children": [
+              {
+                "id": "location_traffic",
+                "name": "位置交通",
+                "keywords": ["位置", "地址", "交通", "捷運", "停車"]
+              },
+              {
+                "id": "facilities",
+                "name": "設施配套",
+                "keywords": ["設備", "茶水", "網路", "影印", "會議室"]
+              },
+              {
+                "id": "community",
+                "name": "社群氛圍",
+                "keywords": ["其他人", "社群", "活動", "交流", "創業者"]
+              }
+            ],
+            "keywords": ["位置", "環境", "空間", "場地"]
+          },
+          {
+            "id": "usage_process",
+            "name": "使用流程",
+            "children": [
+              {
+                "id": "visit_reservation",
+                "name": "預約參觀",
+                "keywords": ["參觀", "看環境", "預約", "實地"]
+              },
+              {
+                "id": "contract_process",
+                "name": "簽約流程",
+                "keywords": ["簽約", "合約", "開始使用", "流程"]
+              },
+              {
+                "id": "termination_process",
+                "name": "退租流程",
+                "keywords": ["退租", "終止", "解約", "押金"]
+              },
+              {
+                "id": "special_service",
+                "name": "特殊服務需求",
+                "keywords": ["特殊需求", "客製化", "額外服務"]
+              }
+            ],
+            "keywords": ["流程", "步驟", "手續", "開始", "結束"]
+          }
+        ],
+        "keywords": ["服務", "提供", "有什麼", "可以"]
+      },
+      {
+        "id": "compliance_inquiry",
+        "name": "合規諮詢",
+        "children": [
+          {
+            "id": "company_registration",
+            "name": "公司登記相關",
+            "children": [
+              {
+                "id": "application_type",
+                "name": "適用類型",
+                "keywords": ["有限公司", "股份公司", "行號", "商業登記", "類型"]
+              },
+              {
+                "id": "required_documents",
+                "name": "所需資料",
+                "keywords": ["資料", "文件", "證明", "準備", "提供"]
+              },
+              {
+                "id": "follow_up_process",
+                "name": "後續流程",
+                "keywords": ["後續", "接下來", "然後", "流程", "步驟"]
+              }
+            ],
+            "keywords": ["登記", "設立", "開公司", "成立公司"]
+          },
+          {
+            "id": "tax_risk",
+            "name": "稅務風險評估",
+            "children": [ 
+              {
+                "id": "tax_audit",
+                "name": "國稅局審查",
+                "keywords": ["查稅", "稽查", "國稅局", "查核", "審查"]
+              },
+              {
+                "id": "tax_declaration_obligation",
+                "name": "稅務申報義務",
+                "keywords": ["報稅", "申報", "義務", "責任", "申請"]
+              },
+              {
+                "id": "cost_reporting",
+                "name": "成本列報問題",
+                "keywords": ["成本", "費用", "支出", "列報", "扣除"]
+              },
+              { 
+                "id": "pre_registration_tax",
+                "name": "設立前稅務風險",
+                "keywords": ["設立前", "已營運", "補報繳", "自動補報繳", "罰則", "罰鍰", "補稅"]
+              }
+            ],
+            "keywords": ["稅務", "稅金", "納稅", "報稅"]
+          },
+          {
+            "id": "legal_compliance",
+            "name": "法律合規性",
+            "children": [
+              {
+                "id": "actual_business_location",
+                "name": "實際營業地疑慮",
+                "keywords": ["實際營業", "營業地", "辦公地", "實體"]
+              },
+              {
+                "id": "shell_company",
+                "name": "人頭公司疑慮",
+                "keywords": ["人頭", "空殼", "虛設", "假公司"]
+              },
+              {
+                "id": "branch_usage",
+                "name": "分公司使用問題",
+                "keywords": ["分公司", "子公司", "多地址"]
+              }
+            ],
+            "keywords": ["法律", "合法", "規定", "合規", "問題"]
+          }
+        ],
+        "keywords": ["合法", "法律", "規定", "可以嗎", "問題"]
+      },
+      {
+        "id": "objection_handling",
+        "name": "異議處理",
+        "children": [
+          {
+            "id": "price_objection",
+            "name": "價格異議",
+            "keywords": ["貴", "便宜", "太多", "預算", "其他家"]
+          },
+          {
+            "id": "need_to_consider",
+            "name": "需要考慮",
+            "keywords": ["考慮", "想想", "再說", "之後", "回去討論"]
+          },
+          {
+            "id": "comparing_with_others",
+            "name": "與他人比較",
+            "keywords": ["比較", "其他家", "別家", "對比", "比一比"]
+          },
+          {
+            "id": "not_right_time",
+            "name": "時機不恰當",
+            "keywords": ["時機", "現在不是", "等等", "之後", "過陣子"]
+          },
+          {
+            "id": "can_do_it_internally",
+            "name": "可以自行處理",
+            "keywords": ["自己做", "不需要", "內部", "不用了"]
+          },
+          {
+            "id": "uncertain_benefits",
+            "name": "價值不確定",
+            "keywords": ["價值", "好處", "幫助", "有什麼用", "差別"]
+          }
+        ],
+        "keywords": ["但是", "可是", "問題", "不確定", "擔心"]
+      }
+    ]
+  }
+}
