@@ -30,7 +30,8 @@ class LogResponse(BaseModel):
 def get_log_file_path(log_type: str = "main") -> Path:
     """取得日誌檔案路徑"""
     backend_dir = Path(__file__).parent.parent.parent
-    log_dir = backend_dir / "backend" / "logs"
+    # logger.py 將日誌寫在專案根目錄的 logs 資料夾 (backend 的上一層)
+    log_dir = backend_dir.parent / "logs"
     
     if log_type == "error":
         return log_dir / "error.log"
