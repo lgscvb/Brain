@@ -1,10 +1,214 @@
 {
   "sales_mindmap": {
     "name": "專業銷售話術心智圖",
+    "spin_framework": {
+      "overview": {
+        "description": "SPIN 銷售法是一套以提問為核心的銷售方法論，透過四階段問題引導客戶認知需求",
+        "goal": "透過有策略的提問，讓客戶自己發現問題並認同解決方案的價值",
+        "hour_jungle_application": "針對營業地址、共享空間、稅務合規等服務，引導客戶從現況了解到成交"
+      },
+      "phases": {
+        "S": {
+          "name": "Situation",
+          "name_zh": "現況了解",
+          "purpose": "建立對話基礎，了解客戶背景和現況",
+          "timing": "對話開始時，或客戶主動詢問服務時",
+          "tone": "好奇、友善、不帶壓力",
+          "warning": "不要問太多，3-4 個問題就夠，否則像審問",
+          "question_bank": {
+            "company_status": [
+              "您是打算新設立公司，還是變更現有公司地址？",
+              "您的公司目前登記在哪裡？",
+              "公司成立多久了？"
+            ],
+            "business_type": [
+              "您主要經營什麼業務？",
+              "您的客戶主要是企業還是一般消費者？",
+              "您的團隊目前有多少人？"
+            ],
+            "current_situation": [
+              "您目前在哪裡工作？在家、咖啡廳還是有固定辦公室？",
+              "現在處理公司文件和信件的方式是什麼？",
+              "您需要見客戶的頻率大概是？"
+            ],
+            "budget_timeline": [
+              "您預計什麼時候需要使用？",
+              "您的預算範圍大概是多少？",
+              "除了價格，您最在意哪些條件？"
+            ]
+          }
+        },
+        "P": {
+          "name": "Problem",
+          "name_zh": "痛點挖掘",
+          "purpose": "發現客戶的困擾、不滿或潛在問題",
+          "timing": "了解現況後，或客戶已透露一些不滿時",
+          "tone": "同理、關心、探索性",
+          "warning": "不要急著提供解決方案，讓客戶多說",
+          "question_bank": {
+            "cost_pain": [
+              "目前的租金對營運會造成壓力嗎？",
+              "您有算過現在的辦公成本佔營收多少比例嗎？",
+              "這樣的支出長期下來會是負擔嗎？"
+            ],
+            "image_pain": [
+              "現在的地址在見客戶時會有困擾嗎？",
+              "客戶對您公司的專業形象有什麼反饋？",
+              "用住家地址會有隱私上的顧慮嗎？"
+            ],
+            "compliance_pain": [
+              "您對國稅局查核有什麼擔心嗎？",
+              "稅務申報上有遇到什麼困難嗎？",
+              "之前有聽說過什麼合規方面的問題嗎？"
+            ],
+            "convenience_pain": [
+              "現在處理公司信件有什麼不方便的地方？",
+              "在家工作有影響到您的專注力或效率嗎？",
+              "需要臨時開會的時候怎麼處理？"
+            ],
+            "general_probes": [
+              "這個情況讓您感到困擾嗎？",
+              "這會影響到您的工作嗎？",
+              "這個問題多久了？"
+            ]
+          }
+        },
+        "I": {
+          "name": "Implication",
+          "name_zh": "影響放大",
+          "purpose": "讓客戶意識到問題的嚴重性、後果和機會成本",
+          "timing": "客戶已承認有問題/困擾時",
+          "tone": "關切、專業、適度警示",
+          "warning": "不要過度恐嚇，要讓客戶覺得你是在幫他，而非嚇他",
+          "question_bank": {
+            "financial_impact": [
+              "這樣的租金長期累積下來，對公司資金會有什麼影響？",
+              "如果成本無法有效控制，會影響到您的獲利空間嗎？",
+              "每天多花的這些錢，一年累積起來是多少？"
+            ],
+            "customer_perception": [
+              "如果客戶看到地址在住宅區，會影響他們的信任度嗎？",
+              "因為地址不夠專業而流失客戶，您覺得損失有多大？",
+              "客戶的第一印象對成交率的影響，您有評估過嗎？"
+            ],
+            "compliance_risk": [
+              "如果被國稅局查到問題，補稅加罰鍰可能是多少？",
+              "您知道補一罰一的情況下，金額可能翻倍嗎？",
+              "如果公司登記被撤銷，對您的業務會有什麼影響？",
+              "這種風險對公司的現金流會有什麼影響？"
+            ],
+            "opportunity_cost": [
+              "處理這些行政事務佔用您多少時間？這些時間可以創造多少價值？",
+              "如果等太久才決定，會不會影響到您原本的計畫？",
+              "每拖延一天，就是多一天的風險和成本"
+            ],
+            "fear_appeal": [
+              "最壞的情況會是什麼？您有想過嗎？",
+              "如果不解決這個問題，半年後會變成什麼樣子？",
+              "您能承擔這個風險嗎？"
+            ]
+          }
+        },
+        "N": {
+          "name": "Need-payoff",
+          "name_zh": "解決導向",
+          "purpose": "引導客戶看到解決方案的價值，讓客戶自己說出好處",
+          "timing": "客戶已認同問題的嚴重性，開始思考怎麼辦時",
+          "tone": "正面、解決問題、創造價值",
+          "warning": "讓客戶說好處，比你說更有效",
+          "question_bank": {
+            "value_confirmation": [
+              "如果有個金融商圈地址，同時節省 80% 成本，對您的業務有幫助嗎？",
+              "如果每天只要 60 元就能解決這些問題，您覺得值得嗎？",
+              "如果我們能處理所有合規文件，讓您不用擔心查核，您會比較安心嗎？"
+            ],
+            "benefit_exploration": [
+              "專業的地址對您談客戶會有什麼幫助？",
+              "如果省下的時間可以多接幾個案子，對您的收入會有什麼影響？",
+              "不用擔心稅務問題之後，您可以更專注在什麼事情上？"
+            ],
+            "action_oriented": [
+              "建議您來現場看看環境，我們可以針對您的需求做詳細規劃，方便嗎？",
+              "您這週或下週哪天方便來參觀？",
+              "如果您決定合作，我們最快可以在一週內完成，您希望什麼時候開始？"
+            ],
+            "trial_and_risk_removal": [
+              "我們有短期試用方案，要不要先體驗看看？",
+              "我們提供全額退費保證，您可以沒有負擔地試試",
+              "很多客戶都是參觀後才決定的，要不要先來看看？"
+            ]
+          }
+        }
+      },
+      "transition_strategies": {
+        "S_to_P": {
+          "trigger": "已了解客戶基本情況",
+          "bridge_phrases": [
+            "了解了，那目前這個情況有讓您遇到什麼困擾嗎？",
+            "謝謝分享，那在這個過程中有什麼不方便的地方嗎？",
+            "聽起來您的業務在發展中，那現在最大的挑戰是什麼？"
+          ]
+        },
+        "P_to_I": {
+          "trigger": "客戶已表達或承認有問題",
+          "bridge_phrases": [
+            "這個問題如果持續下去，您覺得會有什麼影響？",
+            "您有想過這個情況長期下來會怎麼樣嗎？",
+            "這個困擾對您的業務發展會有什麼阻礙？"
+          ]
+        },
+        "I_to_N": {
+          "trigger": "客戶認同問題的嚴重性",
+          "bridge_phrases": [
+            "如果有個方案可以解決這個問題，您會想了解嗎？",
+            "那如果我們能幫您處理這些，對您來說會有什麼幫助？",
+            "所以您現在最需要的是什麼樣的解決方案？"
+          ]
+        }
+      },
+      "common_scenarios": [
+        {
+          "scenario": "客戶一開口就問價格",
+          "spin_approach": "用 S 問題轉向了解需求",
+          "example_response": "價格根據需求會有不同方案。為了提供最適合您的報價，方便先了解一下您是要新設立公司還是遷址嗎？",
+          "next_questions": ["S - 了解公司型態和業務", "S - 了解使用需求"]
+        },
+        {
+          "scenario": "客戶說太貴了",
+          "spin_approach": "用 P 找出比較基準，用 I 放大選錯的風險",
+          "example_response": "您覺得貴是跟什麼比較呢？",
+          "next_questions": ["P - 了解比較對象", "I - 放大便宜方案的風險"]
+        },
+        {
+          "scenario": "客戶擔心合法性",
+          "spin_approach": "客戶已在 P，可直接用 I 放大風險，再用 N 提供解決",
+          "example_response": "您是擔心哪方面的合規問題？是國稅局查核，還是人頭公司的疑慮？",
+          "next_questions": ["P - 具體化擔憂", "I - 說明最壞情況", "N - 展示我們的保障"]
+        },
+        {
+          "scenario": "客戶說要考慮看看",
+          "spin_approach": "用 P 找出猶豫原因，用 I 放大拖延的成本",
+          "example_response": "當然，這是重要的決定。方便問一下，您主要還在考慮哪些方面？",
+          "next_questions": ["P - 找出猶豫原因", "I - 拖延的機會成本"]
+        },
+        {
+          "scenario": "客戶抱怨之前別家的經驗",
+          "spin_approach": "客戶已經歷過 P，可直接用 I 強化痛感，再用 N 對比我們的差異",
+          "example_response": "很抱歉您有那樣的經驗。方便說說是什麼問題嗎？我們也好避免同樣的情況。",
+          "next_questions": ["I - 那次經驗造成多少損失", "N - 我們如何避免這種情況"]
+        }
+      ]
+    },
     "service_types": [
       {
         "id": "address_service",
         "name": "營業登記地址服務",
+        "spin_focus": {
+          "key_S_questions": ["公司型態", "業務類型", "現況地址"],
+          "key_P_points": ["租金壓力", "形象問題", "隱私顧慮", "合規擔憂"],
+          "key_I_amplifiers": ["客戶觀感影響", "稅務風險", "長期成本"],
+          "key_N_payoffs": ["金融商圈形象", "節省 80% 成本", "合規保障"]
+        },
         "components": [
           {
             "type": "value_statement",
@@ -12,32 +216,38 @@
               {
                 "id": "legal_protection",
                 "content": "我們提供符合法規的完整租賃文件與環境",
-                "usage_context": ["legality_concern", "compliance_inquiry"]
+                "usage_context": ["legality_concern", "compliance_inquiry"],
+                "spin_phase": "N"
               },
               {
                 "id": "convenience",
                 "content": "專業代收信件與通知服務，無需親自到場",
-                "usage_context": ["usage_method", "busy_client"]
+                "usage_context": ["usage_method", "busy_client"],
+                "spin_phase": "N"
               },
               {
                 "id": "cost_efficiency",
                 "content": "相比傳統辦公室節省80%成本，同樣專業形象",
-                "usage_context": ["pricing_plan", "price_objection"]
+                "usage_context": ["pricing_plan", "price_objection"],
+                "spin_phase": "N"
               },
               {
                 "id": "risk_prevention",
                 "content": "我們了解國稅局查核重點，協助您順利通過",
-                "usage_context": ["tax_impact", "tax_risk"]
+                "usage_context": ["tax_impact", "tax_risk"],
+                "spin_phase": "N"
               },
               {
                 "id": "social_proof_shopee",
                 "content": "超過100位蝦皮等電商創辦人最後選擇我們，綜合評估後認為最具優勢",
-                "usage_context": ["social_proof", "comparing_with_others", "uncertain_benefits"]
+                "usage_context": ["social_proof", "comparing_with_others", "uncertain_benefits"],
+                "spin_phase": "N"
               },
               {
                 "id": "cost_vs_value",
                 "content": "每天僅多不到20元，即可享有專業會計師與律師顧問團隊支援",
-                "usage_context": ["pricing_plan", "value_comparison"]
+                "usage_context": ["pricing_plan", "value_comparison"],
+                "spin_phase": "N"
               }
             ]
           },
@@ -47,17 +257,20 @@
               {
                 "id": "vs_traditional_office",
                 "content": "更靈活、更經濟，無長期租約限制",
-                "usage_context": ["pricing_plan", "cost_efficiency"]
+                "usage_context": ["pricing_plan", "cost_efficiency"],
+                "spin_phase": "N"
               },
               {
                 "id": "vs_home_address",
                 "content": "更專業、更安全，避免私人地址曝光風險",
-                "usage_context": ["legal_compliance", "professional_image"]
+                "usage_context": ["legal_compliance", "professional_image"],
+                "spin_phase": "N"
               },
               {
                 "id": "vs_competitors",
                 "content": "更完善的法律保障與專業配套服務",
-                "usage_context": ["comparing_with_others", "uncertain_benefits"]
+                "usage_context": ["comparing_with_others", "uncertain_benefits"],
+                "spin_phase": "N"
               }
             ]
           },
@@ -67,32 +280,38 @@
               {
                 "id": "legal_concern",
                 "content": "我們與國稅局有豐富互動經驗，了解合規要點",
-                "usage_context": ["legality_concern", "shell_company"]
+                "usage_context": ["legality_concern", "shell_company"],
+                "spin_phase": "N"
               },
               {
                 "id": "price_concern",
                 "content": "考慮到避免的風險成本，我們的服務極具價值",
-                "usage_context": ["price_objection", "value_comparison"]
+                "usage_context": ["price_objection", "value_comparison"],
+                "spin_phase": "I"
               },
               {
                 "id": "audit_risk",
                 "content": "我們提供完整配套方案，降低被稽查風險",
-                "usage_context": ["tax_audit", "tax_risk"]
+                "usage_context": ["tax_audit", "tax_risk"],
+                "spin_phase": "N"
               },
               {
                 "id": "practicality_concern",
                 "content": "即使不常來辦公，您也能享受專業服務",
-                "usage_context": ["actual_business_location", "remote_work"]
+                "usage_context": ["actual_business_location", "remote_work"],
+                "spin_phase": "N"
               },
               {
                 "id": "tax_penalty_risk",
                 "content": "若未依規定申報，國稅局可能補稅並處以同額罰鍰（補一罰一）",
-                "usage_context": ["tax_risk", "audit_risk", "fear_appeal"]
+                "usage_context": ["tax_risk", "audit_risk", "fear_appeal"],
+                "spin_phase": "I"
               },
               {
                 "id": "fear_appeal_generic",
                 "content": "若未及時處理，可能面臨補稅、罰鍰或公司登記遭撤銷等風險",
-                "usage_context": ["fear_appeal", "hesitation", "tax_risk"]
+                "usage_context": ["fear_appeal", "hesitation", "tax_risk"],
+                "spin_phase": "I"
               }
             ]
           },
@@ -102,32 +321,38 @@
               {
                 "id": "visit_invitation",
                 "content": "建議您實地了解我們的環境與服務",
-                "usage_context": ["information_gathering", "interest_shown"]
+                "usage_context": ["information_gathering", "interest_shown"],
+                "spin_phase": "N"
               },
               {
                 "id": "consultation_booking",
                 "content": "我們可安排專人為您解答具體情況",
-                "usage_context": ["complex_inquiry", "professional_advice_needed"]
+                "usage_context": ["complex_inquiry", "professional_advice_needed"],
+                "spin_phase": "N"
               },
               {
                 "id": "trial_offer",
                 "content": "提供短期試用方案，無負擔體驗",
-                "usage_context": ["hesitation", "need_to_consider"]
+                "usage_context": ["hesitation", "need_to_consider"],
+                "spin_phase": "N"
               },
               {
                 "id": "limited_time_offer",
                 "content": "本月新客享有特別優惠",
-                "usage_context": ["price_sensitive", "ready_to_close"]
+                "usage_context": ["price_sensitive", "ready_to_close"],
+                "spin_phase": "N"
               },
               {
                 "id": "free_tax_check",
                 "content": "帶上近6個月營業資料，我們現場免費試算，立即了解稅務風險與節稅空間",
-                "usage_context": ["interest_shown", "need_to_consider", "tax_planning"]
+                "usage_context": ["interest_shown", "need_to_consider", "tax_planning"],
+                "spin_phase": "N"
               },
               {
                 "id": "free_cost_estimate",
                 "content": "我們可現場免費試算您的營運成本與稅負，讓您立即看見投資回報",
-                "usage_context": ["need_to_consider", "price_objection", "interest_shown"]
+                "usage_context": ["need_to_consider", "price_objection", "interest_shown"],
+                "spin_phase": "N"
               }
             ]
           }
@@ -136,6 +361,12 @@
       {
         "id": "coworking_desk",
         "name": "共享辦公桌服務",
+        "spin_focus": {
+          "key_S_questions": ["工作型態", "使用頻率", "團隊人數"],
+          "key_P_points": ["在家工作困擾", "專注力問題", "缺乏會議空間"],
+          "key_I_amplifiers": ["效率損失", "專業形象影響", "長期生產力下降"],
+          "key_N_payoffs": ["靈活使用", "專業環境", "社群資源"]
+        },
         "components": [
           {
             "type": "value_statement",
@@ -143,22 +374,26 @@
               {
                 "id": "flexibility",
                 "content": "靈活的時間與空間選擇，按需使用不浪費",
-                "usage_context": ["usage_method", "cost_efficiency"]
+                "usage_context": ["usage_method", "cost_efficiency"],
+                "spin_phase": "N"
               },
               {
                 "id": "professional_environment",
                 "content": "專業辦公環境，提升工作效率與形象",
-                "usage_context": ["facilities", "professional_image"]
+                "usage_context": ["facilities", "professional_image"],
+                "spin_phase": "N"
               },
               {
                 "id": "networking",
                 "content": "多元創業社群，創造合作與學習機會",
-                "usage_context": ["community", "social_benefits"]
+                "usage_context": ["community", "social_benefits"],
+                "spin_phase": "N"
               },
               {
                 "id": "all_inclusive",
                 "content": "包含高速網路、茶水、空調等所有基礎設施",
-                "usage_context": ["facility", "pricing_plan"]
+                "usage_context": ["facility", "pricing_plan"],
+                "spin_phase": "N"
               }
             ]
           },
@@ -168,17 +403,20 @@
               {
                 "id": "vs_cafe",
                 "content": "比咖啡廳更安靜專業，無消費壓力",
-                "usage_context": ["comparing_with_others", "cost_efficiency"]
+                "usage_context": ["comparing_with_others", "cost_efficiency"],
+                "spin_phase": "N"
               },
               {
                 "id": "vs_home",
                 "content": "比在家工作更專注，清晰工作與生活界線",
-                "usage_context": ["lifestyle", "productivity"]
+                "usage_context": ["lifestyle", "productivity"],
+                "spin_phase": "N"
               },
               {
                 "id": "vs_competitors",
                 "content": "地理位置與社群資源的獨特優勢",
-                "usage_context": ["comparing_with_others", "location_traffic"]
+                "usage_context": ["comparing_with_others", "location_traffic"],
+                "spin_phase": "N"
               }
             ]
           }
@@ -189,89 +427,106 @@
       {
         "id": "information_gathering",
         "name": "信息收集技巧",
+        "spin_alignment": "S",
         "tactics": [
           {
             "id": "open_question",
             "content": "使用開放式問題了解需求：「您主要是什麼類型的業務？」",
-            "usage_context": ["initial_contact", "need_discovery"]
+            "usage_context": ["initial_contact", "need_discovery"],
+            "spin_note": "S 階段的核心技巧"
           },
           {
-            "id": "probing_question", 
+            "id": "probing_question",
             "content": "使用探索性問題挖掘深層需求：「這個空間將主要用於哪些活動？」",
-            "usage_context": ["interest_shown", "need_clarification"]
+            "usage_context": ["interest_shown", "need_clarification"],
+            "spin_note": "S→P 的過渡問題"
           },
           {
             "id": "confirmation_question",
             "content": "使用確認性問題鞏固理解：「所以您需要一個可以偶爾見客戶的專業場所，是嗎？」",
-            "usage_context": ["information_verification", "summarizing"]
+            "usage_context": ["information_verification", "summarizing"],
+            "spin_note": "確認 S 階段收集的資訊"
           }
         ]
       },
       {
         "id": "price_deflection",
         "name": "價格迴避技巧",
+        "spin_alignment": "S",
         "tactics": [
           {
             "id": "need_first",
             "content": "先了解需求再談價格：「為了提供最適合的方案，能否先了解您的使用需求？」",
-            "usage_context": ["price_inquiry", "initial_contact"]
+            "usage_context": ["price_inquiry", "initial_contact"],
+            "spin_note": "用 S 問題轉移焦點"
           },
           {
             "id": "value_before_price",
             "content": "先建立價值再提價格：「我們的服務包含這些獨特價值...關於投資金額，」",
-            "usage_context": ["pricing_discussion", "value_building"]
+            "usage_context": ["pricing_discussion", "value_building"],
+            "spin_note": "先完成 SPIN 流程再報價"
           },
           {
             "id": "range_not_specific",
             "content": "提供價格範圍而非具體數字：「根據您的需求，通常投資範圍在X至Y之間」",
-            "usage_context": ["price_negotiation", "budget_discussion"]
+            "usage_context": ["price_negotiation", "budget_discussion"],
+            "spin_note": "保留面談報價的空間"
           }
         ]
       },
       {
         "id": "objection_handling",
         "name": "異議處理技巧",
+        "spin_alignment": "P-I-N",
         "tactics": [
           {
             "id": "acknowledge_reframe",
             "content": "確認理解並重塑框架：「我理解您的顧慮，讓我從另一個角度說明」",
-            "usage_context": ["objection_raised", "concern_expressed"]
+            "usage_context": ["objection_raised", "concern_expressed"],
+            "spin_note": "先同理（P），再重塑（I→N）"
           },
           {
             "id": "feel_felt_found",
             "content": "感同身受技巧：「許多客戶最初也有相同感受，但他們發現...」",
-            "usage_context": ["common_objection", "reassurance_needed"]
+            "usage_context": ["common_objection", "reassurance_needed"],
+            "spin_note": "用社會證明支持 N"
           },
           {
             "id": "evidence_based",
             "content": "提供證據支持：「根據我們的數據，超過95%的客戶體驗了這些好處...」",
-            "usage_context": ["skepticism", "proof_needed"]
+            "usage_context": ["skepticism", "proof_needed"],
+            "spin_note": "用數據強化 N"
           },
           {
             "id": "fear_appeal",
             "content": "點出不採取行動的潛在損失或風險，提升行動動機",
-            "usage_context": ["fear_appeal", "concern_expressed", "hesitation"]
+            "usage_context": ["fear_appeal", "concern_expressed", "hesitation"],
+            "spin_note": "I 階段的核心技巧"
           }
         ]
       },
       {
         "id": "closing_techniques",
         "name": "成交技巧",
+        "spin_alignment": "N",
         "tactics": [
           {
             "id": "assumptive_close",
             "content": "假設性成交：「我們安排下週一開始，可以嗎？」",
-            "usage_context": ["high_interest", "decision_ready"]
+            "usage_context": ["high_interest", "decision_ready"],
+            "spin_note": "N 階段，客戶已認同價值時使用"
           },
           {
             "id": "alternative_close",
             "content": "選擇性成交：「您偏好週間還是週末來辦理手續？」",
-            "usage_context": ["hesitation", "final_push"]
+            "usage_context": ["hesitation", "final_push"],
+            "spin_note": "給選項而非是/否問題"
           },
           {
             "id": "urgency_creation",
             "content": "創造緊迫感：「本月方案僅剩3個名額」或「下週價格將調整」",
-            "usage_context": ["need_catalyst", "fence_sitting"]
+            "usage_context": ["need_catalyst", "fence_sitting"],
+            "spin_note": "適度使用，不要過度施壓"
           }
         ]
       }

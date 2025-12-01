@@ -1,4 +1,30 @@
 {
+  "spin_training_guide": {
+    "description": "此訓練資料用於教導 AI 識別和應用 SPIN 銷售法",
+    "spin_phase_definitions": {
+      "S": {
+        "name": "Situation",
+        "purpose": "了解客戶現況",
+        "indicators": ["客戶提供基本資訊", "詢問公司型態、業務類型", "了解現況背景"]
+      },
+      "P": {
+        "name": "Problem",
+        "purpose": "挖掘痛點困擾",
+        "indicators": ["客戶表達困擾、不滿", "客戶擔心某些風險", "客戶提出問題或疑慮"]
+      },
+      "I": {
+        "name": "Implication",
+        "purpose": "放大問題影響",
+        "indicators": ["討論問題的後果", "強調風險的嚴重性", "計算機會成本"]
+      },
+      "N": {
+        "name": "Need-payoff",
+        "purpose": "導向解決方案",
+        "indicators": ["客戶認同需要解決", "提供價值主張", "邀約行動（參觀/通話）"]
+      }
+    },
+    "how_to_use": "每個 assistant turn 應標記 spin_phase 欄位，表示該回覆處於 SPIN 哪個階段。可以是單一階段如 'S'，或過渡階段如 'S→P'，或多階段如 ['P', 'I']"
+  },
   "conversations": [
     {
       "conversation_id": "conv001",
@@ -2864,8 +2890,384 @@
               "strategy": "因涉及複雜稅務規劃，直接引導與會計師通話"
             }
           ]
+        },
+        {
+          "conversation_id": "spin_example_001",
+          "topic": "【SPIN 完整範例】電商創業者 - 地址需求",
+          "tags": ["SPIN完整範例", "電商", "新設立", "S→P→I→N"],
+          "spin_flow_summary": "完整展示 SPIN 四階段：從了解現況到成功邀約",
+          "turns": [
+            {
+              "turn_id": 1,
+              "role": "user",
+              "content": "你好，我想問一下營業地址的服務",
+              "intent": "service_inquiry",
+              "entities": ["營業地址"]
+            },
+            {
+              "turn_id": 2,
+              "role": "assistant",
+              "content": "您好！很高興為您服務。為了提供最適合您的建議，想先了解一下您的情況。請問您是打算新設立公司，還是要把現有公司地址遷過來呢？",
+              "dialog_act": "greet + ask_situation",
+              "strategy": "開始 SPIN - Situation 階段，了解基本情況",
+              "spin_phase": "S",
+              "spin_note": "用開放式問題開始了解客戶現況"
+            },
+            {
+              "turn_id": 3,
+              "role": "user",
+              "content": "我要新設立，做蝦皮電商的",
+              "intent": "provide_info",
+              "entities": ["新設立", "蝦皮", "電商"]
+            },
+            {
+              "turn_id": 4,
+              "role": "assistant",
+              "content": "了解，蝦皮電商是我們很多客戶在做的業務。請問您目前是一個人經營，還是有團隊？主要是在家裡作業嗎？",
+              "dialog_act": "acknowledge + continue_situation_questions",
+              "strategy": "繼續 Situation，收集更多背景資訊",
+              "spin_phase": "S",
+              "spin_note": "深入了解團隊規模和工作地點"
+            },
+            {
+              "turn_id": 5,
+              "role": "user",
+              "content": "對，就我自己做，都在家裡處理訂單和出貨",
+              "intent": "provide_info",
+              "entities": ["一人", "在家"]
+            },
+            {
+              "turn_id": 6,
+              "role": "assistant",
+              "content": "謝謝分享。那想請問一下，您現在用住家地址做生意，有遇到什麼不方便的地方嗎？例如隱私方面，或是客戶對地址的看法？",
+              "dialog_act": "transition_to_problem",
+              "strategy": "轉入 Problem 階段，開始挖掘痛點",
+              "spin_phase": "S→P",
+              "spin_note": "用過渡問題從 S 轉向 P，探詢潛在困擾"
+            },
+            {
+              "turn_id": 7,
+              "role": "user",
+              "content": "其實有點擔心耶，住家地址放在蝦皮上面，萬一有奇怪的人找上門怎麼辦",
+              "intent": "express_concern",
+              "entities": ["擔心", "隱私", "安全"]
+            },
+            {
+              "turn_id": 8,
+              "role": "assistant",
+              "content": "這個擔心很正常，很多電商賣家都有同樣的顧慮。除了隱私安全之外，您有想過如果要正式成立公司或行號，用住家地址登記可能會遇到什麼問題嗎？",
+              "dialog_act": "validate_concern + probe_deeper_problem",
+              "strategy": "確認 Problem，並深挖其他潛在問題",
+              "spin_phase": "P",
+              "spin_note": "驗證痛點並探詢更多問題面向"
+            },
+            {
+              "turn_id": 9,
+              "role": "user",
+              "content": "這個我還沒想過，會有什麼問題嗎？",
+              "intent": "request_info",
+              "entities": ["問題"]
+            },
+            {
+              "turn_id": 10,
+              "role": "assistant",
+              "content": "主要有兩個風險。第一，如果您的住家是社區大樓或公寓，管委會可能不允許作為營業地址使用。第二，國稅局在審核時，可能會對住家地址的電商公司特別關注。您有想過如果登記被退件，或是被稅局抽查，會造成什麼影響嗎？",
+              "dialog_act": "explain_risks + amplify_implication",
+              "strategy": "轉入 Implication 階段，放大問題後果",
+              "spin_phase": "P→I",
+              "spin_note": "說明具體風險並引導客戶思考後果"
+            },
+            {
+              "turn_id": 11,
+              "role": "user",
+              "content": "被退件的話就不能開始營業了...抽查的話我也不知道怎麼應對",
+              "intent": "acknowledge_risk",
+              "entities": ["退件", "抽查", "擔心"]
+            },
+            {
+              "turn_id": 12,
+              "role": "assistant",
+              "content": "沒錯。退件會耽誤您的開業時間，錯過銷售旺季就是實際的損失。而且如果您已經在賣東西但還沒正式登記，被查到的話可能要補稅加罰鍰，最嚴重是『補一罰一』，金額可能是您想像不到的。這對剛創業的人來說壓力會很大。",
+              "dialog_act": "amplify_consequences",
+              "strategy": "深化 Implication，強調財務和時間成本",
+              "spin_phase": "I",
+              "spin_note": "具體化後果，讓客戶感受問題的嚴重性"
+            },
+            {
+              "turn_id": 13,
+              "role": "user",
+              "content": "聽起來蠻嚴重的，那要怎麼辦比較好？",
+              "intent": "seek_solution",
+              "entities": ["怎麼辦", "解決"]
+            },
+            {
+              "turn_id": 14,
+              "role": "assistant",
+              "content": "這就是為什麼很多電商賣家會選擇使用專業的商業地址。如果您有一個金融商圈的合法地址，不但能保護您的隱私，登記審核也會更順利，而且我們有會計師團隊可以協助您應對稅務問題。這樣的解決方案對您的狀況會有幫助嗎？",
+              "dialog_act": "present_solution + confirm_value",
+              "strategy": "轉入 Need-payoff 階段，提出解決方案並確認價值",
+              "spin_phase": "I→N",
+              "spin_note": "銜接到解決方案，讓客戶確認這對他有幫助"
+            },
+            {
+              "turn_id": 15,
+              "role": "user",
+              "content": "聽起來是可以解決我的問題，那費用大概多少？",
+              "intent": "price_inquiry + show_interest",
+              "entities": ["費用", "興趣"]
+            },
+            {
+              "turn_id": 16,
+              "role": "assistant",
+              "content": "針對電商賣家，我們有專屬的方案，每天大約 60-80 元，比一杯咖啡還便宜，但可以省去很多麻煩和風險。而且我們已經幫助超過 100 位蝦皮賣家順利設立。建議您來現場看看環境，我們可以當場幫您評估最適合的方案，也可以試算如果您之前有營收需要補申報的情況。您這週或下週哪天方便？",
+              "dialog_act": "provide_value_price + social_proof + invite_visit",
+              "strategy": "完成 Need-payoff，用價值定錨報價，社會證明強化信心，邀約行動",
+              "spin_phase": "N",
+              "spin_note": "價值先於價格，並用具體行動收尾"
+            },
+            {
+              "turn_id": 17,
+              "role": "user",
+              "content": "好，那我下週二下午可以過去",
+              "intent": "agree_visit",
+              "entities": ["下週二", "下午"]
+            },
+            {
+              "turn_id": 18,
+              "role": "assistant",
+              "content": "太好了！已為您預約下週二下午 2 點的參觀與諮詢。我們地址是台中市西區大忠南街55號七樓之五。到時候我們會針對您的電商業務，說明地址方案細節，也會幫您評估稅務狀況。方便留下您的姓名和電話嗎？我們會在前一天發提醒給您。",
+              "dialog_act": "confirm_appointment + request_contact",
+              "strategy": "確認預約並收集聯絡資訊",
+              "spin_phase": "N",
+              "spin_note": "成功完成 SPIN 循環，達成邀約目標"
+            }
+          ]
+        },
+        {
+          "conversation_id": "spin_example_002",
+          "topic": "【SPIN 完整範例】價格異議處理 - 運用 I 放大風險",
+          "tags": ["SPIN完整範例", "價格異議", "風險放大", "P→I→N"],
+          "spin_flow_summary": "客戶已在 P 階段（嫌貴），透過 I 放大風險後導向 N",
+          "turns": [
+            {
+              "turn_id": 1,
+              "role": "user",
+              "content": "你們一個月要 2000 多，別家才 1200，差太多了吧",
+              "intent": "price_objection",
+              "entities": ["2000", "1200", "差太多"]
+            },
+            {
+              "turn_id": 2,
+              "role": "assistant",
+              "content": "謝謝您的回饋，比較價格是很合理的。方便問一下，您比較的那家主要提供哪些服務內容呢？",
+              "dialog_act": "acknowledge + probe_comparison_basis",
+              "strategy": "不急著辯解，先了解比較基準",
+              "spin_phase": "P",
+              "spin_note": "用問題了解客戶的比較框架"
+            },
+            {
+              "turn_id": 3,
+              "role": "user",
+              "content": "就是地址登記啊，還能有什麼",
+              "intent": "provide_info",
+              "entities": ["地址登記"]
+            },
+            {
+              "turn_id": 4,
+              "role": "assistant",
+              "content": "了解。那我想請教您，如果純粹只看『地址登記』這個功能，您覺得市面上便宜的地址和我們的地址，在使用上會有什麼差別嗎？",
+              "dialog_act": "probe_perceived_difference",
+              "strategy": "引導客戶思考差異點",
+              "spin_phase": "P",
+              "spin_note": "讓客戶自己思考可能的問題"
+            },
+            {
+              "turn_id": 5,
+              "role": "user",
+              "content": "應該都可以用吧？地址就是地址",
+              "intent": "express_doubt",
+              "entities": ["都可以用"]
+            },
+            {
+              "turn_id": 6,
+              "role": "assistant",
+              "content": "表面上看是這樣。不過我想跟您分享，我們有遇過客戶，之前用比較便宜的地址登記，結果被國稅局查核時，發現那個地址根本沒有實體辦公環境，被認定為疑似人頭公司。您知道那個後果是什麼嗎？",
+              "dialog_act": "share_case + introduce_risk",
+              "strategy": "轉入 Implication，用案例引入風險",
+              "spin_phase": "P→I",
+              "spin_note": "用真實案例開始放大問題影響"
+            },
+            {
+              "turn_id": 7,
+              "role": "user",
+              "content": "什麼後果？",
+              "intent": "request_info",
+              "entities": ["後果"]
+            },
+            {
+              "turn_id": 8,
+              "role": "assistant",
+              "content": "那個客戶被要求補繳三年的營業稅和營所稅，再加上同額罰鍰。總共花了將近 30 萬才解決這件事，還不包括請律師和會計師處理的費用。他當初省下來的地址費用，連那 30 萬的零頭都不到。",
+              "dialog_act": "amplify_financial_impact",
+              "strategy": "深化 Implication，用具體數字強化衝擊",
+              "spin_phase": "I",
+              "spin_note": "具體金額讓風險變得真實可感"
+            },
+            {
+              "turn_id": 9,
+              "role": "user",
+              "content": "這麼誇張...那怎麼判斷一個地址會不會有這種問題？",
+              "intent": "seek_criteria",
+              "entities": ["判斷", "問題"]
+            },
+            {
+              "turn_id": 10,
+              "role": "assistant",
+              "content": "主要看幾個點：有沒有實體辦公空間、租賃合約是否完整合規、地址提供商有沒有處理國稅局查核的經驗。這就是我們和便宜地址的差別。我們每個月多收的這幾百塊，其實是在幫您買一份保障。",
+              "dialog_act": "explain_criteria + reframe_value",
+              "strategy": "轉入 Need-payoff，重塑價格的價值框架",
+              "spin_phase": "I→N",
+              "spin_note": "把價差重新定義為『保障成本』"
+            },
+            {
+              "turn_id": 11,
+              "role": "user",
+              "content": "這樣說好像有點道理...",
+              "intent": "show_consideration",
+              "entities": ["考慮"]
+            },
+            {
+              "turn_id": 12,
+              "role": "assistant",
+              "content": "每天其實只差不到 30 塊，但萬一出問題，省下的錢根本不夠處理後果。而且我們有會計師團隊，如果真的遇到查核，我們可以協助您應對。這種安心感，您覺得值不值這個價差？",
+              "dialog_act": "daily_cost_reframe + emphasize_support",
+              "strategy": "Need-payoff，用日成本重塑感知，強調附加價值",
+              "spin_phase": "N",
+              "spin_note": "讓客戶自己評估價值"
+            },
+            {
+              "turn_id": 13,
+              "role": "user",
+              "content": "好吧，聽起來確實比較有保障。那我要怎麼進一步了解？",
+              "intent": "show_interest",
+              "entities": ["了解", "興趣"]
+            },
+            {
+              "turn_id": 14,
+              "role": "assistant",
+              "content": "建議您帶您比較的其他家資料，直接來我們現場走一趟。我們可以一項一項比較服務內容，也當場讓您看看我們的實體環境和合規文件。這樣您可以做最清楚的判斷。您這週哪天方便？",
+              "dialog_act": "invite_comparison_visit",
+              "strategy": "完成 Need-payoff，用比較型邀約促成行動",
+              "spin_phase": "N",
+              "spin_note": "自信地邀請比較，展現對自家服務的信心"
+            }
+          ]
+        },
+        {
+          "conversation_id": "spin_example_003",
+          "topic": "【SPIN 完整範例】稅務風險恐懼 - 快速 I→N 路徑",
+          "tags": ["SPIN完整範例", "稅務風險", "恐懼行銷", "快速I→N"],
+          "spin_flow_summary": "客戶已有恐懼（I 階段），快速導向解決方案（N）",
+          "turns": [
+            {
+              "turn_id": 1,
+              "role": "user",
+              "content": "我之前租別家地址，結果被補稅，現在超怕的，想換一家可靠的",
+              "intent": "share_bad_experience + seek_reliable_option",
+              "entities": ["被補稅", "怕", "可靠"]
+            },
+            {
+              "turn_id": 2,
+              "role": "assistant",
+              "content": "很抱歉您有過這樣的經驗，被補稅確實是很大的壓力。方便說說當時是什麼情況嗎？是被國稅局抽查，還是地址本身有問題？",
+              "dialog_act": "empathize + probe_situation",
+              "strategy": "先同理，再了解具體情況（快速確認 S）",
+              "spin_phase": "S",
+              "spin_note": "客戶已帶著痛點來，快速確認背景即可"
+            },
+            {
+              "turn_id": 3,
+              "role": "user",
+              "content": "國稅局說那個地址沒有實際營業環境，認定我們是空殼，要求補稅三年還有罰鍰",
+              "intent": "explain_situation",
+              "entities": ["空殼", "補稅三年", "罰鍰"]
+            },
+            {
+              "turn_id": 4,
+              "role": "assistant",
+              "content": "這確實是最糟的情況。被認定沒有實際營業，等於整個公司的合法性都被質疑。除了補稅罰鍰，這種記錄對您未來申請貸款或政府補助也可能有影響。您現在那筆稅處理完了嗎？",
+              "dialog_act": "validate_severity + amplify_long_term_impact + check_status",
+              "strategy": "確認 Implication（客戶已在 I），強化長期影響",
+              "spin_phase": "I",
+              "spin_note": "客戶已經歷過 I，這裡是加深印象"
+            },
+            {
+              "turn_id": 5,
+              "role": "user",
+              "content": "處理完了，花了快 20 萬。所以現在找地址特別小心",
+              "intent": "provide_info + express_caution",
+              "entities": ["20萬", "小心"]
+            },
+            {
+              "turn_id": 6,
+              "role": "assistant",
+              "content": "20 萬的教訓確實深刻。您會這麼謹慎是對的。那我想了解一下，您現在選擇地址最在意的是哪些條件？是要確保有實體空間，還是需要有人能幫您應對稅務問題？",
+              "dialog_act": "acknowledge_lesson + probe_new_criteria",
+              "strategy": "快速轉向 Need-payoff，了解客戶現在的需求重點",
+              "spin_phase": "I→N",
+              "spin_note": "客戶已完成 I，直接探詢他要什麼"
+            },
+            {
+              "turn_id": 7,
+              "role": "user",
+              "content": "兩個都很重要，主要是不要再被查出問題",
+              "intent": "express_needs",
+              "entities": ["實體空間", "稅務", "不要被查"]
+            },
+            {
+              "turn_id": 8,
+              "role": "assistant",
+              "content": "完全理解。針對您的需求，我們的服務有三個保障：第一，我們有真實的辦公空間，您隨時可以來使用；第二，我們提供完整的租賃合約和合規文件；第三，我們有專業會計師團隊，萬一有查核，可以協助您準備資料和應對。這樣的配套對您來說會比較安心嗎？",
+              "dialog_act": "present_solution_matching_needs",
+              "strategy": "Need-payoff，針對客戶需求逐點提供解決方案",
+              "spin_phase": "N",
+              "spin_note": "用客戶的語言回應他的需求"
+            },
+            {
+              "turn_id": 9,
+              "role": "user",
+              "content": "聽起來是我需要的。費用怎麼算？",
+              "intent": "confirm_interest + price_inquiry",
+              "entities": ["需要", "費用"]
+            },
+            {
+              "turn_id": 10,
+              "role": "assistant",
+              "content": "標準方案是一年 24,000 元，等於每天不到 70 塊。跟您之前付出的 20 萬相比，這是買一份長期的安心。而且我們有『未核准全額退費』的保證，如果因為我們的原因導致登記不成功，全額退費。您看要不要直接來現場看看環境？眼見為憑，您也可以確認我們的實體空間符合您的要求。",
+              "dialog_act": "provide_price_with_value_anchor + offer_guarantee + invite_visit",
+              "strategy": "完成 Need-payoff，用過去損失對比現在投資，提供保證降低風險",
+              "spin_phase": "N",
+              "spin_note": "價格定錨在『避免再次損失』"
+            },
+            {
+              "turn_id": 11,
+              "role": "user",
+              "content": "好，我想親自確認一下。明天下午可以嗎？",
+              "intent": "agree_visit",
+              "entities": ["明天", "下午"]
+            },
+            {
+              "turn_id": 12,
+              "role": "assistant",
+              "content": "當然可以！明天下午 2 點方便嗎？我們地址是台中市西區大忠南街55號七樓之五。到時候我會帶您看我們的辦公環境、合規文件範本，也可以說明如果未來遇到國稅局查核，我們會如何協助您。方便留一下您的聯絡電話嗎？",
+              "dialog_act": "confirm_visit + set_expectations + request_contact",
+              "strategy": "確認預約，強化價值期待",
+              "spin_phase": "N",
+              "spin_note": "SPIN 循環完成，成功轉化有痛點的客戶"
+            }
+          ]
         }
-        
+
       ]
     }
   ]
