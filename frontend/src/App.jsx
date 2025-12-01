@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { Settings, BookOpen, Activity, MessageSquare } from 'lucide-react'
+import { Settings, BookOpen, Activity, MessageSquare, FileText } from 'lucide-react'
 import SettingsPage from './pages/SettingsPage'
 import GuidePage from './pages/GuidePage'
 import DashboardPage from './pages/DashboardPage'
+import LogsPage from './pages/LogsPage'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard')
@@ -10,6 +11,7 @@ function App() {
   const navigation = [
     { id: 'dashboard', name: '儀表板', icon: Activity },
     { id: 'messages', name: '訊息管理', icon: MessageSquare },
+    { id: 'logs', name: '系統日誌', icon: FileText },
     { id: 'settings', name: '系統設定', icon: Settings },
     { id: 'guide', name: '使用說明', icon: BookOpen },
   ]
@@ -20,6 +22,8 @@ function App() {
         return <SettingsPage />
       case 'guide':
         return <GuidePage />
+      case 'logs':
+        return <LogsPage />
       case 'dashboard':
       default:
         return <DashboardPage />
@@ -62,8 +66,8 @@ function App() {
                   key={item.id}
                   onClick={() => setCurrentPage(item.id)}
                   className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${isActive
-                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                      : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300'
                     }`}
                 >
                   <Icon className="w-4 h-4" />

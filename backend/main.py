@@ -8,16 +8,24 @@ from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from db.database import create_tables
 
+# 初始化日誌系統
+from logger import setup_logging, get_logger
+setup_logging()
+logger = get_logger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """應用程式生命週期管理"""
     # Startup
+    logger.info("🚀 Brain 正在啟動...")
     print("🚀 Brain 正在啟動...")
     await create_tables()
+    logger.info("✅ 資料庫已初始化")
     print("✅ 資料庫已初始化")
     yield
     # Shutdown
+    logger.info("👋 Brain 正在關閉...")
     print("👋 Brain 正在關閉...")
 
 
@@ -43,12 +51,13 @@ app.add_middleware(
 
 
 # ==================== 路由註冊 ====================
-from api.routes import messages, webhooks, stats, settings
+from api.routes import messages, webhooks, stats, settings, logs
 
 app.include_router(messages.router, prefix="/api", tags=["messages"])
 app.include_router(webhooks.router, tags=["webhooks"])
 app.include_router(stats.router, prefix="/api", tags=["stats"])
 app.include_router(settings.router, prefix="/api", tags=["settings"])
+app.include_router(logs.router, prefix="/api", tags=["logs"])
 
 
 
