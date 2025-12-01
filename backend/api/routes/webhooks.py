@@ -69,19 +69,21 @@ async def line_webhook(
             await db.commit()
             await db.refresh(message)
             
-            # 背景生成草稿
+            # 背景生成草稿（使用獨立 Session）
             async def generate_draft_task():
-                draft_generator = get_draft_generator()
-                try:
-                    await draft_generator.generate(
-                        db=db,
-                        message_id=message.id,
-                        content=message.content,
-                        sender_name=message.sender_name,
-                        source=message.source
-                    )
-                except Exception as e:
-                    print(f"背景草稿生成失敗: {str(e)}")
+                from db.database import AsyncSessionLocal
+                async with AsyncSessionLocal() as task_db:
+                    draft_generator = get_draft_generator()
+                    try:
+                        await draft_generator.generate(
+                            db=task_db,
+                            message_id=message.id,
+                            content=message.content,
+                            sender_name=message.sender_name,
+                            source=message.source
+                        )
+                    except Exception as e:
+                        print(f"背景草稿生成失敗: {str(e)}")
             
             background_tasks.add_task(generate_draft_task)
     
