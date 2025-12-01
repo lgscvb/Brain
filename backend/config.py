@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     # Claude AI
     ANTHROPIC_API_KEY: Optional[str] = None
     
+    # 自動回覆模式（預設：手動審核）
+    AUTO_REPLY_MODE: bool = False
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

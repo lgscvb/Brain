@@ -72,9 +72,14 @@ async def line_webhook(
             # 背景生成草稿（使用獨立 Session）
             async def generate_draft_task():
                 from db.database import AsyncSessionLocal
+                from db.models import Draft
+                from config import settings
+                from sqlalchemy import select
+                
                 async with AsyncSessionLocal() as task_db:
                     draft_generator = get_draft_generator()
                     try:
+                        # 生成草稿
                         await draft_generator.generate(
                             db=task_db,
                             message_id=message.id,
@@ -82,8 +87,38 @@ async def line_webhook(
                             sender_name=message.sender_name,
                             source=message.source
                         )
+                        
+                        # 如果是自動回覆模式，直接發送第一個草稿
+                        if settings.AUTO_REPLY_MODE:
+                            # 查詢剛生成的草稿
+                            result = await task_db.execute(
+                                select(Draft)
+                                .where(Draft.message_id == message.id)
+                                .order_by(Draft.created_at.asc())
+                                .limit(1)
+                            )
+                            first_draft = result.scalar_one_or_none()
+                            
+                            if first_draft:
+                                # 發送到 LINE
+                                await line_client.reply_message(
+                                    user_id,
+                                    first_draft.content
+                                )
+                                
+                                # 更新訊息狀態為已發送
+                                msg_result = await task_db.execute(
+                                    select(Message).where(Message.id == message.id)
+                                )
+                                msg = msg_result.scalar_one_or_none()
+                                if msg:
+                                    msg.status = "sent"
+                                    await task_db.commit()
+                                
+                                print(f"✅ 自動模式：已發送草稿給 {sender_name}")
+                        
                     except Exception as e:
-                        print(f"背景草稿生成失敗: {str(e)}")
+                        print(f"背景草稿生成/發送失敗: {str(e)}")
             
             background_tasks.add_task(generate_draft_task)
     

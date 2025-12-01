@@ -17,6 +17,7 @@ class SettingsUpdate(BaseModel):
     ANTHROPIC_API_KEY: Optional[str] = None
     LINE_CHANNEL_ACCESS_TOKEN: Optional[str] = None
     LINE_CHANNEL_SECRET: Optional[str] = None
+    AUTO_REPLY_MODE: Optional[bool] = None
 
 
 class SettingsRead(BaseModel):
@@ -24,6 +25,7 @@ class SettingsRead(BaseModel):
     ANTHROPIC_API_KEY: Optional[str] = None
     LINE_CHANNEL_ACCESS_TOKEN: Optional[str] = None
     LINE_CHANNEL_SECRET: Optional[str] = None
+    AUTO_REPLY_MODE: bool = False
     ANTHROPIC_API_KEY_SET: bool = False
     LINE_CHANNEL_ACCESS_TOKEN_SET: bool = False
     LINE_CHANNEL_SECRET_SET: bool = False
@@ -69,6 +71,8 @@ def write_env_file(env_vars: Dict[str, str]):
         f.write(f"LINE_CHANNEL_SECRET={env_vars.get('LINE_CHANNEL_SECRET', '')}\n")
         f.write("\n# Claude AI\n")
         f.write(f"ANTHROPIC_API_KEY={env_vars.get('ANTHROPIC_API_KEY', '')}\n")
+        f.write("\n# System\n")
+        f.write(f"AUTO_REPLY_MODE={env_vars.get('AUTO_REPLY_MODE', 'false')}\n")
         f.write("\n# Frontend\n")
         f.write(f"VITE_API_URL={env_vars.get('VITE_API_URL', 'http://localhost:8787')}\n")
 
@@ -86,6 +90,7 @@ async def get_settings():
         ANTHROPIC_API_KEY=None,  # 不回傳實際值
         LINE_CHANNEL_ACCESS_TOKEN=None,
         LINE_CHANNEL_SECRET=None,
+        AUTO_REPLY_MODE=env_vars.get('AUTO_REPLY_MODE', 'false').lower() == 'true',
         ANTHROPIC_API_KEY_SET=bool(env_vars.get('ANTHROPIC_API_KEY')),
         LINE_CHANNEL_ACCESS_TOKEN_SET=bool(env_vars.get('LINE_CHANNEL_ACCESS_TOKEN')),
         LINE_CHANNEL_SECRET_SET=bool(env_vars.get('LINE_CHANNEL_SECRET'))
@@ -112,6 +117,9 @@ async def update_settings(settings: SettingsUpdate):
         
         if settings.LINE_CHANNEL_SECRET is not None:
             env_vars['LINE_CHANNEL_SECRET'] = settings.LINE_CHANNEL_SECRET
+        
+        if settings.AUTO_REPLY_MODE is not None:
+            env_vars['AUTO_REPLY_MODE'] = 'true' if settings.AUTO_REPLY_MODE else 'false'
         
         # 寫入檔案
         write_env_file(env_vars)
