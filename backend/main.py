@@ -43,11 +43,12 @@ app.add_middleware(
 
 
 # ==================== 路由註冊 ====================
-# TODO: 之後會加入以下路由
-# from backend.api.routes import messages, webhooks, stats
-# app.include_router(messages.router, prefix="/api", tags=["messages"])
-# app.include_router(webhooks.router, prefix="/webhook", tags=["webhooks"])
-# app.include_router(stats.router, prefix="/api", tags=["stats"])
+from api.routes import messages, webhooks, stats
+
+app.include_router(messages.router, prefix="/api", tags=["messages"])
+app.include_router(webhooks.router, tags=["webhooks"])
+app.include_router(stats.router, prefix="/api", tags=["stats"])
+
 
 
 @app.get("/")

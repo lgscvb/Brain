@@ -13,11 +13,16 @@ class ClaudeClient:
     
     def __init__(self):
         """初始化 Claude 客戶端"""
-        if not settings.ANTHROPIC_API_KEY:
-            raise ValueError("ANTHROPIC_API_KEY 未設定")
+        self.mock_mode = False
         
-        self.client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-        self.model = "claude-3-5-sonnet-20241022"
+        if not settings.ANTHROPIC_API_KEY:
+            print("警告：ANTHROPIC_API_KEY 未設定，使用模擬模式")
+            self.mock_mode = True
+            self.client = None
+            self.model = "claude-3-5-sonnet-20241022"
+        else:
+            self.client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+            self.model = "claude-3-5-sonnet-20241022"
     
     async def generate_draft(
         self,
@@ -44,6 +49,15 @@ class ClaudeClient:
             }
         """
         from brain.prompts import DRAFT_PROMPT
+        
+        # 模擬模式
+        if self.mock_mode:
+            return {
+                "intent": "詢價",
+                "strategy": "了解需求後引導至面談（模擬模式）",
+                "draft": f"您好 {sender_name}！感謝您的詢問。為了提供最適合您的方案，能否請教：您是打算成立新公司，還是變更現有公司地址？主要業務類型是什麼呢？🤔",
+                "next_action": "等待客戶回覆，進一步了解需求"
+            }
         
         # 建立提示詞
         prompt = DRAFT_PROMPT.format(
@@ -102,6 +116,10 @@ class ClaudeClient:
             修改原因分析（30字內）
         """
         from brain.prompts import MODIFICATION_ANALYSIS_PROMPT
+        
+        # 模擬模式
+        if self.mock_mode:
+            return "調整語氣，使回覆更親切自然（模擬模式）"
         
         # 建立提示詞
         prompt = MODIFICATION_ANALYSIS_PROMPT.format(

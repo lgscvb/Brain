@@ -49,6 +49,17 @@ class ResponseRead(BaseModel):
         from_attributes = True
 
 
+class MessageSimple(MessageBase):
+    """訊息讀取 Schema（簡化版，不含草稿）"""
+    id: int
+    status: str
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
 class MessageRead(MessageBase):
     """訊息讀取 Schema（含草稿）"""
     id: int
@@ -63,7 +74,7 @@ class MessageRead(MessageBase):
 
 class MessageList(BaseModel):
     """訊息列表 Schema"""
-    messages: List[MessageRead]
+    messages: List[MessageSimple]  # 使用簡化版避免載入關聯
     total: int
 
 

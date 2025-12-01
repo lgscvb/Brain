@@ -20,16 +20,22 @@ class LineClient:
     
     def __init__(self):
         """初始化 LINE 客戶端"""
+        self.mock_mode = False
+        
         if not settings.LINE_CHANNEL_ACCESS_TOKEN or not settings.LINE_CHANNEL_SECRET:
-            raise ValueError("LINE_CHANNEL_ACCESS_TOKEN 或 LINE_CHANNEL_SECRET 未設定")
-        
-        # 設定 LINE SDK
-        configuration = Configuration(access_token=settings.LINE_CHANNEL_ACCESS_TOKEN)
-        self.api_client = ApiClient(configuration)
-        self.messaging_api = MessagingApi(self.api_client)
-        
-        # Webhook Handler
-        self.handler = WebhookHandler(settings.LINE_CHANNEL_SECRET)
+            print("警告：LINE_CHANNEL_ACCESS_TOKEN 或 LINE_CHANNEL_SECRET 未設定，使用模擬模式")
+            self.mock_mode = True
+            self.api_client = None
+            self.messaging_api = None
+            self.handler = None
+        else:
+            # 設定 LINE SDK
+            configuration = Configuration(access_token=settings.LINE_CHANNEL_ACCESS_TOKEN)
+            self.api_client = ApiClient(configuration)
+            self.messaging_api = MessagingApi(self.api_client)
+            
+            # Webhook Handler
+            self.handler = WebhookHandler(settings.LINE_CHANNEL_SECRET)
     
     async def send_text_message(self, user_id: str, text: str) -> bool:
         """
@@ -42,6 +48,10 @@ class LineClient:
         Returns:
             是否發送成功
         """
+        if self.mock_mode:
+            print(f"[模擬模式] 發送 LINE 訊息給 {user_id}: {text}")
+            return True
+        
         try:
             request = PushMessageRequest(
                 to=user_id,
@@ -68,6 +78,14 @@ class LineClient:
                 "status_message": "狀態訊息"
             }
         """
+        if self.mock_mode:
+            return {
+                "display_name": "測試用戶",
+                "user_id": user_id,
+                "picture_url": None,
+                "status_message": None,
+            }
+        
         try:
             profile = self.messaging_api.get_profile(user_id)
             return {
@@ -91,6 +109,9 @@ class LineClient:
         Returns:
             簽名是否有效
         """
+        if self.mock_mode:
+            return True
+        
         try:
             self.handler.handle(body, signature)
             return True
