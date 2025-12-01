@@ -4,8 +4,8 @@ Brain - 資料庫連接管理
 """
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.pool import StaticPool
-from backend.config import settings
-from backend.db.models import Base
+from config import settings
+from db.models import Base
 
 
 # 建立非同步引擎

@@ -5,8 +5,8 @@ Brain - FastAPI 主程式
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.config import settings
-from backend.db.database import create_tables
+from config import settings
+from db.database import create_tables
 
 
 @asynccontextmanager

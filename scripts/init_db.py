@@ -7,9 +7,9 @@ import asyncio
 import sys
 from pathlib import Path
 
-# 加入後端路徑到 sys.path
-backend_path = Path(__file__).parent.parent / "backend"
-sys.path.insert(0, str(backend_path))
+# 加入專案根目錄到 sys.path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 from backend.db.database import create_tables
 
