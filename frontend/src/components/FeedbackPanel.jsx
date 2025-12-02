@@ -50,8 +50,8 @@ export default function FeedbackPanel({
         try {
             const payload = {
                 is_good: feedbackData.is_good ?? isGood,
-                rating: feedbackData.rating ?? rating || null,
-                feedback_reason: feedbackData.feedback_reason ?? feedbackReason || null
+                rating: (feedbackData.rating ?? rating) || null,
+                feedback_reason: (feedbackData.feedback_reason ?? feedbackReason) || null
             }
 
             await axios.post(`/api/drafts/${draftId}/feedback`, payload)
