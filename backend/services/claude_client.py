@@ -163,15 +163,27 @@ class ClaudeClient:
 
         try:
             if self.provider == "openrouter":
-                response = await self.openrouter_client.chat.completions.create(
-                    model=target_model,
-                    messages=[
+                # 建立 API 參數
+                api_params = {
+                    "model": target_model,
+                    "messages": [
                         {"role": "system", "content": "You are a helpful customer service assistant for Hour Jungle shared office. Output JSON only."},
                         {"role": "user", "content": prompt}
                     ],
-                    temperature=0.7,
-                    max_tokens=2000
-                )
+                    "temperature": 0.7,
+                    "max_tokens": 16000 if settings.ENABLE_EXTENDED_THINKING else 2000
+                }
+
+                # OpenRouter 支援 reasoning 參數（適用於 Claude 3.7+, Sonnet 4.5 等）
+                if settings.ENABLE_EXTENDED_THINKING:
+                    api_params["extra_body"] = {
+                        "reasoning": {
+                            "max_tokens": settings.THINKING_BUDGET_TOKENS
+                        }
+                    }
+                    print(f"🧠 啟用 Extended Thinking (budget: {settings.THINKING_BUDGET_TOKENS} tokens)")
+
+                response = await self.openrouter_client.chat.completions.create(**api_params)
                 content = response.choices[0].message.content
                 usage = {
                     "input_tokens": response.usage.prompt_tokens if response.usage else 0,
