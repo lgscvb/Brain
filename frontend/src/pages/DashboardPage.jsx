@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Activity, MessageSquare, TrendingUp, Clock } from 'lucide-react'
 import axios from 'axios'
 
-export default function DashboardPage() {
+export default function DashboardPage({ onNavigate }) {
     const [stats, setStats] = useState(null)
     const [loading, setLoading] = useState(true)
 
@@ -109,15 +109,13 @@ export default function DashboardPage() {
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">快速動作</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <a
-                        href="/api/messages/pending"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                    <button
+                        onClick={() => onNavigate && onNavigate('messages')}
                         className="flex items-center justify-center space-x-2 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
                     >
                         <MessageSquare className="w-5 h-5" />
                         <span>查看待處理訊息</span>
-                    </a>
+                    </button>
 
                     <a
                         href="/api/docs"
@@ -129,15 +127,13 @@ export default function DashboardPage() {
                         <span>API 文件</span>
                     </a>
 
-                    <a
-                        href="/api/learning/recent"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                    <button
+                        onClick={() => onNavigate && onNavigate('feedback')}
                         className="flex items-center justify-center space-x-2 px-4 py-3 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
                     >
                         <TrendingUp className="w-5 h-5" />
-                        <span>學習記錄</span>
-                    </a>
+                        <span>AI 回饋統計</span>
+                    </button>
                 </div>
             </div>
 

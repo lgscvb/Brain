@@ -33,7 +33,7 @@ function App() {
         return <MessagesPage />
       case 'dashboard':
       default:
-        return <DashboardPage />
+        return <DashboardPage onNavigate={setCurrentPage} />
     }
   }
 
