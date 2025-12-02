@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     
     # Claude AI
     ANTHROPIC_API_KEY: Optional[str] = None
-    CLAUDE_MODEL: str = "claude-3-5-sonnet-20241022"  # 預設使用 Claude 3.5 Sonnet
+    CLAUDE_MODEL: str = "claude-sonnet-4-5"  # 預設使用 Claude Sonnet 4.5 (最新)
     
     # 自動回覆模式（預設：手動審核）
     AUTO_REPLY_MODE: bool = False

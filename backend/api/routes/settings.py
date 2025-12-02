@@ -24,7 +24,7 @@ class SettingsUpdate(BaseModel):
 class SettingsRead(BaseModel):
     """設定讀取 Schema"""
     ANTHROPIC_API_KEY: Optional[str] = None
-    CLAUDE_MODEL: str = "claude-3-5-sonnet-20241022"
+    CLAUDE_MODEL: str = "claude-sonnet-4-5"
     LINE_CHANNEL_ACCESS_TOKEN: Optional[str] = None
     LINE_CHANNEL_SECRET: Optional[str] = None
     AUTO_REPLY_MODE: bool = False
@@ -73,7 +73,7 @@ def write_env_file(env_vars: Dict[str, str]):
         f.write(f"LINE_CHANNEL_SECRET={env_vars.get('LINE_CHANNEL_SECRET', '')}\n")
         f.write("\n# Claude AI\n")
         f.write(f"ANTHROPIC_API_KEY={env_vars.get('ANTHROPIC_API_KEY', '')}\n")
-        f.write(f"CLAUDE_MODEL={env_vars.get('CLAUDE_MODEL', 'claude-3-5-sonnet-20241022')}\n")
+        f.write(f"CLAUDE_MODEL={env_vars.get('CLAUDE_MODEL', 'claude-sonnet-4-5')}\n")
         f.write("\n# System\n")
         f.write(f"AUTO_REPLY_MODE={env_vars.get('AUTO_REPLY_MODE', 'false')}\n")
         f.write("\n# Frontend\n")
@@ -91,7 +91,7 @@ async def get_settings():
     
     return SettingsRead(
         ANTHROPIC_API_KEY=None,  # 不回傳實際值
-        CLAUDE_MODEL=env_vars.get('CLAUDE_MODEL', 'claude-3-5-sonnet-20241022'),
+        CLAUDE_MODEL=env_vars.get('CLAUDE_MODEL', 'claude-sonnet-4-5'),
         LINE_CHANNEL_ACCESS_TOKEN=None,
         LINE_CHANNEL_SECRET=None,
         AUTO_REPLY_MODE=env_vars.get('AUTO_REPLY_MODE', 'false').lower() == 'true',
