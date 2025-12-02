@@ -7,7 +7,11 @@ Brain AI 客服系統已成功部署到 GCP 生產環境，並完成以下核心
 ### ✅ **已完成功能**
 
 #### 🧠 **核心 AI 系統**
-- Claude 3.5 Sonnet 整合（SPIN 銷售框架）
+- **LLM Routing 架構**：智能分流，成本降低 70%+
+  - 複雜任務 → Claude Sonnet 4.5 (高品質)
+  - 簡單任務 → Gemini Flash (便宜快速)
+- **OpenRouter 整合**：統一 API 接口，支援多模型切換
+- Claude Sonnet 4.5 整合（SPIN 銷售框架）
 - RAG 知識庫（邏輯樹 + 銷售地圖）
 - 多草稿生成與人工審核機制
 - 自動學習功能（分析人工修改並優化）
@@ -36,7 +40,7 @@ Brain AI 客服系統已成功部署到 GCP 生產環境，並完成以下核心
 
 ## 🔧 **技術棧**
 
-**後端**：FastAPI, SQLAlchemy, Anthropic Claude API, LINE Bot SDK  
+**後端**：FastAPI, SQLAlchemy, OpenRouter API, Anthropic Claude API, LINE Bot SDK  
 **前端**：React, Vite, Tailwind CSS, Axios  
 **資料庫**：SQLite  
 **部署**：Docker, Nginx, GCP Compute Engine, Cloudflare  

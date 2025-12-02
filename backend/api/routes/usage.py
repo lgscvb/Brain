@@ -23,7 +23,8 @@ PRICING = {
 
     # === OpenRouter 模型 ===
     # Claude 系列 (via OpenRouter)
-    "anthropic/claude-3.5-sonnet": {"input": 300, "output": 1500},
+    "anthropic/claude-sonnet-4.5": {"input": 300, "output": 1500},  # Claude Sonnet 4.5
+    "anthropic/claude-3.5-sonnet": {"input": 300, "output": 1500},  # 舊版
     "anthropic/claude-3-haiku": {"input": 25, "output": 125},      # $0.25/$1.25 per MTok
 
     # Google Gemini 系列 (便宜且快速)

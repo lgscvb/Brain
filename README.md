@@ -28,7 +28,7 @@
 ### 🤖 **AI 智能回覆**
 - **LLM Routing 架構**：智能分流，成本降低 70%+
   - 簡單問題 → Gemini Flash（便宜快速）
-  - 複雜問題 → Claude 3.5 Sonnet（高品質）
+  - 複雜問題 → Claude Sonnet 4.5（高品質）
 - 支援 **OpenRouter**（推薦）和 **Anthropic 直連**
 - 基於 **SPIN 銷售框架**（Situation, Problem, Implication, Need-payoff）
 - **RAG 知識庫**支援，自動檢索邏輯樹和銷售策略
@@ -57,7 +57,7 @@
 - **框架**：FastAPI (Python 3.11)
 - **資料庫**：SQLite + SQLAlchemy (async)
 - **AI**：OpenRouter (多模型支援) / Anthropic 直連
-  - Smart Model: Claude 3.5 Sonnet
+  - Smart Model: Claude Sonnet 4.5
   - Fast Model: Gemini Flash 1.5
 - **訊息**：LINE Bot SDK
 - **日誌**：Python logging + RotatingFileHandler
@@ -191,7 +191,7 @@ OPENROUTER_API_KEY=your_openrouter_api_key
 
 # LLM Routing 模型分流
 ENABLE_ROUTING=true
-MODEL_SMART=anthropic/claude-3.5-sonnet
+MODEL_SMART=anthropic/claude-sonnet-4.5
 MODEL_FAST=google/gemini-flash-1.5
 
 # Anthropic 直連 (備用)
@@ -229,7 +229,7 @@ LLM Routing 是本系統的核心成本優化策略：
 | 任務類型 | 模型 | 成本 | 使用場景 |
 |---------|------|------|---------|
 | SIMPLE | Gemini Flash 1.5 | $0.075/$0.30 per MTok | 問候、地址查詢、簡單回覆 |
-| COMPLEX | Claude 3.5 Sonnet | $3/$15 per MTok | 稅務諮詢、SPIN 銷售、複雜邏輯 |
+| COMPLEX | Claude Sonnet 4.5 | $3/$15 per MTok | 稅務諮詢、SPIN 銷售、複雜邏輯 |
 
 **預估節省**：假設 60% 訊息為簡單問題，可節省 **70%+ 成本**
 

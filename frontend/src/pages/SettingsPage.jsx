@@ -11,7 +11,7 @@ export default function SettingsPage() {
 
         // LLM Routing
         ENABLE_ROUTING: true,
-        MODEL_SMART: 'anthropic/claude-3.5-sonnet',
+        MODEL_SMART: 'anthropic/claude-sonnet-4.5',
         MODEL_FAST: 'google/gemini-flash-1.5',
 
         // Anthropic Direct
@@ -32,7 +32,7 @@ export default function SettingsPage() {
         OPENROUTER_API_KEY_SET: false,
         ANTHROPIC_API_KEY_SET: false,
         ENABLE_ROUTING: true,
-        MODEL_SMART: 'anthropic/claude-3.5-sonnet',
+        MODEL_SMART: 'anthropic/claude-sonnet-4.5',
         MODEL_FAST: 'google/gemini-flash-1.5',
         CLAUDE_MODEL: 'claude-sonnet-4-5',
         ENABLE_EXTENDED_THINKING: false,

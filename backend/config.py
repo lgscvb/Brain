@@ -34,7 +34,7 @@ class Settings(BaseSettings):
 
     # === LLM Routing 模型分流設定 ===
     # 聰明模型：處理 Router 判斷、複雜邏輯、稅務問題、SPIN 銷售
-    MODEL_SMART: str = "anthropic/claude-3.5-sonnet"
+    MODEL_SMART: str = "anthropic/claude-sonnet-4.5"
 
     # 快速模型：處理簡單回覆、地址查詢、問候語
     # 使用 Gemini Flash，成本只有 Haiku 的 1/4

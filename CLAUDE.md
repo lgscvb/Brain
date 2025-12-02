@@ -77,7 +77,7 @@ brain/
 ### 模型分流策略
 - **SIMPLE** (簡單任務) → Fast Model (Gemini Flash, $0.075/$0.30 per MTok)
   - 問候、地址查詢、簡單回覆
-- **COMPLEX** (複雜任務) → Smart Model (Claude 3.5 Sonnet, $3/$15 per MTok)
+- **COMPLEX** (複雜任務) → Smart Model (Claude Sonnet 4.5, $3/$15 per MTok)
   - 稅務諮詢、SPIN 銷售、複雜邏輯
 
 ### 相關檔案
@@ -100,7 +100,7 @@ OPENROUTER_API_KEY=sk-or-v1-xxx
 
 # LLM Routing
 ENABLE_ROUTING=true
-MODEL_SMART=anthropic/claude-3.5-sonnet
+MODEL_SMART=anthropic/claude-sonnet-4.5
 MODEL_FAST=google/gemini-flash-1.5
 
 # LINE Bot

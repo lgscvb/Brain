@@ -133,7 +133,7 @@ async def get_version():
         "environment": "production" if not settings.DEBUG else "development",
         "python_version": "3.11",
         "framework": "FastAPI",
-        "ai_model": "Claude 3.5 Sonnet",
+        "ai_model": "Claude Sonnet 4.5 (LLM Routing)",
         "deployment": {
             "platform": "GCP Compute Engine",
             "containerized": True,

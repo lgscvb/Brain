@@ -35,7 +35,7 @@ app = FastAPI(
     description="""
     ## 功能特色
     
-    - 🤖 **AI 智能回覆**：整合 Claude 3.5 Sonnet，基於 SPIN 銷售框架
+    - 🤖 **AI 智能回覆**：整合 Claude Sonnet 4.5 + LLM Routing，基於 SPIN 銷售框架
     - 💬 **雙模式運行**：手動審核 / 自動回覆靈活切換
     - 📊 **完整管理**：訊息管理、系統日誌、統計分析
     - 🔗 **LINE 整合**：支援 LINE Official Account Webhook
@@ -43,7 +43,7 @@ app = FastAPI(
     ## 技術棧
     
     - **框架**：FastAPI + SQLAlchemy (async)
-    - **AI**：Anthropic Claude 3.5 Sonnet
+    - **AI**：OpenRouter (Claude Sonnet 4.5 + Gemini Flash)
     - **資料庫**：SQLite
     - **部署**：Docker + GCP + Cloudflare
     """,
