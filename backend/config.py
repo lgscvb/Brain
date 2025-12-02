@@ -53,6 +53,22 @@ class Settings(BaseSettings):
     # 自動回覆模式（預設：手動審核）
     AUTO_REPLY_MODE: bool = False
 
+    # === 防洗頻設定 ===
+    # 啟用速率限制
+    ENABLE_RATE_LIMIT: bool = True
+
+    # 時間窗口（秒）：在此時間內計算訊息數量
+    RATE_LIMIT_WINDOW: int = 60
+
+    # 最大訊息數：時間窗口內允許的最大訊息數
+    RATE_LIMIT_MAX_MESSAGES: int = 10
+
+    # 最大重複數：時間窗口內允許的相同內容最大次數
+    RATE_LIMIT_MAX_DUPLICATES: int = 3
+
+    # 冷卻時間（秒）：超過限制後的基礎冷卻時間（會隨違規次數倍增）
+    RATE_LIMIT_COOLDOWN: int = 60
+
     class Config:
         env_file = ".env"
         case_sensitive = True

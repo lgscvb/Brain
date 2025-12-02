@@ -8,6 +8,8 @@ from db.database import get_db
 from db.models import Message
 from brain.draft_generator import get_draft_generator
 from services.line_client import get_line_client
+from services.rate_limiter import get_rate_limiter
+from config import settings
 
 
 router = APIRouter()
@@ -50,11 +52,42 @@ async def line_webhook(
             
             if not user_id or not message_text:
                 continue
-            
+
+            # === 防洗頻檢查 ===
+            if settings.ENABLE_RATE_LIMIT:
+                rate_limiter = get_rate_limiter()
+                is_allowed, reason = rate_limiter.check_rate_limit(user_id, message_text)
+
+                if not is_allowed:
+                    print(f"🚫 訊息被攔截 (user: {user_id[:20]}...): {reason}")
+
+                    # 可選：回覆用戶被限制的訊息
+                    if reason.startswith("cooldown:"):
+                        remaining = reason.split(":")[1]
+                        await line_client.reply_message(
+                            user_id,
+                            f"您發送訊息過於頻繁，請稍後 {remaining} 再試。"
+                        )
+                    elif reason.startswith("rate_limit:"):
+                        await line_client.reply_message(
+                            user_id,
+                            "您發送訊息過於頻繁，請稍後再試。"
+                        )
+                    elif reason.startswith("duplicate:"):
+                        await line_client.reply_message(
+                            user_id,
+                            "請勿重複發送相同訊息。"
+                        )
+                    elif reason.startswith("blocked:"):
+                        # 黑名單用戶不回覆
+                        pass
+
+                    continue  # 跳過此訊息，不生成草稿
+
             # 取得用戶資料
             user_profile = await line_client.get_user_profile(user_id)
             sender_name = user_profile.get('display_name', '未知用戶') if user_profile else '未知用戶'
-            
+
             # 建立訊息記錄
             message = Message(
                 source="line_oa",
