@@ -12,11 +12,33 @@ from db.models import APIUsage
 
 router = APIRouter()
 
-# Claude API 價格 (每百萬 tokens，美分)
+# AI API 價格 (每百萬 tokens，美分)
+# 包含 Anthropic 直連和 OpenRouter 的模型
 PRICING = {
+    # === Anthropic 直連模型 ===
     "claude-3-5-sonnet-20241022": {"input": 300, "output": 1500},  # $3/$15 per MTok
     "claude-sonnet-4-5-20250929": {"input": 300, "output": 1500},
-    "claude-3-5-haiku-20241022": {"input": 100, "output": 500},   # $1/$5 per MTok
+    "claude-sonnet-4-5": {"input": 300, "output": 1500},
+    "claude-3-5-haiku-20241022": {"input": 100, "output": 500},    # $1/$5 per MTok
+
+    # === OpenRouter 模型 ===
+    # Claude 系列 (via OpenRouter)
+    "anthropic/claude-3.5-sonnet": {"input": 300, "output": 1500},
+    "anthropic/claude-3-haiku": {"input": 25, "output": 125},      # $0.25/$1.25 per MTok
+
+    # Google Gemini 系列 (便宜且快速)
+    "google/gemini-flash-1.5": {"input": 7.5, "output": 30},       # $0.075/$0.30 per MTok
+    "google/gemini-flash-1.5-8b": {"input": 3.75, "output": 15},   # $0.0375/$0.15 per MTok
+    "google/gemini-pro-1.5": {"input": 125, "output": 500},        # $1.25/$5.00 per MTok
+
+    # Meta Llama 系列 (最便宜)
+    "meta-llama/llama-3.1-8b-instruct": {"input": 5, "output": 5}, # $0.05/$0.05 per MTok
+    "meta-llama/llama-3.1-70b-instruct": {"input": 35, "output": 40},
+
+    # DeepSeek (便宜且強大)
+    "deepseek/deepseek-chat": {"input": 14, "output": 28},         # $0.14/$0.28 per MTok
+
+    # 預設價格
     "default": {"input": 300, "output": 1500}
 }
 

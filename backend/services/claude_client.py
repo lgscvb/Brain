@@ -1,111 +1,210 @@
 """
-Brain - Claude API 客戶端
-封裝 Anthropic Claude API 調用
+Brain - AI 客戶端
+支援 OpenRouter (推薦) 和 Anthropic 直連兩種模式
+實作 LLM Routing 模型分流功能
 """
 import json
 from typing import Dict, Optional
+from openai import AsyncOpenAI
 from anthropic import Anthropic
 from config import settings
 
 
 class ClaudeClient:
-    """Claude API 客戶端"""
-    
+    """AI API 客戶端 - 支援 OpenRouter 和 Anthropic"""
+
     def __init__(self):
-        """初始化 Claude 客戶端"""
+        """初始化客戶端"""
         self.mock_mode = False
-        
-        if not settings.ANTHROPIC_API_KEY:
-            print("警告：ANTHROPIC_API_KEY 未設定，使用模擬模式")
-            self.mock_mode = True
-            self.client = None
-            self.model = settings.CLAUDE_MODEL
+        self.provider = settings.AI_PROVIDER
+        self.model = settings.CLAUDE_MODEL
+        self.openrouter_client = None
+        self.anthropic_client = None
+
+        # 根據 Provider 設定初始化
+        if self.provider == "openrouter":
+            if not settings.OPENROUTER_API_KEY:
+                print("警告：OPENROUTER_API_KEY 未設定，使用模擬模式")
+                self.mock_mode = True
+            else:
+                self.openrouter_client = AsyncOpenAI(
+                    base_url="https://openrouter.ai/api/v1",
+                    api_key=settings.OPENROUTER_API_KEY,
+                    default_headers={
+                        "HTTP-Referer": "https://brain.yourspce.org",
+                        "X-Title": "Hour Jungle Brain"
+                    }
+                )
+                print(f"✅ OpenRouter 客戶端已初始化")
+                print(f"   Smart Model: {settings.MODEL_SMART}")
+                print(f"   Fast Model: {settings.MODEL_FAST}")
         else:
-            self.client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-            self.model = settings.CLAUDE_MODEL
-    
+            # Anthropic 直連模式
+            if not settings.ANTHROPIC_API_KEY:
+                print("警告：ANTHROPIC_API_KEY 未設定，使用模擬模式")
+                self.mock_mode = True
+            else:
+                self.anthropic_client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
+                print(f"✅ Anthropic 客戶端已初始化，模型: {self.model}")
+
+    async def route_task(self, message: str) -> Dict:
+        """
+        [LLM Routing 第一步] 路由分析：判斷任務複雜度
+        使用 Smart Model 進行精準判斷
+        """
+        from brain.prompts import ROUTER_PROMPT
+
+        if self.mock_mode:
+            return {"complexity": "COMPLEX", "reason": "模擬模式", "suggested_intent": "其他"}
+
+        if not settings.ENABLE_ROUTING:
+            # 未啟用分流，全部使用 Smart Model
+            return {"complexity": "COMPLEX", "reason": "分流未啟用", "suggested_intent": "其他"}
+
+        try:
+            prompt = ROUTER_PROMPT.format(content=message)
+
+            if self.provider == "openrouter":
+                response = await self.openrouter_client.chat.completions.create(
+                    model=settings.MODEL_SMART,
+                    messages=[
+                        {"role": "system", "content": "You are a task router. Output JSON only."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.0,
+                    max_tokens=200
+                )
+                content = response.choices[0].message.content
+                # 提取用量資訊
+                usage = {
+                    "input_tokens": response.usage.prompt_tokens if response.usage else 0,
+                    "output_tokens": response.usage.completion_tokens if response.usage else 0,
+                    "model": settings.MODEL_SMART
+                }
+            else:
+                # Anthropic 直連
+                response = self.anthropic_client.messages.create(
+                    model=self.model,
+                    max_tokens=200,
+                    temperature=0.0,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                content = response.content[0].text
+                usage = {
+                    "input_tokens": response.usage.input_tokens,
+                    "output_tokens": response.usage.output_tokens,
+                    "model": self.model
+                }
+
+            # 嘗試解析 JSON
+            try:
+                # 清理可能的 markdown 格式
+                content = content.strip()
+                if content.startswith("```"):
+                    content = content.split("```")[1]
+                    if content.startswith("json"):
+                        content = content[4:]
+                result = json.loads(content)
+                result["_usage"] = usage
+                return result
+            except json.JSONDecodeError:
+                return {
+                    "complexity": "COMPLEX",
+                    "reason": "JSON解析失敗",
+                    "suggested_intent": "其他",
+                    "_usage": usage
+                }
+
+        except Exception as e:
+            print(f"❌ 路由判斷失敗，預設為複雜模式: {e}")
+            return {"complexity": "COMPLEX", "reason": f"分析失敗: {str(e)[:20]}", "suggested_intent": "其他"}
+
     async def generate_draft(
         self,
         message: str,
         sender_name: str,
         source: str,
-        context: Optional[Dict] = None
+        context: Optional[Dict] = None,
+        model: str = None
     ) -> Dict:
         """
-        生成回覆草稿
-        
-        Args:
-            message: 客戶訊息內容
-            sender_name: 發送者名稱
-            source: 訊息來源 (line_oa, email, phone, manual)
-            context: 額外上下文資訊
-        
-        Returns:
-            {
-                "intent": "詢價|預約|客訴|閒聊|報修|其他",
-                "strategy": "回覆策略說明（給操作者看）",
-                "draft": "回覆草稿內容",
-                "next_action": "建議下一步行動"
-            }
+        [LLM Routing 第二步] 生成回覆草稿
+        可指定使用特定模型
         """
         from brain.prompts import DRAFT_PROMPT
-        
+
+        # 決定使用哪個模型
+        if self.provider == "openrouter":
+            target_model = model or settings.MODEL_SMART
+        else:
+            target_model = self.model
+
         # 模擬模式
         if self.mock_mode:
             return {
                 "intent": "詢價",
                 "strategy": "了解需求後引導至面談（模擬模式）",
                 "draft": f"您好 {sender_name}！感謝您的詢問。為了提供最適合您的方案，能否請教：您是打算成立新公司，還是變更現有公司地址？主要業務類型是什麼呢？🤔",
-                "next_action": "等待客戶回覆，進一步了解需求"
+                "next_action": "等待客戶回覆，進一步了解需求",
+                "_usage": {"input_tokens": 0, "output_tokens": 0, "model": "mock"}
             }
-        
+
         # 建立提示詞
         prompt = DRAFT_PROMPT.format(
             sender_name=sender_name,
             source=source,
             content=message
         )
-        
-        
-        try:
-            # 準備 API 參數
-            api_params = {
-                "model": self.model,
-                "max_tokens": 16000 if settings.ENABLE_EXTENDED_THINKING else 2000,
-                "temperature": 0.7,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ]
-            }
 
-            # 如果啟用 Extended Thinking，加入 thinking 參數
-            if settings.ENABLE_EXTENDED_THINKING:
-                api_params["thinking"] = {
-                    "type": "enabled",
-                    "budget_tokens": settings.THINKING_BUDGET_TOKENS
+        try:
+            if self.provider == "openrouter":
+                response = await self.openrouter_client.chat.completions.create(
+                    model=target_model,
+                    messages=[
+                        {"role": "system", "content": "You are a helpful customer service assistant for Hour Jungle shared office. Output JSON only."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7,
+                    max_tokens=2000
+                )
+                content = response.choices[0].message.content
+                usage = {
+                    "input_tokens": response.usage.prompt_tokens if response.usage else 0,
+                    "output_tokens": response.usage.completion_tokens if response.usage else 0,
+                    "model": target_model
+                }
+            else:
+                # Anthropic 直連
+                api_params = {
+                    "model": target_model,
+                    "max_tokens": 16000 if settings.ENABLE_EXTENDED_THINKING else 2000,
+                    "temperature": 0.7,
+                    "messages": [{"role": "user", "content": prompt}]
                 }
 
-            # 呼叫 Claude API
-            response = self.client.messages.create(**api_params)
+                if settings.ENABLE_EXTENDED_THINKING:
+                    api_params["thinking"] = {
+                        "type": "enabled",
+                        "budget_tokens": settings.THINKING_BUDGET_TOKENS
+                    }
 
-            # 提取用量資訊
-            usage = {
-                "input_tokens": response.usage.input_tokens,
-                "output_tokens": response.usage.output_tokens,
-                "model": self.model
-            }
-
-            # 解析回應
-            content = response.content[0].text
+                response = self.anthropic_client.messages.create(**api_params)
+                content = response.content[0].text
+                usage = {
+                    "input_tokens": response.usage.input_tokens,
+                    "output_tokens": response.usage.output_tokens,
+                    "model": target_model
+                }
 
             # 嘗試解析 JSON
             try:
+                content = content.strip()
+                if content.startswith("```"):
+                    content = content.split("```")[1]
+                    if content.startswith("json"):
+                        content = content[4:]
                 result = json.loads(content)
             except json.JSONDecodeError:
-                # 如果無法解析 JSON，提取內容
                 result = {
                     "intent": "其他",
                     "strategy": "系統自動生成",
@@ -113,14 +212,12 @@ class ClaudeClient:
                     "next_action": "人工審核"
                 }
 
-            # 加入用量資訊
             result["_usage"] = usage
-
             return result
 
         except Exception as e:
-            raise Exception(f"Claude API 調用失敗: {str(e)}")
-    
+            raise Exception(f"AI API 調用失敗 ({target_model}): {str(e)}")
+
     async def analyze_modification(
         self,
         original: str,
@@ -128,43 +225,36 @@ class ClaudeClient:
     ) -> str:
         """
         分析人工修改原因
-        
-        Args:
-            original: AI 原始草稿
-            final: 人工修改後的最終內容
-        
-        Returns:
-            修改原因分析（30字內）
         """
         from brain.prompts import MODIFICATION_ANALYSIS_PROMPT
-        
-        # 模擬模式
+
         if self.mock_mode:
             return "調整語氣，使回覆更親切自然（模擬模式）"
-        
-        # 建立提示詞
+
         prompt = MODIFICATION_ANALYSIS_PROMPT.format(
             original=original,
             final=final
         )
-        
+
         try:
-            # 呼叫 Claude API
-            response = self.client.messages.create(
-                model=self.model,
-                max_tokens=200,
-                temperature=0.5,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ]
-            )
-            
-            # 回傳分析結果
-            return response.content[0].text.strip()
-            
+            if self.provider == "openrouter":
+                # 分析用 Fast Model 就夠了
+                response = await self.openrouter_client.chat.completions.create(
+                    model=settings.MODEL_FAST,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.5,
+                    max_tokens=200
+                )
+                return response.choices[0].message.content.strip()
+            else:
+                response = self.anthropic_client.messages.create(
+                    model=self.model,
+                    max_tokens=200,
+                    temperature=0.5,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                return response.content[0].text.strip()
+
         except Exception as e:
             return f"分析失敗: {str(e)}"
 

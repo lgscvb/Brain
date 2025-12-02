@@ -65,6 +65,38 @@ MODIFICATION_ANALYSIS_PROMPT = """比較 AI 原始草稿和人類修改後的版
 """
 
 
+# === LLM Routing 分流 Prompt ===
+ROUTER_PROMPT = """你是 Hour Jungle 客服系統的「任務分派主管」。
+請分析客戶訊息，判斷該由哪位「專員（AI 模型）」來處理。
+
+## 判斷標準
+
+### SIMPLE (簡單任務) -> 派給 Fast Model
+- 單純的資訊查詢（地址、電話、營業時間、Wifi密碼）
+- 簡單的寒暄或問候（Hi、你好、早安、謝謝）
+- 已知的固定流程（預約確認、時間確認）
+- 不需要複雜邏輯或銷售技巧的問題
+
+### COMPLEX (複雜任務) -> 派給 Smart Model
+- 涉及「價格談判」或「比較競品」
+- 稅務、法規、公司設立等「專業諮詢」
+- 客戶有負面情緒、抱怨或投訴
+- 需要使用 SPIN 銷售技巧挖掘需求
+- 訊息含糊不清，需要推理意圖
+- 需要判斷客戶真正意圖的複雜對話
+
+## 客戶訊息
+{content}
+
+## 回傳 JSON 格式
+{{
+    "complexity": "SIMPLE" 或 "COMPLEX",
+    "reason": "簡短說明判斷原因（10字內）",
+    "suggested_intent": "預判的意圖類型"
+}}
+"""
+
+
 # Hour Jungle 業務知識庫（從 sales_mindmap.json 提取的重點）
 BUSINESS_KNOWLEDGE = {
     "services": {
