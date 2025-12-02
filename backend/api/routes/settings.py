@@ -72,32 +72,30 @@ class ModelOption(BaseModel):
     recommended: bool = False
 
 
-# 可用的模型選項
+# 可用的模型選項（2025/12 更新）
 # thinking: True 表示支援 Extended Thinking/Reasoning 模式
 AVAILABLE_MODELS = {
     "smart": [
-        {"id": "anthropic/claude-sonnet-4.5", "name": "Claude Sonnet 4.5 🧠", "provider": "OpenRouter", "cost": "$3/$15 per MTok", "recommended": True, "thinking": True},
+        {"id": "anthropic/claude-sonnet-4.5", "name": "Claude Sonnet 4.5", "provider": "OpenRouter", "cost": "$3/$15 per MTok", "recommended": True},
         {"id": "anthropic/claude-3.7-sonnet", "name": "Claude 3.7 Sonnet 🧠", "provider": "OpenRouter", "cost": "$3/$15 per MTok", "thinking": True},
-        {"id": "anthropic/claude-3.5-sonnet", "name": "Claude 3.5 Sonnet (舊版)", "provider": "OpenRouter", "cost": "$3/$15 per MTok"},
-        {"id": "anthropic/claude-3-opus", "name": "Claude 3 Opus", "provider": "OpenRouter", "cost": "$15/$75 per MTok"},
-        {"id": "openai/o1-mini", "name": "OpenAI o1-mini 🧠", "provider": "OpenRouter", "cost": "$3/$12 per MTok", "thinking": True},
+        {"id": "deepseek/deepseek-r1", "name": "DeepSeek R1 🧠", "provider": "OpenRouter", "cost": "$0.30/$1.20 per MTok", "thinking": True},
+        {"id": "openai/o1", "name": "OpenAI o1", "provider": "OpenRouter", "cost": "$15/$60 per MTok"},
+        {"id": "anthropic/claude-3.5-sonnet", "name": "Claude 3.5 Sonnet", "provider": "OpenRouter", "cost": "$3/$15 per MTok"},
         {"id": "openai/gpt-4-turbo", "name": "GPT-4 Turbo", "provider": "OpenRouter", "cost": "$10/$30 per MTok"},
-        {"id": "deepseek/deepseek-r1", "name": "DeepSeek R1 🧠", "provider": "OpenRouter", "cost": "$0.55/$2.19 per MTok", "thinking": True},
     ],
     "fast": [
-        {"id": "google/gemini-flash-1.5", "name": "Gemini 1.5 Flash", "provider": "OpenRouter", "cost": "$0.075/$0.30 per MTok", "recommended": True},
-        {"id": "google/gemini-flash-1.5-8b", "name": "Gemini 1.5 Flash 8B", "provider": "OpenRouter", "cost": "$0.0375/$0.15 per MTok"},
-        {"id": "anthropic/claude-3-haiku", "name": "Claude 3 Haiku", "provider": "OpenRouter", "cost": "$0.25/$1.25 per MTok"},
-        {"id": "anthropic/claude-haiku-4.5", "name": "Claude Haiku 4.5 🧠", "provider": "OpenRouter", "cost": "$1/$5 per MTok", "thinking": True},
-        {"id": "meta-llama/llama-3.1-8b-instruct", "name": "Llama 3.1 8B", "provider": "OpenRouter", "cost": "$0.05/$0.05 per MTok"},
+        {"id": "google/gemini-2.0-flash-001", "name": "Gemini 2.0 Flash", "provider": "OpenRouter", "cost": "$0.10/$0.40 per MTok", "recommended": True},
+        {"id": "google/gemini-flash-1.5", "name": "Gemini 1.5 Flash", "provider": "OpenRouter", "cost": "$0.075/$0.30 per MTok"},
         {"id": "deepseek/deepseek-chat", "name": "DeepSeek Chat", "provider": "OpenRouter", "cost": "$0.14/$0.28 per MTok"},
+        {"id": "anthropic/claude-3-haiku", "name": "Claude 3 Haiku", "provider": "OpenRouter", "cost": "$0.25/$1.25 per MTok"},
+        {"id": "meta-llama/llama-3.1-8b-instruct", "name": "Llama 3.1 8B", "provider": "OpenRouter", "cost": "$0.05/$0.05 per MTok"},
     ],
     "anthropic_direct": [
         {"id": "claude-sonnet-4-5-20250514", "name": "Claude Sonnet 4.5 🧠", "provider": "Anthropic", "cost": "$3/$15 per MTok", "recommended": True, "thinking": True},
+        {"id": "claude-3-7-sonnet-20250219", "name": "Claude 3.7 Sonnet 🧠", "provider": "Anthropic", "cost": "$3/$15 per MTok", "thinking": True},
         {"id": "claude-opus-4-5-20250514", "name": "Claude Opus 4.5 🧠", "provider": "Anthropic", "cost": "$15/$75 per MTok", "thinking": True},
         {"id": "claude-haiku-4-5-20250514", "name": "Claude Haiku 4.5 🧠", "provider": "Anthropic", "cost": "$1/$5 per MTok", "thinking": True},
-        {"id": "claude-3-7-sonnet-20250219", "name": "Claude 3.7 Sonnet 🧠", "provider": "Anthropic", "cost": "$3/$15 per MTok", "thinking": True},
-        {"id": "claude-3-5-sonnet-20241022", "name": "Claude 3.5 Sonnet (舊版)", "provider": "Anthropic", "cost": "$3/$15 per MTok"},
+        {"id": "claude-3-5-sonnet-20241022", "name": "Claude 3.5 Sonnet", "provider": "Anthropic", "cost": "$3/$15 per MTok"},
     ]
 }
 
