@@ -12,9 +12,8 @@ services:
       - PORT=8000
       - HOST=0.0.0.0
       - DATABASE_URL=sqlite+aiosqlite:///./brain.db
-      # 以下變數將由 .env 檔案提供，或在部署時設定
-    depends_on:
-      - frontend
+    ports:
+      - "8000:8000"
 
   frontend:
     build: ./frontend
