@@ -29,10 +29,8 @@ Brain 是 Hour Jungle 的 AI 輔助客服系統，採用 LLM Routing 架構降�
 2. **Docker 部署到 GCP VM**
    ```bash
    # SSH 到 GCP VM 並更新
-   gcloud compute ssh lgscvbatter@brain-instance \
-     --zone=asia-east1-b \
-     --project=YOUR_PROJECT_ID \
-     --command="cd /home/lgscvbatter/Brain && git pull origin main && docker compose build && docker compose up -d"
+   gcloud compute ssh --zone "us-west1-b" "brain-ai-system" \
+     --command="cd ~/Brain && git pull origin main && docker compose build && docker compose up -d"
    ```
 
 3. **驗證部署**
