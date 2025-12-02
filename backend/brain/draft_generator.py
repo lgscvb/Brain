@@ -5,9 +5,10 @@ Brain - 草稿生成器
 from typing import Dict, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from db.models import Message, Draft
+from db.models import Message, Draft, APIUsage
 from services.claude_client import get_claude_client
 from brain.router import get_intent_router
+from api.routes.usage import calculate_cost
 
 
 class DraftGenerator:
@@ -51,7 +52,26 @@ class DraftGenerator:
                 source=source,
                 context={"intent": intent_result}
             )
-            
+
+            # 2.5 記錄 API 用量
+            usage_info = draft_result.pop("_usage", None)
+            if usage_info:
+                api_usage = APIUsage(
+                    provider="anthropic",
+                    model=usage_info.get("model", "unknown"),
+                    operation="draft_generation",
+                    input_tokens=usage_info.get("input_tokens", 0),
+                    output_tokens=usage_info.get("output_tokens", 0),
+                    total_tokens=usage_info.get("input_tokens", 0) + usage_info.get("output_tokens", 0),
+                    estimated_cost=calculate_cost(
+                        usage_info.get("model", "default"),
+                        usage_info.get("input_tokens", 0),
+                        usage_info.get("output_tokens", 0)
+                    ),
+                    success=True
+                )
+                db.add(api_usage)
+
             # 3. 建立 Draft 記錄
             draft = Draft(
                 message_id=message_id,
@@ -60,11 +80,11 @@ class DraftGenerator:
                 intent=draft_result.get("intent", intent),
                 is_selected=False
             )
-            
+
             db.add(draft)
             await db.commit()
             await db.refresh(draft)
-            
+
             # 4. 更新 Message 狀態為 drafted
             result = await db.execute(
                 select(Message).where(Message.id == message_id)
@@ -73,10 +93,27 @@ class DraftGenerator:
             if message:
                 message.status = "drafted"
                 await db.commit()
-            
+
             return draft
-            
+
         except Exception as e:
+            # 記錄失敗的 API 調用
+            try:
+                api_usage = APIUsage(
+                    provider="anthropic",
+                    model=self.claude_client.model,
+                    operation="draft_generation",
+                    input_tokens=0,
+                    output_tokens=0,
+                    total_tokens=0,
+                    estimated_cost=0,
+                    success=False,
+                    error_message=str(e)
+                )
+                db.add(api_usage)
+                await db.commit()
+            except:
+                pass
             await db.rollback()
             raise Exception(f"草稿生成失敗: {str(e)}")
     

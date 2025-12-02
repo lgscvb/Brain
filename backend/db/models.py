@@ -60,7 +60,7 @@ class Draft(Base):
 class Response(Base):
     """回覆記錄模型"""
     __tablename__ = "responses"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     message_id = Column(Integer, ForeignKey("messages.id"), nullable=False)
     draft_id = Column(Integer, ForeignKey("drafts.id"), nullable=True)
@@ -69,6 +69,23 @@ class Response(Base):
     is_modified = Column(Boolean, default=False)
     modification_reason = Column(Text)  # AI 分析的修改原因
     sent_at = Column(DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     message = relationship("Message", back_populates="responses")
+
+
+class APIUsage(Base):
+    """API 用量追蹤模型"""
+    __tablename__ = "api_usage"
+
+    id = Column(Integer, primary_key=True, index=True)
+    provider = Column(String(50), nullable=False)  # anthropic, openai, etc.
+    model = Column(String(100), nullable=False)  # claude-3-5-sonnet, etc.
+    operation = Column(String(100), nullable=False)  # draft_generation, analysis, etc.
+    input_tokens = Column(Integer, default=0)
+    output_tokens = Column(Integer, default=0)
+    total_tokens = Column(Integer, default=0)
+    estimated_cost = Column(Integer, default=0)  # 儲存為分（美分），避免浮點數問題
+    success = Column(Boolean, default=True)
+    error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

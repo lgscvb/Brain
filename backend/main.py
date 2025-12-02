@@ -72,7 +72,7 @@ app.add_middleware(
 
 
 # ==================== 路由註冊 ====================
-from api.routes import messages, webhooks, stats, settings, logs, health, feedback
+from api.routes import messages, webhooks, stats, settings, logs, health, feedback, usage
 
 app.include_router(health.router, prefix="/api", tags=["健康檢查 & 系統狀態"])
 app.include_router(messages.router, prefix="/api", tags=["訊息管理"])
@@ -81,6 +81,7 @@ app.include_router(stats.router, prefix="/api", tags=["統計資料"])
 app.include_router(settings.router, prefix="/api", tags=["系統設定"])
 app.include_router(logs.router, prefix="/api", tags=["日誌管理"])
 app.include_router(feedback.router, prefix="/api", tags=["AI 回饋管理"])
+app.include_router(usage.router, prefix="/api", tags=["API 用量統計"])
 
 
 

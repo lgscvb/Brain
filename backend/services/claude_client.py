@@ -80,20 +80,27 @@ class ClaudeClient:
                     }
                 ]
             }
-            
+
             # 如果啟用 Extended Thinking，加入 thinking 參數
             if settings.ENABLE_EXTENDED_THINKING:
                 api_params["thinking"] = {
                     "type": "enabled",
                     "budget_tokens": settings.THINKING_BUDGET_TOKENS
                 }
-            
+
             # 呼叫 Claude API
             response = self.client.messages.create(**api_params)
-            
+
+            # 提取用量資訊
+            usage = {
+                "input_tokens": response.usage.input_tokens,
+                "output_tokens": response.usage.output_tokens,
+                "model": self.model
+            }
+
             # 解析回應
             content = response.content[0].text
-            
+
             # 嘗試解析 JSON
             try:
                 result = json.loads(content)
@@ -105,9 +112,12 @@ class ClaudeClient:
                     "draft": content,
                     "next_action": "人工審核"
                 }
-            
+
+            # 加入用量資訊
+            result["_usage"] = usage
+
             return result
-            
+
         except Exception as e:
             raise Exception(f"Claude API 調用失敗: {str(e)}")
     

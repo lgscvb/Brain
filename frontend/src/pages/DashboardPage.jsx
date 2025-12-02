@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Activity, MessageSquare, TrendingUp, Clock } from 'lucide-react'
 import axios from 'axios'
+import UsagePanel from '../components/UsagePanel'
 
 export default function DashboardPage({ onNavigate }) {
     const [stats, setStats] = useState(null)
@@ -104,6 +105,9 @@ export default function DashboardPage({ onNavigate }) {
                     })}
                 </div>
             )}
+
+            {/* API Usage Panel */}
+            <UsagePanel />
 
             {/* Quick Actions */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
