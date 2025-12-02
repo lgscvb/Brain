@@ -9,7 +9,7 @@ export default function MessagesPage() {
     const [selectedMessage, setSelectedMessage] = useState(null)
     const [messageDetail, setMessageDetail] = useState(null)
     const [detailLoading, setDetailLoading] = useState(false)
-    const [filter, setFilter] = useState('pending') // pending, drafted, sent, all
+    const [filter, setFilter] = useState('all') // pending, drafted, sent, all
     const [replyContent, setReplyContent] = useState('')
     const [sending, setSending] = useState(false)
 
