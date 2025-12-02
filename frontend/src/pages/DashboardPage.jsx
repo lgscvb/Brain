@@ -158,8 +158,16 @@ export default function DashboardPage({ onNavigate }) {
                         <span className="text-gray-900 dark:text-white font-medium">SQLite</span>
                     </div>
                     <div className="flex justify-between">
-                        <span className="text-gray-600 dark:text-gray-400">AI 模型：</span>
-                        <span className="text-gray-900 dark:text-white font-medium">Claude 3.5 Sonnet</span>
+                        <span className="text-gray-600 dark:text-gray-400">AI 模式：</span>
+                        <span className="text-gray-900 dark:text-white font-medium">LLM Routing</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">🧠 複雜任務：</span>
+                        <span className="text-gray-900 dark:text-white font-medium text-xs">Claude 3.5 Sonnet</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-gray-600 dark:text-gray-400">⚡ 簡單任務：</span>
+                        <span className="text-gray-900 dark:text-white font-medium text-xs">Gemini Flash</span>
                     </div>
                 </div>
             </div>
