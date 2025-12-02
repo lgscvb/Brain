@@ -53,6 +53,10 @@ class Settings(BaseSettings):
     # 自動回覆模式（預設：手動審核）
     AUTO_REPLY_MODE: bool = False
 
+    # === 管理員密碼 ===
+    # 用於保護設定頁面，防止未授權存取
+    ADMIN_PASSWORD: str = "brain2024"  # 預設密碼，請在 .env 中修改
+
     # === 防洗頻設定 ===
     # 啟用速率限制
     ENABLE_RATE_LIMIT: bool = True

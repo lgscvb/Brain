@@ -6,11 +6,47 @@ Brain - 設定管理 API 路由
 import os
 from pathlib import Path
 from typing import Dict, Optional, List
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header, Depends
 from pydantic import BaseModel
+from config import settings as app_settings
 
 
 router = APIRouter()
+
+
+# === 密碼驗證 ===
+
+class PasswordVerify(BaseModel):
+    """密碼驗證 Schema"""
+    password: str
+
+
+async def verify_admin_password(x_admin_password: Optional[str] = Header(None, alias="X-Admin-Password")):
+    """
+    驗證管理員密碼的依賴注入
+
+    從請求 Header 中取得 X-Admin-Password 並驗證
+    """
+    if not x_admin_password:
+        raise HTTPException(status_code=401, detail="需要管理員密碼")
+
+    if x_admin_password != app_settings.ADMIN_PASSWORD:
+        raise HTTPException(status_code=403, detail="密碼錯誤")
+
+    return True
+
+
+@router.post("/settings/verify-password")
+async def verify_password(data: PasswordVerify):
+    """
+    驗證管理員密碼
+
+    前端用於檢查密碼是否正確，正確後可存入 sessionStorage
+    """
+    if data.password == app_settings.ADMIN_PASSWORD:
+        return {"success": True, "message": "密碼正確"}
+    else:
+        raise HTTPException(status_code=403, detail="密碼錯誤")
 
 
 class SettingsUpdate(BaseModel):
@@ -208,11 +244,17 @@ async def get_available_models():
 
 
 @router.post("/settings")
-async def update_settings(settings: SettingsUpdate):
+async def update_settings(
+    settings: SettingsUpdate,
+    _: bool = Depends(verify_admin_password)
+):
     """
-    更新設定
+    更新設定（需要管理員密碼）
 
     注意：更新後需要重啟伺服器才會生效
+
+    Header:
+        X-Admin-Password: 管理員密碼
     """
     try:
         env_vars = read_env_file()

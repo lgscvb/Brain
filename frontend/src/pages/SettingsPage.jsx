@@ -1,8 +1,15 @@
 import { useState, useEffect } from 'react'
-import { Save, Key, RefreshCw, AlertCircle, CheckCircle, ExternalLink, Zap, Cpu, Sparkles } from 'lucide-react'
+import { Save, Key, RefreshCw, AlertCircle, CheckCircle, ExternalLink, Zap, Cpu, Sparkles, Lock, X } from 'lucide-react'
 import axios from 'axios'
 
 export default function SettingsPage() {
+    // 密碼驗證狀態
+    const [isAuthenticated, setIsAuthenticated] = useState(false)
+    const [showPasswordModal, setShowPasswordModal] = useState(false)
+    const [password, setPassword] = useState('')
+    const [passwordError, setPasswordError] = useState('')
+    const [verifying, setVerifying] = useState(false)
+
     const [settings, setSettings] = useState({
         // AI Provider
         AI_PROVIDER: 'openrouter',
@@ -53,10 +60,42 @@ export default function SettingsPage() {
     const [message, setMessage] = useState(null)
 
     useEffect(() => {
+        // 檢查 sessionStorage 是否已有密碼
+        const savedPassword = sessionStorage.getItem('adminPassword')
+        if (savedPassword) {
+            setIsAuthenticated(true)
+            setPassword(savedPassword)
+        }
+
         fetchSettings()
         fetchModelOptions()
         fetchWebhookInfo()
     }, [])
+
+    // 驗證密碼
+    const handleVerifyPassword = async (e) => {
+        e.preventDefault()
+        setVerifying(true)
+        setPasswordError('')
+
+        try {
+            await axios.post('/api/settings/verify-password', { password })
+            sessionStorage.setItem('adminPassword', password)
+            setIsAuthenticated(true)
+            setShowPasswordModal(false)
+        } catch (error) {
+            setPasswordError(error.response?.data?.detail || '密碼錯誤')
+        } finally {
+            setVerifying(false)
+        }
+    }
+
+    // 登出（清除密碼）
+    const handleLogout = () => {
+        sessionStorage.removeItem('adminPassword')
+        setIsAuthenticated(false)
+        setPassword('')
+    }
 
     const fetchSettings = async () => {
         try {
@@ -99,11 +138,22 @@ export default function SettingsPage() {
 
     const handleSubmit = async (e) => {
         e.preventDefault()
+
+        // 檢查是否已驗證密碼
+        if (!isAuthenticated) {
+            setShowPasswordModal(true)
+            return
+        }
+
         setLoading(true)
         setMessage(null)
 
         try {
-            const response = await axios.post('/api/settings', settings)
+            const response = await axios.post('/api/settings', settings, {
+                headers: {
+                    'X-Admin-Password': password
+                }
+            })
             setMessage({ type: 'success', text: response.data.message })
             await fetchSettings()
 
@@ -116,6 +166,12 @@ export default function SettingsPage() {
                 LINE_CHANNEL_SECRET: '',
             }))
         } catch (error) {
+            // 如果是密碼錯誤，清除驗證狀態
+            if (error.response?.status === 401 || error.response?.status === 403) {
+                setIsAuthenticated(false)
+                sessionStorage.removeItem('adminPassword')
+                setShowPasswordModal(true)
+            }
             setMessage({
                 type: 'error',
                 text: error.response?.data?.detail || '更新失敗'
@@ -131,12 +187,96 @@ export default function SettingsPage() {
 
     return (
         <div className="space-y-6">
+            {/* 密碼驗證對話框 */}
+            {showPasswordModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center space-x-3">
+                                <Lock className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">管理員驗證</h3>
+                            </div>
+                            <button
+                                onClick={() => setShowPasswordModal(false)}
+                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                            修改系統設定需要管理員密碼驗證
+                        </p>
+
+                        <form onSubmit={handleVerifyPassword}>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="請輸入管理員密碼"
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-3"
+                                autoFocus
+                            />
+
+                            {passwordError && (
+                                <p className="text-sm text-red-600 dark:text-red-400 mb-3">{passwordError}</p>
+                            )}
+
+                            <div className="flex space-x-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPasswordModal(false)}
+                                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                                >
+                                    取消
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={verifying || !password}
+                                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-lg"
+                                >
+                                    {verifying ? '驗證中...' : '確認'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
-            <div>
-                <h2 className="text-3xl font-bold text-gray-900 dark:text-white">系統設定</h2>
-                <p className="mt-2 text-gray-600 dark:text-gray-400">
-                    配置 AI 模型、API Keys 和 LINE Webhook 設定
-                </p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white">系統設定</h2>
+                    <p className="mt-2 text-gray-600 dark:text-gray-400">
+                        配置 AI 模型、API Keys 和 LINE Webhook 設定
+                    </p>
+                </div>
+
+                {/* 登入狀態顯示 */}
+                <div className="flex items-center space-x-3">
+                    {isAuthenticated ? (
+                        <>
+                            <span className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 text-sm font-medium rounded-full flex items-center">
+                                <Lock className="w-4 h-4 mr-1" />
+                                已驗證
+                            </span>
+                            <button
+                                onClick={handleLogout}
+                                className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                            >
+                                登出
+                            </button>
+                        </>
+                    ) : (
+                        <button
+                            onClick={() => setShowPasswordModal(true)}
+                            className="px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 text-sm font-medium rounded-full flex items-center hover:bg-blue-200 dark:hover:bg-blue-800"
+                        >
+                            <Lock className="w-4 h-4 mr-1" />
+                            驗證密碼
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* Alert Message */}
