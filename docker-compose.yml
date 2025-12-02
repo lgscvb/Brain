@@ -13,11 +13,8 @@ services:
       - HOST=0.0.0.0
       - DATABASE_URL=sqlite+aiosqlite:///./brain.db
       # 以下變數將由 .env 檔案提供，或在部署時設定
-      # - ANTHROPIC_API_KEY=
-      # - LINE_CHANNEL_ACCESS_TOKEN=
-      # - LINE_CHANNEL_SECRET=
-    ports:
-      - "8000:8000"
+    depends_on:
+      - frontend
 
   frontend:
     build: ./frontend
