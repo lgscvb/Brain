@@ -26,7 +26,10 @@
 ## ✨ 功能特色
 
 ### 🤖 **AI 智能回覆**
-- 整合 **Claude 3.5 Sonnet**，提供高品質、有溫度的客服回覆
+- **LLM Routing 架構**：智能分流，成本降低 70%+
+  - 簡單問題 → Gemini Flash（便宜快速）
+  - 複雜問題 → Claude 3.5 Sonnet（高品質）
+- 支援 **OpenRouter**（推薦）和 **Anthropic 直連**
 - 基於 **SPIN 銷售框架**（Situation, Problem, Implication, Need-payoff）
 - **RAG 知識庫**支援，自動檢索邏輯樹和銷售策略
 
@@ -53,7 +56,9 @@
 ### 後端
 - **框架**：FastAPI (Python 3.11)
 - **資料庫**：SQLite + SQLAlchemy (async)
-- **AI**：Anthropic Claude 3.5 Sonnet
+- **AI**：OpenRouter (多模型支援) / Anthropic 直連
+  - Smart Model: Claude 3.5 Sonnet
+  - Fast Model: Gemini Flash 1.5
 - **訊息**：LINE Bot SDK
 - **日誌**：Python logging + RotatingFileHandler
 
@@ -167,9 +172,9 @@ npm run dev
 
 ```env
 # Server
-PORT=8787
+PORT=8000
 HOST=0.0.0.0
-DEBUG=true
+DEBUG=false
 
 # Database
 DATABASE_URL=sqlite+aiosqlite:///./data/brain.db
@@ -178,25 +183,55 @@ DATABASE_URL=sqlite+aiosqlite:///./data/brain.db
 LINE_CHANNEL_ACCESS_TOKEN=your_line_access_token
 LINE_CHANNEL_SECRET=your_line_channel_secret
 
-# Claude AI
+# AI Provider (推薦使用 openrouter)
+AI_PROVIDER=openrouter
+
+# OpenRouter 設定 (推薦)
+OPENROUTER_API_KEY=your_openrouter_api_key
+
+# LLM Routing 模型分流
+ENABLE_ROUTING=true
+MODEL_SMART=anthropic/claude-3.5-sonnet
+MODEL_FAST=google/gemini-flash-1.5
+
+# Anthropic 直連 (備用)
 ANTHROPIC_API_KEY=your_anthropic_api_key
+CLAUDE_MODEL=claude-sonnet-4-5
+ENABLE_EXTENDED_THINKING=false
+THINKING_BUDGET_TOKENS=10000
 
 # System
 AUTO_REPLY_MODE=false
 
 # Frontend
-VITE_API_URL=http://localhost:8787
+VITE_API_URL=http://localhost:8000
 ```
 
 ### 取得 API Keys
 
-1. **Claude API Key**  
+1. **OpenRouter API Key**（推薦）
+   前往 [OpenRouter Keys](https://openrouter.ai/keys) 註冊並取得 API Key
+   - 統一接口，支援多種模型
+   - 價格透明，按用量計費
+
+2. **Anthropic API Key**（備用/Extended Thinking）
    前往 [Anthropic Console](https://console.anthropic.com/) 註冊並取得 API Key
 
-2. **LINE Bot Credentials**  
+3. **LINE Bot Credentials**
    前往 [LINE Developers Console](https://developers.line.biz/console/)
    - 建立 Messaging API Channel
    - 取得 Channel Access Token 和 Channel Secret
+
+### LLM Routing 說明
+
+LLM Routing 是本系統的核心成本優化策略：
+
+| 任務類型 | 模型 | 成本 | 使用場景 |
+|---------|------|------|---------|
+| SIMPLE | Gemini Flash 1.5 | $0.075/$0.30 per MTok | 問候、地址查詢、簡單回覆 |
+| COMPLEX | Claude 3.5 Sonnet | $3/$15 per MTok | 稅務諮詢、SPIN 銷售、複雜邏輯 |
+
+**預估節省**：假設 60% 訊息為簡單問題，可節省 **70%+ 成本**
 
 ---
 
