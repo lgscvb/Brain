@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     ENABLE_ROUTING: bool = True
 
     # 對話上下文設定
-    CONVERSATION_HISTORY_LIMIT: int = 5  # 取得最近幾則對話作為上下文
+    CONVERSATION_HISTORY_LIMIT: int = 30  # 取得最近幾則對話作為上下文
 
     # Extended Thinking（延伸思考模式）- 僅限 Anthropic 直連
     ENABLE_EXTENDED_THINKING: bool = False
