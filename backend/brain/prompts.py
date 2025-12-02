@@ -9,7 +9,7 @@ DRAFT_PROMPT = """你是 Hour Jungle 共享辦公室的客服助理。
 - 名稱：{sender_name}
 - 來源：{source}
 
-## 客戶訊息
+{conversation_history}## 客戶最新訊息
 {content}
 
 ## Hour Jungle 資訊

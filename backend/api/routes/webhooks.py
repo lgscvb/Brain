@@ -79,13 +79,14 @@ async def line_webhook(
                 async with AsyncSessionLocal() as task_db:
                     draft_generator = get_draft_generator()
                     try:
-                        # 生成草稿
+                        # 生成草稿（包含對話上下文）
                         await draft_generator.generate(
                             db=task_db,
                             message_id=message.id,
                             content=message.content,
                             sender_name=message.sender_name,
-                            source=message.source
+                            source=message.source,
+                            sender_id=message.sender_id  # 用於取得對話歷史
                         )
                         
                         # 如果是自動回覆模式，直接發送第一個草稿

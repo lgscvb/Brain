@@ -130,7 +130,8 @@ async def create_message(
                     message_id=message.id,
                     content=message.content,
                     sender_name=message.sender_name,
-                    source=message.source
+                    source=message.source,
+                    sender_id=message.sender_id  # 用於取得對話歷史
                 )
             except Exception as e:
                 print(f"背景草稿生成失敗: {str(e)}")

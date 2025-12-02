@@ -125,11 +125,15 @@ class ClaudeClient:
         sender_name: str,
         source: str,
         context: Optional[Dict] = None,
-        model: str = None
+        model: str = None,
+        conversation_history: str = ""
     ) -> Dict:
         """
         [LLM Routing 第二步] 生成回覆草稿
         可指定使用特定模型
+
+        Args:
+            conversation_history: 格式化的對話歷史字串
         """
         from brain.prompts import DRAFT_PROMPT
 
@@ -149,11 +153,12 @@ class ClaudeClient:
                 "_usage": {"input_tokens": 0, "output_tokens": 0, "model": "mock"}
             }
 
-        # 建立提示詞
+        # 建立提示詞（包含對話歷史）
         prompt = DRAFT_PROMPT.format(
             sender_name=sender_name,
             source=source,
-            content=message
+            content=message,
+            conversation_history=conversation_history
         )
 
         try:
