@@ -7,8 +7,8 @@ import sys
 from pathlib import Path
 from logging.handlers import RotatingFileHandler
 
-# 建立 logs 資料夾
-log_dir = Path(__file__).parent.parent / "logs"
+# 建立 logs 資料夾 (在 backend 同層，Docker 內為 /app/logs)
+log_dir = Path(__file__).parent / "logs"
 log_dir.mkdir(exist_ok=True)
 
 # 日誌格式
