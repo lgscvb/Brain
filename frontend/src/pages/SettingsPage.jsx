@@ -5,6 +5,7 @@ import axios from 'axios'
 export default function SettingsPage() {
     const [settings, setSettings] = useState({
         ANTHROPIC_API_KEY: '',
+        CLAUDE_MODEL: 'claude-3-5-sonnet-20241022',
         LINE_CHANNEL_ACCESS_TOKEN: '',
         LINE_CHANNEL_SECRET: '',
         AUTO_REPLY_MODE: false,
@@ -30,8 +31,12 @@ export default function SettingsPage() {
         try {
             const response = await axios.get('/api/settings')
             setStatus(response.data)
-            // 同步自動回覆模式到 settings
-            setSettings(prev => ({ ...prev, AUTO_REPLY_MODE: response.data.AUTO_REPLY_MODE }))
+            // 同步自動回覆模式和模型選擇到 settings
+            setSettings(prev => ({
+                ...prev,
+                AUTO_REPLY_MODE: response.data.AUTO_REPLY_MODE,
+                CLAUDE_MODEL: response.data.CLAUDE_MODEL || 'claude-3-5-sonnet-20241022'
+            }))
         } catch (error) {
             console.error('獲取設定失敗:', error)
         }
@@ -121,22 +126,43 @@ export default function SettingsPage() {
                         )}
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Anthropic API Key
-                        </label>
-                        <input
-                            type="password"
-                            value={settings.ANTHROPIC_API_KEY}
-                            onChange={(e) => handleChange('ANTHROPIC_API_KEY', e.target.value)}
-                            placeholder={status.ANTHROPIC_API_KEY_SET ? '••••••••••••' : 'sk-ant-...'}
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                            從 <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center">
-                                Anthropic Console <ExternalLink className="w-3 h-3 ml-1" />
-                            </a> 取得您的 API Key
-                        </p>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Anthropic API Key
+                            </label>
+                            <input
+                                type="password"
+                                value={settings.ANTHROPIC_API_KEY}
+                                onChange={(e) => handleChange('ANTHROPIC_API_KEY', e.target.value)}
+                                placeholder={status.ANTHROPIC_API_KEY_SET ? '••••••••••••' : 'sk-ant-...'}
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                                從 <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center">
+                                    Anthropic Console <ExternalLink className="w-3 h-3 ml-1" />
+                                </a> 取得您的 API Key
+                            </p>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Claude 模型
+                            </label>
+                            <select
+                                value={settings.CLAUDE_MODEL}
+                                onChange={(e) => handleChange('CLAUDE_MODEL', e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="claude-3-5-sonnet-20241022">Claude 3.5 Sonnet (最新，推薦)</option>
+                                <option value="claude-3-5-sonnet-20240620">Claude 3.5 Sonnet (2024/06)</option>
+                                <option value="claude-3-opus-20240229">Claude 3 Opus (最強，較慢)</option>
+                                <option value="claude-3-sonnet-20240229">Claude 3 Sonnet (平衡)</option>
+                                <option value="claude-3-haiku-20240307">Claude 3 Haiku (快速，經濟)</option>
+                            </select>
+                            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                                選擇不同的 Claude 模型，影響 AI 回覆品質、速度和成本
+                            </p>
+                        </div>
                     </div>
                 </div>
 

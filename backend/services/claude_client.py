@@ -19,10 +19,10 @@ class ClaudeClient:
             print("警告：ANTHROPIC_API_KEY 未設定，使用模擬模式")
             self.mock_mode = True
             self.client = None
-            self.model = "claude-3-5-sonnet-20241022"
+            self.model = settings.CLAUDE_MODEL
         else:
             self.client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-            self.model = "claude-3-5-sonnet-20241022"
+            self.model = settings.CLAUDE_MODEL
     
     async def generate_draft(
         self,
