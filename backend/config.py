@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     ANTHROPIC_API_KEY: Optional[str] = None
     CLAUDE_MODEL: str = "claude-sonnet-4-5"  # 預設使用 Claude Sonnet 4.5 (最新)
     
+    # Extended Thinking（延伸思考模式）
+    ENABLE_EXTENDED_THINKING: bool = False
+    THINKING_BUDGET_TOKENS: int = 10000  # 分配給思考的 token 數量
+    
     # 自動回覆模式（預設：手動審核）
     AUTO_REPLY_MODE: bool = False
     

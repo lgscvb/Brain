@@ -66,19 +66,30 @@ class ClaudeClient:
             content=message
         )
         
+        
         try:
-            # 呼叫 Claude API
-            response = self.client.messages.create(
-                model=self.model,
-                max_tokens=2000,
-                temperature=0.7,
-                messages=[
+            # 準備 API 參數
+            api_params = {
+                "model": self.model,
+                "max_tokens": 16000 if settings.ENABLE_EXTENDED_THINKING else 2000,
+                "temperature": 0.7,
+                "messages": [
                     {
                         "role": "user",
                         "content": prompt
                     }
                 ]
-            )
+            }
+            
+            # 如果啟用 Extended Thinking，加入 thinking 參數
+            if settings.ENABLE_EXTENDED_THINKING:
+                api_params["thinking"] = {
+                    "type": "enabled",
+                    "budget_tokens": settings.THINKING_BUDGET_TOKENS
+                }
+            
+            # 呼叫 Claude API
+            response = self.client.messages.create(**api_params)
             
             # 解析回應
             content = response.content[0].text
