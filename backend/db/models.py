@@ -3,7 +3,7 @@ Brain - 資料庫模型
 定義所有的 SQLAlchemy ORM 模型
 """
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship, DeclarativeBase
 
 
@@ -34,7 +34,7 @@ class Message(Base):
 class Draft(Base):
     """AI 草稿模型"""
     __tablename__ = "drafts"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     message_id = Column(Integer, ForeignKey("messages.id"), nullable=False)
     content = Column(Text, nullable=False)
@@ -42,7 +42,17 @@ class Draft(Base):
     intent = Column(String(100))  # 意圖分類
     is_selected = Column(Boolean, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
-    
+
+    # 人工回饋欄位（AI 自我進化系統）
+    is_good = Column(Boolean, nullable=True)          # 快速回饋：👍 好 / 👎 不好
+    rating = Column(Integer, nullable=True)           # 評分：1-5 星
+    feedback_reason = Column(Text, nullable=True)     # 人工填寫的修改/不好原因
+    feedback_at = Column(DateTime, nullable=True)     # 回饋時間
+
+    # AI 自動分析結果
+    auto_analysis = Column(Text, nullable=True)       # AI 分析修改原因
+    improvement_tags = Column(JSON, nullable=True)    # 改進標籤 ["語氣", "專業度", "清晰度"]
+
     # Relationships
     message = relationship("Message", back_populates="drafts")
 

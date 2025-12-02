@@ -31,9 +31,23 @@ class DraftRead(BaseModel):
     intent: Optional[str] = None
     is_selected: bool
     created_at: datetime
-    
+    # 回饋欄位
+    is_good: Optional[bool] = None
+    rating: Optional[int] = None
+    feedback_reason: Optional[str] = None
+    feedback_at: Optional[datetime] = None
+    auto_analysis: Optional[str] = None
+    improvement_tags: Optional[List[str]] = None
+
     class Config:
         from_attributes = True
+
+
+class DraftFeedback(BaseModel):
+    """草稿回饋 Schema"""
+    is_good: Optional[bool] = None           # 快速回饋：好/不好
+    rating: Optional[int] = None             # 評分：1-5 星
+    feedback_reason: Optional[str] = None    # 修改/不好原因
 
 
 class ResponseRead(BaseModel):

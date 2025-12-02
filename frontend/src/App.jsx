@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Settings, BookOpen, Activity, MessageSquare, FileText } from 'lucide-react'
+import { Settings, BookOpen, Activity, MessageSquare, FileText, ThumbsUp } from 'lucide-react'
 import SettingsPage from './pages/SettingsPage'
 import GuidePage from './pages/GuidePage'
 import DashboardPage from './pages/DashboardPage'
 import LogsPage from './pages/LogsPage'
+import FeedbackPage from './pages/FeedbackPage'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard')
@@ -11,6 +12,7 @@ function App() {
   const navigation = [
     { id: 'dashboard', name: '儀表板', icon: Activity },
     { id: 'messages', name: '訊息管理', icon: MessageSquare },
+    { id: 'feedback', name: 'AI 回饋', icon: ThumbsUp },
     { id: 'logs', name: '系統日誌', icon: FileText },
     { id: 'settings', name: '系統設定', icon: Settings },
     { id: 'guide', name: '使用說明', icon: BookOpen },
@@ -24,6 +26,8 @@ function App() {
         return <GuidePage />
       case 'logs':
         return <LogsPage />
+      case 'feedback':
+        return <FeedbackPage />
       case 'dashboard':
       default:
         return <DashboardPage />
