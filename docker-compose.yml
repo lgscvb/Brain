@@ -20,6 +20,6 @@ services:
     container_name: brain-frontend
     restart: always
     ports:
-      - "8080:80"
+      - "80:80"
     depends_on:
       - backend
