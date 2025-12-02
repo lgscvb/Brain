@@ -32,9 +32,30 @@ async def lifespan(app: FastAPI):
 # 建立 FastAPI 應用
 app = FastAPI(
     title="Brain - Hour Jungle AI 輔助客服系統",
-    description="統一收集多管道訊息，AI 自動產生回覆草稿，人工審核後發送",
-    version="0.1.0",
+    description="""
+    ## 功能特色
+    
+    - 🤖 **AI 智能回覆**：整合 Claude 3.5 Sonnet，基於 SPIN 銷售框架
+    - 💬 **雙模式運行**：手動審核 / 自動回覆靈活切換
+    - 📊 **完整管理**：訊息管理、系統日誌、統計分析
+    - 🔗 **LINE 整合**：支援 LINE Official Account Webhook
+    
+    ## 技術棧
+    
+    - **框架**：FastAPI + SQLAlchemy (async)
+    - **AI**：Anthropic Claude 3.5 Sonnet
+    - **資料庫**：SQLite
+    - **部署**：Docker + GCP + Cloudflare
+    """,
+    version="1.0.0",
     lifespan=lifespan,
+    contact={
+        "name": "Hour Jungle Team",
+        "url": "https://brain.yourspce.org",
+    },
+    license_info={
+        "name": "MIT License",
+    },
 )
 
 # CORS 設定（允許前端連接）
@@ -51,31 +72,37 @@ app.add_middleware(
 
 
 # ==================== 路由註冊 ====================
-from api.routes import messages, webhooks, stats, settings, logs
+from api.routes import messages, webhooks, stats, settings, logs, health
 
-app.include_router(messages.router, prefix="/api", tags=["messages"])
-app.include_router(webhooks.router, tags=["webhooks"])
-app.include_router(stats.router, prefix="/api", tags=["stats"])
-app.include_router(settings.router, prefix="/api", tags=["settings"])
-app.include_router(logs.router, prefix="/api", tags=["logs"])
+app.include_router(health.router, prefix="/api", tags=["健康檢查 & 系統狀態"])
+app.include_router(messages.router, prefix="/api", tags=["訊息管理"])
+app.include_router(webhooks.router, tags=["Webhook 接收"])
+app.include_router(stats.router, prefix="/api", tags=["統計資料"])
+app.include_router(settings.router, prefix="/api", tags=["系統設定"])
+app.include_router(logs.router, prefix="/api", tags=["日誌管理"])
 
 
 
-@app.get("/")
+@app.get(
+    "/",
+    summary="API 根端點",
+    description="返回 API 基本資訊和狀態",
+    response_description="API 基本資訊"
+)
 async def root():
-    """根端點 - 健康檢查"""
+    """
+    API 根端點
+    
+    返回系統名稱、版本和運行狀態。
+    """
     return {
         "name": "Brain API",
-        "version": "0.1.0",
+        "version": "1.0.0",
         "status": "running",
         "message": "Hour Jungle AI 輔助客服系統",
+        "docs": "/docs",
+        "health": "/api/health"
     }
-
-
-@app.get("/health")
-async def health_check():
-    """健康檢查端點"""
-    return {"status": "healthy"}
 
 
 if __name__ == "__main__":
