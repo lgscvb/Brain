@@ -7,11 +7,11 @@ services:
     restart: always
     volumes:
       - ./logs:/app/logs
-      - ./brain.db:/app/brain.db
+      - ./data:/app/data
     environment:
       - PORT=8000
       - HOST=0.0.0.0
-      - DATABASE_URL=sqlite+aiosqlite:///./brain.db
+      - DATABASE_URL=sqlite+aiosqlite:///./data/brain.db
     ports:
       - "8000:8000"
 
