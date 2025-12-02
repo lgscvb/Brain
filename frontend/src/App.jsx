@@ -5,6 +5,7 @@ import GuidePage from './pages/GuidePage'
 import DashboardPage from './pages/DashboardPage'
 import LogsPage from './pages/LogsPage'
 import FeedbackPage from './pages/FeedbackPage'
+import MessagesPage from './pages/MessagesPage'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard')
@@ -28,6 +29,8 @@ function App() {
         return <LogsPage />
       case 'feedback':
         return <FeedbackPage />
+      case 'messages':
+        return <MessagesPage />
       case 'dashboard':
       default:
         return <DashboardPage />
