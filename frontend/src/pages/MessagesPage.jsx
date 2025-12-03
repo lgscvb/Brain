@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
-import { MessageSquare, Clock, User, Send, RefreshCw, Archive, ChevronRight, ThumbsUp, ThumbsDown, Star, X } from 'lucide-react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { MessageSquare, Clock, User, Send, RefreshCw, Archive, ChevronRight, ThumbsUp, ThumbsDown, Star, X, Bell, BellOff, Volume2, VolumeX } from 'lucide-react'
 import axios from 'axios'
 import FeedbackPanel from '../components/FeedbackPanel'
+import notificationService from '../services/notificationService'
 
 export default function MessagesPage() {
     const [messages, setMessages] = useState([])
@@ -12,10 +13,89 @@ export default function MessagesPage() {
     const [filter, setFilter] = useState('all') // pending, drafted, sent, all
     const [replyContent, setReplyContent] = useState('')
     const [sending, setSending] = useState(false)
+    const [notificationEnabled, setNotificationEnabled] = useState(notificationService.notificationEnabled)
+    const [soundEnabled, setSoundEnabled] = useState(notificationService.soundEnabled)
+    const [newMessageCount, setNewMessageCount] = useState(0)
+    const isFirstLoad = useRef(true)
+    const pollInterval = useRef(null)
+
+    // 請求通知權限
+    const requestNotificationPermission = async () => {
+        const granted = await notificationService.requestPermission()
+        if (granted) {
+            setNotificationEnabled(true)
+            notificationService.setNotificationEnabled(true)
+        }
+    }
+
+    // 切換通知
+    const toggleNotification = async () => {
+        if (!notificationEnabled) {
+            await requestNotificationPermission()
+        } else {
+            setNotificationEnabled(false)
+            notificationService.setNotificationEnabled(false)
+        }
+    }
+
+    // 切換音效
+    const toggleSound = () => {
+        const newValue = !soundEnabled
+        setSoundEnabled(newValue)
+        notificationService.setSoundEnabled(newValue)
+        if (newValue) {
+            // 測試音效
+            notificationService.playSound()
+        }
+    }
+
+    // 獲取訊息並檢查新訊息
+    const fetchMessagesWithNotification = useCallback(async (showLoading = false) => {
+        if (showLoading) setLoading(true)
+        try {
+            const params = filter === 'all' ? {} : { status: filter }
+            const response = await axios.get('/api/messages', { params })
+            const newMessages = response.data.messages
+
+            // 首次載入時重置追蹤
+            if (isFirstLoad.current) {
+                notificationService.resetTracking(newMessages)
+                isFirstLoad.current = false
+            } else {
+                // 檢查新訊息
+                const detected = notificationService.checkNewMessages(newMessages)
+                if (detected.length > 0) {
+                    setNewMessageCount(prev => prev + detected.length)
+                }
+            }
+
+            setMessages(newMessages)
+        } catch (error) {
+            console.error('獲取訊息失敗:', error)
+        } finally {
+            if (showLoading) setLoading(false)
+        }
+    }, [filter])
 
     useEffect(() => {
-        fetchMessages()
-    }, [filter])
+        fetchMessagesWithNotification(true)
+
+        // 設定輪詢（每 10 秒檢查一次新訊息）
+        pollInterval.current = setInterval(() => {
+            fetchMessagesWithNotification(false)
+        }, 10000)
+
+        return () => {
+            if (pollInterval.current) {
+                clearInterval(pollInterval.current)
+            }
+        }
+    }, [filter, fetchMessagesWithNotification])
+
+    // 清除新訊息計數
+    const clearNewMessageCount = () => {
+        setNewMessageCount(0)
+    }
 
     const fetchMessages = async () => {
         setLoading(true)
@@ -23,6 +103,7 @@ export default function MessagesPage() {
             const params = filter === 'all' ? {} : { status: filter }
             const response = await axios.get('/api/messages', { params })
             setMessages(response.data.messages)
+            notificationService.resetTracking(response.data.messages)
         } catch (error) {
             console.error('獲取訊息失敗:', error)
         } finally {
@@ -139,18 +220,57 @@ export default function MessagesPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white">訊息管理</h2>
+                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center space-x-3">
+                        <span>訊息管理</span>
+                        {newMessageCount > 0 && (
+                            <span className="px-2 py-1 text-sm bg-red-500 text-white rounded-full animate-pulse">
+                                {newMessageCount} 則新訊息
+                            </span>
+                        )}
+                    </h2>
                     <p className="mt-2 text-gray-600 dark:text-gray-400">
                         審核 AI 草稿，發送回覆給客戶
                     </p>
                 </div>
-                <button
-                    onClick={fetchMessages}
-                    className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                    <RefreshCw className="w-4 h-4" />
-                    <span>重新整理</span>
-                </button>
+                <div className="flex items-center space-x-2">
+                    {/* 音效開關 */}
+                    <button
+                        onClick={toggleSound}
+                        className={`p-2 rounded-lg border transition-colors ${
+                            soundEnabled
+                                ? 'bg-green-50 border-green-200 text-green-600 dark:bg-green-900/30 dark:border-green-700 dark:text-green-400'
+                                : 'bg-gray-50 border-gray-200 text-gray-400 dark:bg-gray-800 dark:border-gray-700'
+                        }`}
+                        title={soundEnabled ? '音效已開啟' : '音效已關閉'}
+                    >
+                        {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+                    </button>
+
+                    {/* 通知開關 */}
+                    <button
+                        onClick={toggleNotification}
+                        className={`p-2 rounded-lg border transition-colors ${
+                            notificationEnabled
+                                ? 'bg-blue-50 border-blue-200 text-blue-600 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-400'
+                                : 'bg-gray-50 border-gray-200 text-gray-400 dark:bg-gray-800 dark:border-gray-700'
+                        }`}
+                        title={notificationEnabled ? '通知已開啟' : '點擊開啟通知'}
+                    >
+                        {notificationEnabled ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
+                    </button>
+
+                    {/* 重新整理 */}
+                    <button
+                        onClick={() => {
+                            fetchMessages()
+                            clearNewMessageCount()
+                        }}
+                        className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    >
+                        <RefreshCw className="w-4 h-4" />
+                        <span>重新整理</span>
+                    </button>
+                </div>
             </div>
 
             {/* Filter Tabs */}
