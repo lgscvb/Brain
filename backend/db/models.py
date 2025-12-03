@@ -3,8 +3,9 @@ Brain - 資料庫模型
 定義所有的 SQLAlchemy ORM 模型
 """
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, JSON
+from sqlalchemy import Column, Integer, String, Text, Boolean, DateTime, ForeignKey, JSON, Float
 from sqlalchemy.orm import relationship, DeclarativeBase
+from sqlalchemy.dialects.postgresql import ARRAY
 
 
 class Base(DeclarativeBase):
@@ -89,3 +90,35 @@ class APIUsage(Base):
     success = Column(Boolean, default=True)
     error_message = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class KnowledgeChunk(Base):
+    """知識庫 Chunk 模型 - RAG 系統核心"""
+    __tablename__ = "knowledge_chunks"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    # 內容
+    content = Column(Text, nullable=False)  # 知識內容
+
+    # 分類
+    category = Column(String(50), nullable=False)  # spin_question, value_prop, objection, faq, service_info
+    sub_category = Column(String(100), nullable=True)  # 子分類，如 S/P/I/N, price, address 等
+
+    # 適用場景
+    service_type = Column(String(50), nullable=True)  # address_service, coworking, private_office, meeting_room
+
+    # 元資料（注意：metadata 是 SQLAlchemy 保留字，故使用 extra_data）
+    extra_data = Column(JSON, nullable=True)  # 額外資訊，如標籤、來源、優先級等
+
+    # 向量嵌入（PostgreSQL + pgvector 使用）
+    # 注意：實際向量存儲在 embedding_vector 欄位
+    # 本地開發時使用 JSON 格式存儲，生產環境使用 pgvector
+    embedding_json = Column(JSON, nullable=True)  # 備用：JSON 格式存儲向量（本地開發用）
+
+    # 狀態
+    is_active = Column(Boolean, default=True)  # 是否啟用
+
+    # 時間戳
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

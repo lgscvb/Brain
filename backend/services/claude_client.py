@@ -126,7 +126,8 @@ class ClaudeClient:
         source: str,
         context: Optional[Dict] = None,
         model: str = None,
-        conversation_history: str = ""
+        conversation_history: str = "",
+        rag_context: str = ""
     ) -> Dict:
         """
         [LLM Routing 第二步] 生成回覆草稿
@@ -134,8 +135,9 @@ class ClaudeClient:
 
         Args:
             conversation_history: 格式化的對話歷史字串
+            rag_context: RAG 檢索的相關知識
         """
-        from brain.prompts import DRAFT_PROMPT
+        from brain.prompts import build_draft_prompt
 
         # 決定使用哪個模型
         if self.provider == "openrouter":
@@ -147,18 +149,19 @@ class ClaudeClient:
         if self.mock_mode:
             return {
                 "intent": "詢價",
-                "strategy": "了解需求後引導至面談（模擬模式）",
-                "draft": f"您好 {sender_name}！感謝您的詢問。為了提供最適合您的方案，能否請教：您是打算成立新公司，還是變更現有公司地址？主要業務類型是什麼呢？🤔",
-                "next_action": "等待客戶回覆，進一步了解需求",
+                "strategy": "SPIN-S 了解客戶現況（模擬模式）",
+                "draft": f"您好～因為登記需要經過經濟部和國稅局，需要先了解您目前的情況：\n\n請問您是新設立還是遷址呢？（已有統編請直接提供）\n\n方便 LINE 通話跟您確認嗎？",
+                "next_action": "等待客戶回覆基本資訊",
                 "_usage": {"input_tokens": 0, "output_tokens": 0, "model": "mock"}
             }
 
-        # 建立提示詞（包含對話歷史）
-        prompt = DRAFT_PROMPT.format(
+        # 建立提示詞（包含對話歷史 + RAG 知識）
+        prompt = build_draft_prompt(
+            content=message,
             sender_name=sender_name,
             source=source,
-            content=message,
-            conversation_history=conversation_history
+            conversation_history=conversation_history,
+            rag_context=rag_context
         )
 
         try:

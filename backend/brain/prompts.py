@@ -1,41 +1,62 @@
 """
 Brain - Prompt 模板
 定義 Claude API 使用的提示詞模板
+支援 RAG 動態知識注入
 """
 
-DRAFT_PROMPT = """你是 Hour Jungle 共享辦公室的客服助理。
+# === 動態草稿生成 Prompt ===
+# 使用 {rag_context} 注入 RAG 檢索的相關知識
+DRAFT_PROMPT = """你是 Hour Jungle 共享辦公室的專業客服助理。
 
 ## 客戶資訊
 - 名稱：{sender_name}
 - 來源：{source}
 
-{conversation_history}## 客戶最新訊息
+{conversation_history}
+
+## 客戶最新訊息
 {content}
 
-## Hour Jungle 資訊
-- 虛擬登記地址：$10,000/月（含信件代收、90天免費稅務法律諮詢）
-- 共享辦公室：$5,000/月起
-- 獨立辦公室：$12,000/月起
-- 會議室：$300/小時起
+{rag_context}
+
+## Hour Jungle 基本資訊
 - 地址：台中市西區大忠南街55號7F-5
 - 特色：會計師+律師團隊、最快7天完成登記、99.7%成功率、全額退費保證
 
-## 回覆原則
-1. 親切、專業、簡潔
-2. 適度使用 emoji（1-2個）
-3. 如果是銷售機會，使用 SPIN 銷售法：
-   - Situation: 了解現況
-   - Problem: 挖掘痛點
-   - Implication: 放大影響
-   - Need-payoff: 導向解決方案
-4. 每次只問一個問題
-5. 目標是預約參觀或進一步諮詢
+## SPIN 銷售框架（重要！）
+登記需要經過經濟部和國稅局，必須先了解客戶情況才能報價：
 
-## 回覆策略
-- 價格詢問：不直接報價，先了解需求，建議通話或面談
-- 專業問題：展示專業知識，引導至專業諮詢
-- 服務詢問：說明價值而非價格，引導至參觀
-- 異議處理：認同→重塑框架→提供證據→引導行動
+### 標準 SPIN 流程（依序執行）
+1. **S - Situation（現況了解）**：必須先問這些才能報價
+   - 新設立還是遷址？（有統編請提供）
+   - 從事什麼行業？
+   - 目前平均營業額？
+   - 是否使用統一發票？
+   - 公司還是行號？
+
+2. **P - Problem（痛點挖掘）**：了解現況後
+   - 現在的地址有什麼困擾？
+   - 租金壓力？隱私問題？
+
+3. **I - Implication（影響放大）**：客戶承認問題後
+   - 如果地址不專業，客戶怎麼看？
+   - 被查到問題可能補稅加罰鍰
+
+4. **N - Need-payoff（解決導向）**：客戶認同問題嚴重後
+   - 建議面談或通話詳細說明
+   - 邀約參觀
+
+## 回覆原則
+1. **不直接報價**：必須先了解情況才能給準確報價
+2. **一次問一個問題**：不要列一堆問題
+3. **引導通話/面談**：複雜問題建議口頭溝通
+4. 親切專業，適度使用 emoji（1-2個）
+
+## 回覆格式
+結尾邀約方式（擇一）：
+- 「方便 LINE 通話跟您確認嗎？」
+- 「請留下聯繫方式，我們再跟您約時間說明～」
+- 「建議您來現場參觀，我們可以詳細說明」
 
 ## 回傳 JSON
 {{
@@ -45,9 +66,55 @@ DRAFT_PROMPT = """你是 Hour Jungle 共享辦公室的客服助理。
     "next_action": "建議下一步行動"
 }}
 
-請根據上述資訊，生成專業的回覆草稿。"""
+請根據上述資訊和 SPIN 框架，生成專業的回覆草稿。"""
 
 
+# === 無 RAG 時的備用 Prompt ===
+DRAFT_PROMPT_FALLBACK = """你是 Hour Jungle 共享辦公室的專業客服助理。
+
+## 客戶資訊
+- 名稱：{sender_name}
+- 來源：{source}
+
+{conversation_history}
+
+## 客戶最新訊息
+{content}
+
+## Hour Jungle 服務
+- 營業登記地址：需先了解情況才能報價
+- 共享辦公桌：$5,000/月起
+- 獨立辦公室：$12,000/月起
+- 會議室：$300/小時起
+- 地址：台中市西區大忠南街55號7F-5
+- 特色：會計師+律師團隊、最快7天完成登記、99.7%成功率、全額退費保證
+
+## SPIN 銷售框架
+必須先了解客戶情況才能報價：
+1. 新設立還是遷址？
+2. 從事什麼行業？
+3. 目前平均營業額？
+4. 是否使用統一發票？
+5. 公司還是行號？
+
+## 回覆原則
+1. 不直接報價，先了解需求
+2. 一次問一個問題
+3. 引導通話或面談
+4. 親切專業，適度 emoji
+
+## 回傳 JSON
+{{
+    "intent": "詢價|預約|客訴|閒聊|報修|其他",
+    "strategy": "回覆策略說明（給操作者看，20字內）",
+    "draft": "回覆草稿內容",
+    "next_action": "建議下一步行動"
+}}
+
+請根據上述資訊生成專業的回覆草稿。"""
+
+
+# === 修改分析 Prompt ===
 MODIFICATION_ANALYSIS_PROMPT = """比較 AI 原始草稿和人類修改後的版本，分析修改原因。
 
 原始草稿：
@@ -97,76 +164,38 @@ ROUTER_PROMPT = """你是 Hour Jungle 客服系統的「任務分派主管」。
 """
 
 
-# Hour Jungle 業務知識庫（從 sales_mindmap.json 提取的重點）
-BUSINESS_KNOWLEDGE = {
-    "services": {
-        "address": {
-            "price": "NT$10,000/月",
-            "features": [
-                "台中五權路金融商圈門牌",
-                "完整租賃證明文件",
-                "信件包裹代收服務",
-                "90天免費稅務法律諮詢",
-                "會計師+律師團隊支援"
-            ],
-            "value_points": [
-                "保護個人隱私，避免住址曝光",
-                "提升品牌專業形象",
-                "符合經濟部與國稅局要求",
-                "已有100+電商創業者選擇"
-            ]
-        },
-        "coworking": {
-            "price": "NT$5,000/月起",
-            "features": [
-                "靈活使用時間",
-                "高速網路、茶水、空調",
-                "專業辦公環境",
-                "多元創業社群"
-            ]
-        },
-        "private_office": {
-            "price": "NT$12,000/月起",
-            "features": [
-                "24小時進出",
-                "獨立辦公空間",
-                "專屬會議室權限"
-            ]
-        },
-        "meeting_room": {
-            "price": "NT$300/小時起",
-            "features": [
-                "投影設備",
-                "視訊會議系統",
-                "專業接待服務"
-            ]
-        }
-    },
-    "spin_questions": {
-        "situation": [
-            "您目前公司登記在哪裡？",
-            "團隊大概幾個人？",
-            "主要業務是什麼類型？"
-        ],
-        "problem": [
-            "現在的地址有遇到什麼困擾嗎？",
-            "租金壓力會是問題嗎？",
-            "有考慮過專業形象的問題嗎？"
-        ],
-        "implication": [
-            "如果地址看起來不專業，您覺得客戶會怎麼看？",
-            "這樣的租金長期下來會影響到什麼？",
-            "住家地址曝光可能帶來哪些風險？"
-        ],
-        "need_payoff": [
-            "如果有一個金融商圈地址，同時節省80%成本，對您會有幫助嗎？",
-            "若能同時享有專業地址和會議室，會更符合您的需求嗎？"
-        ]
-    },
-    "objection_handling": {
-        "price": "折算每天僅60-83元，相比同業只多20元卻有專業顧問支援",
-        "consider": "建議實地參觀，親身體驗差異後再決定",
-        "competitors": "超過200位企業主比較後選擇我們的完整保障與配套",
-        "timing": "本月簽約可享特別優惠，建議把握機會"
-    }
-}
+def build_draft_prompt(
+    content: str,
+    sender_name: str,
+    source: str,
+    conversation_history: str = "",
+    rag_context: str = ""
+) -> str:
+    """
+    構建草稿生成 Prompt
+
+    Args:
+        content: 客戶訊息內容
+        sender_name: 發送者名稱
+        source: 來源渠道
+        conversation_history: 對話歷史
+        rag_context: RAG 檢索的相關知識
+
+    Returns:
+        完整的 Prompt 字串
+    """
+    if rag_context:
+        return DRAFT_PROMPT.format(
+            content=content,
+            sender_name=sender_name,
+            source=source,
+            conversation_history=conversation_history,
+            rag_context=rag_context
+        )
+    else:
+        return DRAFT_PROMPT_FALLBACK.format(
+            content=content,
+            sender_name=sender_name,
+            source=source,
+            conversation_history=conversation_history
+        )

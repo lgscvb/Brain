@@ -2,8 +2,26 @@
 Brain - 配置管理
 從環境變數讀取所有設定
 """
+from pathlib import Path
 from pydantic_settings import BaseSettings
 from typing import Optional
+
+
+def find_env_file() -> str:
+    """尋找 .env 檔案，優先順序：當前目錄 > 父目錄"""
+    current_dir = Path(__file__).parent
+
+    # 檢查當前目錄（backend/）
+    if (current_dir / ".env").exists():
+        return str(current_dir / ".env")
+
+    # 檢查父目錄（brain/）
+    parent_env = current_dir.parent / ".env"
+    if parent_env.exists():
+        return str(parent_env)
+
+    # 預設返回當前目錄
+    return ".env"
 
 
 class Settings(BaseSettings):
@@ -31,6 +49,10 @@ class Settings(BaseSettings):
 
     # OpenRouter 設定（推薦）
     OPENROUTER_API_KEY: Optional[str] = None
+
+    # OpenAI 設定（用於 Embedding）
+    OPENAI_API_KEY: Optional[str] = None
+    EMBEDDING_MODEL: str = "text-embedding-3-small"  # 1536 維，$0.02/1M tokens
 
     # === LLM Routing 模型分流設定 ===
     # 聰明模型：處理 Router 判斷、複雜邏輯、稅務問題、SPIN 銷售
@@ -74,8 +96,9 @@ class Settings(BaseSettings):
     RATE_LIMIT_COOLDOWN: int = 60
 
     class Config:
-        env_file = ".env"
+        env_file = find_env_file()
         case_sensitive = True
+        extra = "ignore"  # 忽略 .env 中未定義的變數（如 VITE_API_URL）
 
 
 # 全域設定實例

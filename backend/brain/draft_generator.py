@@ -3,24 +3,27 @@ Brain - 草稿生成器
 整合 LLM Routing 意圖分類與 AI API 生成回覆草稿
 支援模型分流：簡單任務用便宜模型，複雜任務用高級模型
 支援對話上下文：取得同一客戶的歷史對話記錄
+支援 RAG：動態檢索相關知識注入 Prompt
 """
 from typing import Dict, Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from db.models import Message, Draft, Response, APIUsage
 from services.claude_client import get_claude_client
+from services.rag_service import get_rag_service
 from brain.router import get_intent_router
 from api.routes.usage import calculate_cost
 from config import settings
 
 
 class DraftGenerator:
-    """草稿生成器 - 支援 LLM Routing 和對話上下文"""
+    """草稿生成器 - 支援 LLM Routing、對話上下文和 RAG"""
 
     def __init__(self):
         """初始化草稿生成器"""
         self.claude_client = get_claude_client()
         self.intent_router = get_intent_router()
+        self.rag_service = get_rag_service()
 
     async def get_conversation_history(
         self,
@@ -149,14 +152,28 @@ class DraftGenerator:
                 strategy_prefix = f"🧠 深度模式 ({routing_reason})"
                 print(f"🤖 [COMPLEX] 使用 Smart Model: {target_model}")
 
-            # === 第三步：生成草稿（含對話上下文）===
+            # === 第二.五步：RAG 知識檢索 ===
+            rag_context = ""
+            try:
+                rag_context = await self.rag_service.get_relevant_context(
+                    db=db,
+                    message=content,
+                    top_k=5
+                )
+                if rag_context:
+                    print(f"📚 RAG 檢索到相關知識")
+            except Exception as e:
+                print(f"⚠️ RAG 檢索失敗: {e}")
+
+            # === 第三步：生成草稿（含對話上下文 + RAG 知識）===
             draft_result = await self.claude_client.generate_draft(
                 message=content,
                 sender_name=sender_name,
                 source=source,
                 context={"intent": suggested_intent, "routing": routing_result},
                 model=target_model if settings.AI_PROVIDER == "openrouter" else None,
-                conversation_history=conversation_history
+                conversation_history=conversation_history,
+                rag_context=rag_context
             )
 
             # === 第四步：記錄生成的 API 用量 ===
