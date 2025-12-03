@@ -311,11 +311,23 @@ async def main():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    # 找到 JSON 文件
-    brain_root = Path(__file__).parent.parent.parent
-    sales_mindmap_path = brain_root / "sales_mindmap.json"
-    logic_tree_path = brain_root / "logic_tree.json"
-    training_data_path = brain_root / "training_data.json"
+    # 找到 JSON 文件（支援多種路徑）
+    def find_json_file(filename: str) -> Path:
+        """搜尋 JSON 檔案，支援本地開發和 Docker 環境"""
+        search_paths = [
+            Path(__file__).parent.parent.parent / filename,  # 本地: brain/
+            Path(__file__).parent.parent / filename,          # Docker: /app/
+            Path.cwd() / filename,                            # 當前目錄
+            Path.cwd().parent / filename,                     # 父目錄
+        ]
+        for path in search_paths:
+            if path.exists():
+                return path
+        return search_paths[0]  # 回傳第一個路徑用於錯誤訊息
+
+    sales_mindmap_path = find_json_file("sales_mindmap.json")
+    logic_tree_path = find_json_file("logic_tree.json")
+    training_data_path = find_json_file("training_data.json")
 
     async with async_session() as session:
         importer = KnowledgeImporter(session)
