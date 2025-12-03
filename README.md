@@ -31,7 +31,18 @@
   - 複雜問題 → Claude Sonnet 4.5（高品質）
 - 支援 **OpenRouter**（推薦）和 **Anthropic 直連**
 - 基於 **SPIN 銷售框架**（Situation, Problem, Implication, Need-payoff）
-- **RAG 知識庫**支援，自動檢索邏輯樹和銷售策略
+
+### 📚 **RAG 知識庫系統**
+- **向量搜尋**：OpenRouter Embedding API（text-embedding-3-small，1536 維）
+- **動態檢索**：根據客戶問題即時檢索相關知識
+- **知識分類**：
+  - `spin_question` - SPIN 銷售問題庫
+  - `value_prop` - 價值主張
+  - `objection` - 異議處理話術
+  - `tactics` - 銷售技巧
+  - `scenario` - 情境範例
+  - `example_response` - 對話範例
+- **前端管理**：知識庫管理頁面（新增、編輯、刪除、向量搜尋、批次匯入）
 
 ### 💬 **多模式訊息處理**
 - **手動模式**：生成草稿供人工審核後發送
@@ -187,7 +198,11 @@ LINE_CHANNEL_SECRET=your_line_channel_secret
 AI_PROVIDER=openrouter
 
 # OpenRouter 設定 (推薦)
+# 同一組 API Key 可用於 LLM 和 Embedding
 OPENROUTER_API_KEY=your_openrouter_api_key
+
+# Embedding 設定 (RAG 知識庫)
+EMBEDDING_MODEL=text-embedding-3-small
 
 # LLM Routing 模型分流
 ENABLE_ROUTING=true
@@ -358,6 +373,17 @@ https://brain.yourspce.org
 #### Webhook
 - `POST /webhook/line` - LINE Webhook 端點
 
+#### 知識庫管理
+- `GET /api/knowledge` - 取得知識列表（支援分頁、篩選）
+- `GET /api/knowledge/{id}` - 取得單一知識
+- `POST /api/knowledge` - 新增知識（自動生成 Embedding）
+- `PUT /api/knowledge/{id}` - 更新知識
+- `DELETE /api/knowledge/{id}` - 刪除知識
+- `POST /api/knowledge/search` - 向量語意搜尋
+- `POST /api/knowledge/bulk-import` - 批次匯入
+- `GET /api/knowledge/categories` - 取得所有分類
+- `GET /api/knowledge/stats` - 取得知識庫統計
+
 詳細 API 文件：訪問 `http://localhost:8787/docs`（開發環境）
 
 ---
@@ -369,28 +395,39 @@ https://brain.yourspce.org
 ```
 Brain/
 ├── backend/                 # 後端 FastAPI
-│   ├── api/                # API 路由
-│   │   └── routes/         # 各模組路由
+│   ├── api/
+│   │   └── routes/
+│   │       ├── messages.py
+│   │       ├── settings.py
+│   │       ├── knowledge.py     # 知識庫管理 API
+│   │       └── ...
 │   ├── brain/              # AI 邏輯
-│   │   ├── draft_generator.py
-│   │   └── rag/            # RAG 知識庫
-│   ├── db/                 # 資料庫模型
-│   ├── services/           # 外部服務
-│   ├── logger.py           # 日誌配置
-│   └── main.py             # 應用入口
+│   │   ├── draft_generator.py   # 草稿生成（整合 RAG）
+│   │   └── prompts.py           # 動態 Prompt 模板
+│   ├── db/
+│   │   ├── models.py            # 資料模型（含 KnowledgeChunk）
+│   │   └── migrations/          # 資料庫遷移
+│   ├── services/
+│   │   ├── rag_service.py       # RAG 檢索服務
+│   │   ├── embedding_client.py  # Embedding API 客戶端
+│   │   └── claude_client.py     # LLM 客戶端
+│   ├── scripts/
+│   │   └── init_knowledge.py    # 知識庫初始化腳本
+│   └── main.py
 │
-├── frontend/               # 前端 React
+├── frontend/
 │   ├── src/
-│   │   ├── pages/          # 頁面元件
-│   │   ├── App.jsx         # 主應用
-│   │   └── main.jsx        # 入口
-│   ├── Dockerfile
-│   └── nginx.conf
+│   │   ├── pages/
+│   │   │   ├── KnowledgePage.jsx  # 知識庫管理頁面
+│   │   │   └── ...
+│   │   └── App.jsx
+│   └── ...
 │
-├── data/                   # 資料庫檔案
-├── logs/                   # 日誌檔案
+├── sales_mindmap.json       # 銷售知識來源
+├── logic_tree.json          # SPIN 邏輯樹
+├── training_data.json       # 對話訓練範例
 ├── docker-compose.yml
-├── deploy.sh               # 快速部署
+├── deploy.sh
 └── README.md
 ```
 
@@ -424,12 +461,22 @@ npm run test
 3. Webhook 是否已啟用
 4. 在日誌中確認是否有收到 Webhook 事件
 
+### Q: 如何初始化知識庫？
+
+**A**: 執行以下指令：
+```bash
+cd backend
+python scripts/init_knowledge.py
+```
+
+這會從 `sales_mindmap.json`、`logic_tree.json`、`training_data.json` 匯入知識並生成向量 Embedding。
+
 ### Q: AI 回覆品質不佳？
 
 **A**: 可以調整：
-1. 修改 `backend/brain/rag/` 下的知識庫內容
+1. 在「知識庫管理」頁面新增或修改知識內容
 2. 更新 `draft_generator.py` 中的提示詞
-3. 增加訓練範例到 RAG 資料庫
+3. 使用批次匯入功能新增更多訓練範例
 
 ### Q: 自動模式下如何確保回覆品質？
 
