@@ -55,6 +55,13 @@
 - 系統日誌（即時監控、篩選、清空）
 - 設定管理（API Keys、自動回覆切換）
 
+### 🔔 **即時通知系統**
+- **網頁通知**：新訊息時彈出桌面通知
+- **音效提醒**：使用 Web Audio API 生成提示音（無需外部音檔）
+- **輪詢機制**：每 10 秒自動檢查新訊息
+- **新訊息標記**：Header 顯示新訊息數量（紅色閃爍標籤）
+- **設定記憶**：音效/通知開關狀態儲存於 localStorage
+
 ### 🧠 **智能學習**
 - 分析人工修改的回覆內容
 - 自動優化 AI 提示詞
@@ -65,6 +72,11 @@
 - **合約狀態注入**：將客戶合約、繳費狀況注入 AI Prompt
 - **個人化回覆**：根據客戶歷史資料生成更精準的回覆
 - **雙向 API**：Brain ↔ Jungle 雙向整合
+- **API Key 認證**：使用 `X-Brain-Api-Key` Header 進行安全認證
+- **即時查詢**：
+  - `/brain/customer/{lineUserId}` - 客戶基本資料
+  - `/brain/customer/{lineUserId}/contracts` - 客戶合約列表
+  - `/brain/customer/{lineUserId}/payments` - 繳費記錄
 
 ---
 
