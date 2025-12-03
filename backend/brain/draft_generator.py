@@ -4,6 +4,7 @@ Brain - 草稿生成器
 支援模型分流：簡單任務用便宜模型，複雜任務用高級模型
 支援對話上下文：取得同一客戶的歷史對話記錄
 支援 RAG：動態檢索相關知識注入 Prompt
+支援 Jungle CRM 整合：查詢客戶資料、合約狀態
 """
 from typing import Dict, Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,19 +12,21 @@ from sqlalchemy import select, desc
 from db.models import Message, Draft, Response, APIUsage
 from services.claude_client import get_claude_client
 from services.rag_service import get_rag_service
+from services.jungle_client import get_jungle_client
 from brain.router import get_intent_router
 from api.routes.usage import calculate_cost
 from config import settings
 
 
 class DraftGenerator:
-    """草稿生成器 - 支援 LLM Routing、對話上下文和 RAG"""
+    """草稿生成器 - 支援 LLM Routing、對話上下文、RAG 和 Jungle CRM 整合"""
 
     def __init__(self):
         """初始化草稿生成器"""
         self.claude_client = get_claude_client()
         self.intent_router = get_intent_router()
         self.rag_service = get_rag_service()
+        self.jungle_client = get_jungle_client()
 
     async def get_conversation_history(
         self,
@@ -165,7 +168,20 @@ class DraftGenerator:
             except Exception as e:
                 print(f"⚠️ RAG 檢索失敗: {e}")
 
-            # === 第三步：生成草稿（含對話上下文 + RAG 知識）===
+            # === 第二.七步：查詢 Jungle CRM 客戶資料 ===
+            customer_context = ""
+            if sender_id and settings.ENABLE_JUNGLE_INTEGRATION:
+                try:
+                    customer_data = await self.jungle_client.get_customer_by_line_id(sender_id)
+                    if customer_data:
+                        customer_context = self.jungle_client.format_customer_context(customer_data)
+                        print(f"👤 載入 CRM 客戶資料: {customer_data.get('name', '未知')}")
+                    else:
+                        print(f"ℹ️ CRM 中無此客戶記錄 (sender_id: {sender_id[:20]}...)")
+                except Exception as e:
+                    print(f"⚠️ 查詢 CRM 客戶資料失敗: {e}")
+
+            # === 第三步：生成草稿（含對話上下文 + RAG 知識 + 客戶資料）===
             draft_result = await self.claude_client.generate_draft(
                 message=content,
                 sender_name=sender_name,
@@ -173,7 +189,8 @@ class DraftGenerator:
                 context={"intent": suggested_intent, "routing": routing_result},
                 model=target_model if settings.AI_PROVIDER == "openrouter" else None,
                 conversation_history=conversation_history,
-                rag_context=rag_context
+                rag_context=rag_context,
+                customer_context=customer_context
             )
 
             # === 第四步：記錄生成的 API 用量 ===

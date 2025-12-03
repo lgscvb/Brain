@@ -6,11 +6,14 @@ Brain - Prompt 模板
 
 # === 動態草稿生成 Prompt ===
 # 使用 {rag_context} 注入 RAG 檢索的相關知識
+# 使用 {customer_context} 注入 Jungle CRM 客戶資料
 DRAFT_PROMPT = """你是 Hour Jungle 共享辦公室的專業客服助理。
 
 ## 客戶資訊
 - 名稱：{sender_name}
 - 來源：{source}
+
+{customer_context}
 
 {conversation_history}
 
@@ -75,6 +78,8 @@ DRAFT_PROMPT_FALLBACK = """你是 Hour Jungle 共享辦公室的專業客服助�
 ## 客戶資訊
 - 名稱：{sender_name}
 - 來源：{source}
+
+{customer_context}
 
 {conversation_history}
 
@@ -169,7 +174,8 @@ def build_draft_prompt(
     sender_name: str,
     source: str,
     conversation_history: str = "",
-    rag_context: str = ""
+    rag_context: str = "",
+    customer_context: str = ""
 ) -> str:
     """
     構建草稿生成 Prompt
@@ -180,6 +186,7 @@ def build_draft_prompt(
         source: 來源渠道
         conversation_history: 對話歷史
         rag_context: RAG 檢索的相關知識
+        customer_context: Jungle CRM 客戶資料
 
     Returns:
         完整的 Prompt 字串
@@ -190,12 +197,14 @@ def build_draft_prompt(
             sender_name=sender_name,
             source=source,
             conversation_history=conversation_history,
-            rag_context=rag_context
+            rag_context=rag_context,
+            customer_context=customer_context
         )
     else:
         return DRAFT_PROMPT_FALLBACK.format(
             content=content,
             sender_name=sender_name,
             source=source,
-            conversation_history=conversation_history
+            conversation_history=conversation_history,
+            customer_context=customer_context
         )

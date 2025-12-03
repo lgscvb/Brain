@@ -60,6 +60,12 @@
 - 自動優化 AI 提示詞
 - 持續改善回覆品質
 
+### 🔗 **Jungle CRM 整合**
+- **客戶資料查詢**：透過 LINE userId 自動查詢 CRM 客戶資料
+- **合約狀態注入**：將客戶合約、繳費狀況注入 AI Prompt
+- **個人化回覆**：根據客戶歷史資料生成更精準的回覆
+- **雙向 API**：Brain ↔ Jungle 雙向整合
+
 ---
 
 ## 🛠 技術棧
@@ -217,6 +223,11 @@ THINKING_BUDGET_TOKENS=10000
 
 # System
 AUTO_REPLY_MODE=false
+
+# Jungle CRM 整合（選填）
+ENABLE_JUNGLE_INTEGRATION=false
+JUNGLE_API_URL=https://jungle.yourspace.org/api
+JUNGLE_API_KEY=your_jungle_api_key
 
 # Frontend
 VITE_API_URL=http://localhost:8000
@@ -384,6 +395,11 @@ https://brain.yourspce.org
 - `GET /api/knowledge/categories` - 取得所有分類
 - `GET /api/knowledge/stats` - 取得知識庫統計
 
+#### Jungle CRM 整合（供 Jungle 調用）
+- `GET /api/integration/conversations/{line_user_id}` - 查詢對話歷史
+- `GET /api/integration/conversations/{line_user_id}/stats` - 對話統計
+- `GET /api/integration/health` - 整合健康檢查
+
 詳細 API 文件：訪問 `http://localhost:8787/docs`（開發環境）
 
 ---
@@ -400,6 +416,7 @@ Brain/
 │   │       ├── messages.py
 │   │       ├── settings.py
 │   │       ├── knowledge.py     # 知識庫管理 API
+│   │       ├── integration.py   # Jungle CRM 整合 API
 │   │       └── ...
 │   ├── brain/              # AI 邏輯
 │   │   ├── draft_generator.py   # 草稿生成（整合 RAG）
@@ -410,6 +427,7 @@ Brain/
 │   ├── services/
 │   │   ├── rag_service.py       # RAG 檢索服務
 │   │   ├── embedding_client.py  # Embedding API 客戶端
+│   │   ├── jungle_client.py     # Jungle CRM API 客戶端
 │   │   └── claude_client.py     # LLM 客戶端
 │   ├── scripts/
 │   │   └── init_knowledge.py    # 知識庫初始化腳本

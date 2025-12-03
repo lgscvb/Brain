@@ -127,7 +127,8 @@ class ClaudeClient:
         context: Optional[Dict] = None,
         model: str = None,
         conversation_history: str = "",
-        rag_context: str = ""
+        rag_context: str = "",
+        customer_context: str = ""
     ) -> Dict:
         """
         [LLM Routing 第二步] 生成回覆草稿
@@ -136,6 +137,7 @@ class ClaudeClient:
         Args:
             conversation_history: 格式化的對話歷史字串
             rag_context: RAG 檢索的相關知識
+            customer_context: CRM 客戶資料（來自 Jungle）
         """
         from brain.prompts import build_draft_prompt
 
@@ -155,13 +157,14 @@ class ClaudeClient:
                 "_usage": {"input_tokens": 0, "output_tokens": 0, "model": "mock"}
             }
 
-        # 建立提示詞（包含對話歷史 + RAG 知識）
+        # 建立提示詞（包含對話歷史 + RAG 知識 + 客戶資料）
         prompt = build_draft_prompt(
             content=message,
             sender_name=sender_name,
             source=source,
             conversation_history=conversation_history,
-            rag_context=rag_context
+            rag_context=rag_context,
+            customer_context=customer_context
         )
 
         try:
