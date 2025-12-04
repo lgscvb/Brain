@@ -19,7 +19,7 @@ export default function SettingsPage() {
         // LLM Routing
         ENABLE_ROUTING: true,
         MODEL_SMART: 'anthropic/claude-sonnet-4.5',
-        MODEL_FAST: 'google/gemini-flash-1.5',
+        MODEL_FAST: 'google/gemini-2.0-flash-001',
 
         // Anthropic Direct
         CLAUDE_MODEL: 'claude-sonnet-4-5',
@@ -40,7 +40,7 @@ export default function SettingsPage() {
         ANTHROPIC_API_KEY_SET: false,
         ENABLE_ROUTING: true,
         MODEL_SMART: 'anthropic/claude-sonnet-4.5',
-        MODEL_FAST: 'google/gemini-flash-1.5',
+        MODEL_FAST: 'google/gemini-2.0-flash-001',
         CLAUDE_MODEL: 'claude-sonnet-4-5',
         ENABLE_EXTENDED_THINKING: false,
         THINKING_BUDGET_TOKENS: 10000,
@@ -107,7 +107,7 @@ export default function SettingsPage() {
                 AI_PROVIDER: response.data.AI_PROVIDER || 'openrouter',
                 ENABLE_ROUTING: response.data.ENABLE_ROUTING ?? true,
                 MODEL_SMART: response.data.MODEL_SMART || 'anthropic/claude-3.5-sonnet',
-                MODEL_FAST: response.data.MODEL_FAST || 'google/gemini-flash-1.5',
+                MODEL_FAST: response.data.MODEL_FAST || 'google/gemini-2.0-flash-001',
                 CLAUDE_MODEL: response.data.CLAUDE_MODEL || 'claude-sonnet-4-5',
                 ENABLE_EXTENDED_THINKING: response.data.ENABLE_EXTENDED_THINKING || false,
                 THINKING_BUDGET_TOKENS: response.data.THINKING_BUDGET_TOKENS || 10000,

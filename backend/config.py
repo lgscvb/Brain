@@ -59,8 +59,8 @@ class Settings(BaseSettings):
     MODEL_SMART: str = "anthropic/claude-sonnet-4.5"
 
     # 快速模型：處理簡單回覆、地址查詢、問候語
-    # 使用 Gemini Flash，成本只有 Haiku 的 1/4
-    MODEL_FAST: str = "google/gemini-flash-1.5"
+    # 使用 Gemini 2.0 Flash，成本低且速度快
+    MODEL_FAST: str = "google/gemini-2.0-flash-001"
 
     # 是否啟用 LLM Routing（模型分流）
     ENABLE_ROUTING: bool = True

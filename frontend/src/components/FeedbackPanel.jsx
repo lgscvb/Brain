@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { ThumbsUp, ThumbsDown, Star, Send } from 'lucide-react'
 import axios from 'axios'
 
@@ -9,12 +9,14 @@ import axios from 'axios'
  *
  * Props:
  *   - draftId: 草稿 ID
+ *   - idSuffix: ID 後綴（用於區分桌面/手機版，避免重複 ID）
  *   - initialFeedback: 初始回饋資料（可選）
  *   - onFeedbackSubmit: 回饋提交後的回呼函數
  *   - compact: 是否使用精簡模式（只顯示 thumbs up/down）
  */
 export default function FeedbackPanel({
     draftId,
+    idSuffix = '',
     initialFeedback = {},
     onFeedbackSubmit,
     compact = false
@@ -26,6 +28,26 @@ export default function FeedbackPanel({
     const [submitting, setSubmitting] = useState(false)
     const [submitted, setSubmitted] = useState(false)
     const [showDetails, setShowDetails] = useState(false)
+
+    // 用 ref 追蹤前一個 draftId，避免輪詢時重置狀態
+    const prevDraftId = useRef(null)
+
+    // 只在 draftId 真正改變時重置狀態（移除 initialFeedback 依賴，避免每次父組件渲染都觸發）
+    useEffect(() => {
+        // 第一次載入或 draftId 改變時才重置狀態
+        if (prevDraftId.current !== draftId) {
+            prevDraftId.current = draftId
+            setIsGood(initialFeedback.is_good)
+            setRating(initialFeedback.rating || 0)
+            setFeedbackReason(initialFeedback.feedback_reason || '')
+            setShowDetails(false)
+            setSubmitted(false)
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [draftId]) // 故意只依賴 draftId，不依賴 initialFeedback
+
+    // 唯一 ID 用於 accessibility（加入 suffix 區分桌面/手機版）
+    const feedbackId = `feedback-${draftId}${idSuffix}`
 
     const handleThumbClick = async (good) => {
         setIsGood(good)
@@ -41,8 +63,16 @@ export default function FeedbackPanel({
         }
     }
 
+    const handleShowDetails = () => {
+        setShowDetails(true)
+    }
+
     const handleStarClick = (star) => {
         setRating(star)
+    }
+
+    const handleReasonChange = (e) => {
+        setFeedbackReason(e.target.value)
     }
 
     const submitFeedback = async (feedbackData = {}) => {
@@ -158,16 +188,25 @@ export default function FeedbackPanel({
                 <div className="space-y-3 pt-2 border-t border-gray-200 dark:border-gray-700">
                     {/* 星級評分 */}
                     <div className="flex items-center space-x-3">
-                        <span className="text-sm text-gray-500 dark:text-gray-400">詳細評分：</span>
-                        <div className="flex items-center space-x-1">
+                        <span id={`${feedbackId}-rating-label`} className="text-sm text-gray-500 dark:text-gray-400">
+                            詳細評分：
+                        </span>
+                        <div
+                            className="flex items-center space-x-1"
+                            role="group"
+                            aria-labelledby={`${feedbackId}-rating-label`}
+                        >
                             {[1, 2, 3, 4, 5].map((star) => (
                                 <button
                                     key={star}
+                                    type="button"
                                     onClick={() => handleStarClick(star)}
                                     onMouseEnter={() => setHoveredStar(star)}
                                     onMouseLeave={() => setHoveredStar(0)}
                                     disabled={submitting}
-                                    className="focus:outline-none"
+                                    className="focus:outline-none focus:ring-2 focus:ring-yellow-400 rounded"
+                                    aria-label={`${star} 星`}
+                                    aria-pressed={rating === star}
                                 >
                                     <Star
                                         className={`w-6 h-6 transition-colors ${star <= (hoveredStar || rating)
@@ -187,12 +226,17 @@ export default function FeedbackPanel({
 
                     {/* 修改原因 */}
                     <div>
-                        <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">
+                        <label
+                            htmlFor={`${feedbackId}-reason`}
+                            className="block text-sm text-gray-500 dark:text-gray-400 mb-1"
+                        >
                             哪裡需要改進？（選填）
                         </label>
                         <textarea
+                            id={`${feedbackId}-reason`}
+                            name={`${feedbackId}-reason`}
                             value={feedbackReason}
-                            onChange={(e) => setFeedbackReason(e.target.value)}
+                            onChange={handleReasonChange}
                             placeholder="例如：語氣太正式、缺少具體資訊、表達不夠清晰..."
                             className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                             rows={3}
@@ -230,8 +274,9 @@ export default function FeedbackPanel({
             {/* 展開詳細回饋按鈕 */}
             {!showDetails && isGood !== false && (
                 <button
-                    onClick={() => setShowDetails(true)}
+                    onClick={handleShowDetails}
                     className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                    type="button"
                 >
                     詳細評分
                 </button>

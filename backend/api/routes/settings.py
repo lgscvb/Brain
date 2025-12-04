@@ -84,7 +84,7 @@ class SettingsRead(BaseModel):
     # LLM Routing
     ENABLE_ROUTING: bool = True
     MODEL_SMART: str = "anthropic/claude-sonnet-4.5"
-    MODEL_FAST: str = "google/gemini-flash-1.5"
+    MODEL_FAST: str = "google/gemini-2.0-flash-001"
 
     # Anthropic 直連
     CLAUDE_MODEL: str = "claude-sonnet-4-5"
@@ -124,7 +124,7 @@ AVAILABLE_MODELS = {
     ],
     "fast": [
         {"id": "google/gemini-2.0-flash-001", "name": "Gemini 2.0 Flash", "provider": "OpenRouter", "cost": "$0.10/$0.40 per MTok", "recommended": True},
-        {"id": "google/gemini-flash-1.5", "name": "Gemini 1.5 Flash", "provider": "OpenRouter", "cost": "$0.075/$0.30 per MTok"},
+        {"id": "google/gemini-2.0-flash-lite-001", "name": "Gemini 2.0 Flash Lite", "provider": "OpenRouter", "cost": "$0.075/$0.30 per MTok"},
         {"id": "deepseek/deepseek-chat", "name": "DeepSeek Chat", "provider": "OpenRouter", "cost": "$0.14/$0.28 per MTok"},
         {"id": "anthropic/claude-3-haiku", "name": "Claude 3 Haiku", "provider": "OpenRouter", "cost": "$0.25/$1.25 per MTok"},
         {"id": "meta-llama/llama-3.1-8b-instruct", "name": "Llama 3.1 8B", "provider": "OpenRouter", "cost": "$0.05/$0.05 per MTok"},
@@ -141,8 +141,8 @@ AVAILABLE_MODELS = {
 
 def get_env_file_path() -> Path:
     """取得 .env 檔案路徑"""
-    backend_dir = Path(__file__).parent.parent.parent
-    env_path = backend_dir.parent / ".env"
+    backend_dir = Path(__file__).parent.parent.parent  # /app
+    env_path = backend_dir / ".env"  # /app/.env
     return env_path
 
 
@@ -188,7 +188,7 @@ def write_env_file(env_vars: Dict[str, str]):
         f.write("\n# LLM Routing\n")
         f.write(f"ENABLE_ROUTING={env_vars.get('ENABLE_ROUTING', 'true')}\n")
         f.write(f"MODEL_SMART={env_vars.get('MODEL_SMART', 'anthropic/claude-3.5-sonnet')}\n")
-        f.write(f"MODEL_FAST={env_vars.get('MODEL_FAST', 'google/gemini-flash-1.5')}\n")
+        f.write(f"MODEL_FAST={env_vars.get('MODEL_FAST', 'google/gemini-2.0-flash-001')}\n")
 
         f.write("\n# Anthropic Direct\n")
         f.write(f"ANTHROPIC_API_KEY={env_vars.get('ANTHROPIC_API_KEY', '')}\n")
@@ -221,7 +221,7 @@ async def get_settings():
         # LLM Routing
         ENABLE_ROUTING=env_vars.get('ENABLE_ROUTING', 'true').lower() == 'true',
         MODEL_SMART=env_vars.get('MODEL_SMART', 'anthropic/claude-3.5-sonnet'),
-        MODEL_FAST=env_vars.get('MODEL_FAST', 'google/gemini-flash-1.5'),
+        MODEL_FAST=env_vars.get('MODEL_FAST', 'google/gemini-2.0-flash-001'),
 
         # Anthropic 直連
         CLAUDE_MODEL=env_vars.get('CLAUDE_MODEL', 'claude-sonnet-4-5'),

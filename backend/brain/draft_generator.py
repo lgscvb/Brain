@@ -279,13 +279,14 @@ class DraftGenerator:
         if not message:
             raise ValueError(f"找不到訊息 ID: {message_id}")
 
-        # 生成新草稿
+        # 生成新草稿（包含 sender_id 以取得對話歷史）
         return await self.generate(
             db=db,
             message_id=message_id,
             content=message.content,
             sender_name=message.sender_name,
-            source=message.source
+            source=message.source,
+            sender_id=message.sender_id
         )
 
 

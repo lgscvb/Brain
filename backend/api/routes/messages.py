@@ -4,9 +4,10 @@ Brain - 訊息管理 API 路由
 """
 from datetime import datetime
 from typing import List
+from urllib.parse import unquote
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc
+from sqlalchemy import select, func, desc, case
 from sqlalchemy.orm import selectinload
 from db.database import get_db
 from db.models import Message, Draft, Response
@@ -253,13 +254,146 @@ async def archive_message(
         select(Message).where(Message.id == message_id)
     )
     message = result.scalar_one_or_none()
-    
+
     if not message:
         raise HTTPException(status_code=404, detail="訊息不存在")
-    
+
     message.status = "archived"
     message.updated_at = datetime.utcnow()
-    
+
     await db.commit()
-    
+
     return {"success": True, "message": "訊息已封存"}
+
+
+# ====== 對話列表 API（三欄式佈局用）======
+
+@router.get("/conversations")
+async def list_conversations(
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    取得對話列表（依 sender_id 分組）
+
+    用於三欄式佈局的左欄，顯示所有客戶對話摘要
+    """
+    # 主查詢：只按 sender_id 分組統計（避免同一用戶因改名而出現重複）
+    query = (
+        select(
+            Message.sender_id,
+            func.count(Message.id).label('message_count'),
+            func.sum(
+                case(
+                    (Message.status.in_(['pending', 'drafted']), 1),
+                    else_=0
+                )
+            ).label('unread_count'),
+            func.max(Message.created_at).label('last_message_at')
+        )
+        .group_by(Message.sender_id)
+        .order_by(func.max(Message.created_at).desc())
+    )
+
+    result = await db.execute(query)
+    rows = result.all()
+
+    # 取得每個對話的最後一則訊息（用於 sender_name、source、預覽）
+    conversations = []
+    for row in rows:
+        # 取得最後一則訊息的完整資訊
+        last_msg_result = await db.execute(
+            select(Message.content, Message.sender_name, Message.source)
+            .where(Message.sender_id == row.sender_id)
+            .order_by(desc(Message.created_at))
+            .limit(1)
+        )
+        last_msg = last_msg_result.one_or_none()
+
+        preview = ""
+        sender_name = "Unknown"
+        source = "unknown"
+        if last_msg:
+            preview = last_msg.content[:50] + "..." if len(last_msg.content) > 50 else last_msg.content
+            sender_name = last_msg.sender_name
+            source = last_msg.source
+
+        conversations.append({
+            "sender_id": row.sender_id,
+            "sender_name": sender_name,
+            "source": source,
+            "message_count": row.message_count,
+            "unread_count": row.unread_count or 0,
+            "last_message_at": row.last_message_at.isoformat() if row.last_message_at else None,
+            "last_message_preview": preview
+        })
+
+    return {"conversations": conversations, "total": len(conversations)}
+
+
+@router.get("/conversations/{sender_id:path}/messages")
+async def get_conversation_messages(
+    sender_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    取得特定客戶的所有訊息（含回覆）
+
+    用於三欄式佈局的中欄，顯示選中客戶的訊息歷史
+    """
+    # URL decode sender_id (LINE user ID 可能含特殊字元)
+    decoded_sender_id = unquote(sender_id)
+
+    # 1. 查詢訊息（含草稿）
+    result = await db.execute(
+        select(Message)
+        .options(selectinload(Message.drafts))
+        .where(Message.sender_id == decoded_sender_id)
+        .order_by(desc(Message.created_at))
+    )
+    messages = result.scalars().all()
+
+    # 2. 查詢該客戶所有訊息的回覆
+    message_ids = [msg.id for msg in messages]
+    response_map = {}
+    if message_ids:
+        response_result = await db.execute(
+            select(Response)
+            .where(Response.message_id.in_(message_ids))
+        )
+        responses = response_result.scalars().all()
+        response_map = {r.message_id: r for r in responses}
+
+    # 3. 組合資料（包含回覆資訊）
+    messages_data = []
+    for msg in messages:
+        resp = response_map.get(msg.id)
+        msg_dict = {
+            "id": msg.id,
+            "source": msg.source,
+            "sender_id": msg.sender_id,
+            "sender_name": msg.sender_name,
+            "content": msg.content,
+            "status": msg.status,
+            "priority": msg.priority,
+            "created_at": msg.created_at.isoformat() if msg.created_at else None,
+            "updated_at": msg.updated_at.isoformat() if msg.updated_at else None,
+            "drafts": [
+                {
+                    "id": d.id,
+                    "content": d.content,
+                    "strategy": d.strategy,
+                    "intent": d.intent
+                }
+                for d in msg.drafts
+            ] if msg.drafts else [],
+            # 新增：回覆資訊
+            "response": {
+                "id": resp.id,
+                "final_content": resp.final_content,
+                "sent_at": resp.sent_at.isoformat() if resp.sent_at else None,
+                "is_modified": resp.is_modified
+            } if resp else None
+        }
+        messages_data.append(msg_dict)
+
+    return {"messages": messages_data, "total": len(messages_data)}

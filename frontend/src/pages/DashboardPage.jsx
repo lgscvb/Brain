@@ -5,10 +5,12 @@ import UsagePanel from '../components/UsagePanel'
 
 export default function DashboardPage({ onNavigate }) {
     const [stats, setStats] = useState(null)
+    const [settings, setSettings] = useState(null)
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         fetchStats()
+        fetchSettings()
         const interval = setInterval(fetchStats, 10000) // 每 10 秒更新
         return () => clearInterval(interval)
     }, [])
@@ -22,6 +24,23 @@ export default function DashboardPage({ onNavigate }) {
             console.error('獲取統計失敗:', error)
             setLoading(false)
         }
+    }
+
+    const fetchSettings = async () => {
+        try {
+            const response = await axios.get('/api/settings')
+            setSettings(response.data)
+        } catch (error) {
+            console.error('獲取設定失敗:', error)
+        }
+    }
+
+    // 從模型 ID 取得顯示名稱
+    const getModelDisplayName = (modelId) => {
+        if (!modelId) return '未設定'
+        // 取最後一段作為名稱，例如 "anthropic/claude-sonnet-4.5" -> "claude-sonnet-4.5"
+        const parts = modelId.split('/')
+        return parts[parts.length - 1]
     }
 
     const statCards = stats ? [
@@ -159,15 +178,21 @@ export default function DashboardPage({ onNavigate }) {
                     </div>
                     <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">AI 模式：</span>
-                        <span className="text-gray-900 dark:text-white font-medium">LLM Routing</span>
+                        <span className="text-gray-900 dark:text-white font-medium">
+                            {settings?.ENABLE_ROUTING ? 'LLM Routing' : '單一模型'}
+                        </span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">🧠 複雜任務：</span>
-                        <span className="text-gray-900 dark:text-white font-medium text-xs">Claude Sonnet 4.5</span>
+                        <span className="text-gray-900 dark:text-white font-medium text-xs">
+                            {getModelDisplayName(settings?.MODEL_SMART)}
+                        </span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-gray-600 dark:text-gray-400">⚡ 簡單任務：</span>
-                        <span className="text-gray-900 dark:text-white font-medium text-xs">Gemini Flash</span>
+                        <span className="text-gray-900 dark:text-white font-medium text-xs">
+                            {getModelDisplayName(settings?.MODEL_FAST)}
+                        </span>
                     </div>
                 </div>
             </div>
