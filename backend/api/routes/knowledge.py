@@ -220,7 +220,7 @@ async def get_knowledge(
         category=item.category,
         sub_category=item.sub_category,
         service_type=item.service_type,
-        metadata=item.metadata,
+        metadata=item.extra_data,
         is_active=item.is_active,
         created_at=item.created_at.isoformat() if item.created_at else "",
         updated_at=item.updated_at.isoformat() if item.updated_at else ""
@@ -300,7 +300,7 @@ async def update_knowledge(
         category=item.category,
         sub_category=item.sub_category,
         service_type=item.service_type,
-        metadata=item.metadata,
+        metadata=item.extra_data,
         is_active=item.is_active,
         created_at=item.created_at.isoformat() if item.created_at else "",
         updated_at=item.updated_at.isoformat() if item.updated_at else ""
