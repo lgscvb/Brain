@@ -264,6 +264,8 @@ export default function KnowledgePage() {
                     <div className="flex-1 min-w-[200px] relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                         <input
+                            id="knowledge-search"
+                            name="knowledge-search"
                             type="text"
                             placeholder="搜尋知識內容..."
                             value={searchQuery}
@@ -279,6 +281,8 @@ export default function KnowledgePage() {
                     <div className="flex items-center space-x-2">
                         <Filter className="w-4 h-4 text-gray-400" />
                         <select
+                            id="knowledge-category-filter"
+                            name="knowledge-category-filter"
                             value={selectedCategory}
                             onChange={(e) => {
                                 setSelectedCategory(e.target.value)
@@ -414,10 +418,12 @@ export default function KnowledgePage() {
                         <div className="p-4 space-y-4">
                             {/* Content */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <label htmlFor="knowledge-content" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     內容 *
                                 </label>
                                 <textarea
+                                    id="knowledge-content"
+                                    name="knowledge-content"
                                     value={formData.content}
                                     onChange={(e) => setFormData({ ...formData, content: e.target.value })}
                                     rows={5}
@@ -429,10 +435,12 @@ export default function KnowledgePage() {
                             {/* Category */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label htmlFor="knowledge-category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                         分類 *
                                     </label>
                                     <select
+                                        id="knowledge-category"
+                                        name="knowledge-category"
                                         value={formData.category}
                                         onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
@@ -444,10 +452,12 @@ export default function KnowledgePage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <label htmlFor="knowledge-sub-category" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                         子分類
                                     </label>
                                     <input
+                                        id="knowledge-sub-category"
+                                        name="knowledge-sub-category"
                                         type="text"
                                         value={formData.sub_category}
                                         onChange={(e) => setFormData({ ...formData, sub_category: e.target.value })}
@@ -459,10 +469,12 @@ export default function KnowledgePage() {
 
                             {/* Service Type */}
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                <label htmlFor="knowledge-service-type" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                                     服務類型
                                 </label>
                                 <select
+                                    id="knowledge-service-type"
+                                    name="knowledge-service-type"
                                     value={formData.service_type}
                                     onChange={(e) => setFormData({ ...formData, service_type: e.target.value })}
                                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
@@ -528,6 +540,8 @@ export default function KnowledgePage() {
                             </div>
 
                             <textarea
+                                id="knowledge-import-data"
+                                name="knowledge-import-data"
                                 value={importData}
                                 onChange={(e) => setImportData(e.target.value)}
                                 rows={12}
