@@ -385,6 +385,15 @@ const MessageDetailPanel = memo(function MessageDetailPanel({
                             ✓ 此訊息已發送回覆
                         </div>
                     )}
+
+                    {/* 對話代號（用於追蹤與 Bug 回報）*/}
+                    <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700/50">
+                        <p className="text-xs text-gray-400 dark:text-gray-500 font-mono select-all">
+                            對話: {messageDetail.sender_id?.slice(-8) || '-'} |
+                            訊息: #{messageDetail.id}
+                            {messageDetail.drafts?.[0]?.id && ` | 草稿: #${messageDetail.drafts[0].id}`}
+                        </p>
+                    </div>
                 </div>
             ) : null}
         </div>
