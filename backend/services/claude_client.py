@@ -52,7 +52,7 @@ class ClaudeClient:
         [LLM Routing 第一步] 路由分析：判斷任務複雜度
         使用 Smart Model 進行精準判斷
         """
-        from brain.prompts import ROUTER_PROMPT
+        from brain.prompts import build_router_prompt
 
         if self.mock_mode:
             return {"complexity": "COMPLEX", "reason": "模擬模式", "suggested_intent": "其他"}
@@ -62,7 +62,7 @@ class ClaudeClient:
             return {"complexity": "COMPLEX", "reason": "分流未啟用", "suggested_intent": "其他"}
 
         try:
-            prompt = ROUTER_PROMPT.format(content=message)
+            prompt = build_router_prompt(message)
 
             if self.provider == "openrouter":
                 response = await self.openrouter_client.chat.completions.create(
