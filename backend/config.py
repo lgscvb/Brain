@@ -95,14 +95,17 @@ class Settings(BaseSettings):
     # 冷卻時間（秒）：超過限制後的基礎冷卻時間（會隨違規次數倍增）
     RATE_LIMIT_COOLDOWN: int = 60
 
-    # === Jungle CRM 整合設定 ===
-    # Jungle API 基礎 URL
-    JUNGLE_API_URL: Optional[str] = None  # 例如: https://jungle.yourspace.org/api
+    # === Hour Jungle CRM 整合設定 ===
+    # CRM API 基礎 URL（新版 PostgreSQL + PostgREST）
+    CRM_API_URL: Optional[str] = None  # 例如: https://auto.yourspce.org
 
-    # Jungle API 金鑰（用於 Brain 調用 Jungle API）
+    # 舊版 API URL（向後相容）
+    JUNGLE_API_URL: Optional[str] = None  # 已棄用，請使用 CRM_API_URL
+
+    # Jungle API 金鑰（舊版用，新版不需要）
     JUNGLE_API_KEY: Optional[str] = None
 
-    # 是否啟用 Jungle 整合（查詢客戶資料）
+    # 是否啟用 CRM 整合（查詢客戶資料）
     ENABLE_JUNGLE_INTEGRATION: bool = False
 
     class Config:
