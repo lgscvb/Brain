@@ -199,6 +199,113 @@ async def get_conversation_stats(
     )
 
 
+class ExternalMessageLog(BaseModel):
+    """外部系統訊息記錄"""
+    sender_id: str  # LINE User ID
+    sender_name: str
+    content: str  # 訊息內容或操作描述
+    message_type: str = "bot_reply"  # bot_reply, user_action, system_event
+    source: str = "mcp_server"  # 來源系統
+    timestamp: Optional[str] = None  # ISO 格式時間戳（重要！確保對話順序正確）
+    metadata: Optional[dict] = None  # 額外資訊（如選單選項、預約詳情等）
+
+
+class ExternalMessageLogResponse(BaseModel):
+    """記錄回應"""
+    success: bool
+    message_id: Optional[int] = None
+    error: Optional[str] = None
+
+
+@router.post("/log", response_model=ExternalMessageLogResponse)
+async def log_external_message(
+    log_data: ExternalMessageLog,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    記錄外部系統的訊息（供 MCP Server 呼叫）
+
+    用途：
+    - 記錄 LINE Bot 發送給用戶的訊息
+    - 記錄用戶在選單上的操作
+    - 讓 Brain 能看到完整的對話上下文
+
+    message_type 說明：
+    - bot_reply: Bot 發送給用戶的訊息
+    - user_action: 用戶的選單操作（如選擇日期、選擇時段）
+    - system_event: 系統事件（如預約成功、取消預約）
+    """
+    try:
+        # 解析時間戳（如果有提供）
+        created_at = None
+        if log_data.timestamp:
+            try:
+                # 支援多種時間格式
+                for fmt in ["%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S.%f", "%Y-%m-%dT%H:%M:%S"]:
+                    try:
+                        created_at = datetime.strptime(log_data.timestamp, fmt)
+                        break
+                    except ValueError:
+                        continue
+            except Exception as e:
+                print(f"⚠️ 時間戳解析失敗: {log_data.timestamp}, 使用當前時間")
+                created_at = None
+
+        # 根據 message_type 決定如何記錄
+        if log_data.message_type == "bot_reply":
+            # Bot 回覆：記錄到 messages 表，source 為 "line_bot"
+            message = Message(
+                source="line_bot",
+                sender_id=log_data.sender_id,
+                sender_name="Hour Jungle Bot",  # Bot 名稱
+                content=log_data.content,
+                status="sent",
+                priority="low"
+            )
+        elif log_data.message_type == "user_action":
+            # 用戶操作：記錄到 messages 表，標記為用戶行為
+            message = Message(
+                source="line_oa",
+                sender_id=log_data.sender_id,
+                sender_name=log_data.sender_name,
+                content=f"[操作] {log_data.content}",
+                status="action",  # 特殊狀態表示這是操作記錄
+                priority="low"
+            )
+        else:  # system_event
+            # 系統事件：記錄到 messages 表
+            message = Message(
+                source="system",
+                sender_id=log_data.sender_id,
+                sender_name="System",
+                content=f"[系統] {log_data.content}",
+                status="event",
+                priority="low"
+            )
+
+        # 如果有提供時間戳，覆蓋默認的 created_at
+        if created_at:
+            message.created_at = created_at
+
+        db.add(message)
+        await db.commit()
+        await db.refresh(message)
+
+        print(f"📝 [Integration] 記錄外部訊息: {log_data.message_type} - {log_data.content[:50]}...")
+
+        return ExternalMessageLogResponse(
+            success=True,
+            message_id=message.id
+        )
+
+    except Exception as e:
+        print(f"❌ [Integration] 記錄失敗: {str(e)}")
+        return ExternalMessageLogResponse(
+            success=False,
+            error=str(e)
+        )
+
+
 @router.get("/health")
 async def integration_health():
     """整合 API 健康檢查"""
