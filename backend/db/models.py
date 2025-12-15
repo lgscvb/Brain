@@ -122,3 +122,63 @@ class KnowledgeChunk(Base):
     # 時間戳
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class MeetingRoom(Base):
+    """會議室模型"""
+    __tablename__ = "meeting_rooms"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(50), nullable=False)  # 會議室名稱
+    capacity = Column(Integer, default=6)  # 座位數
+    hourly_rate = Column(Integer, default=0)  # 每小時費率（分）- 目前免費給現有客戶
+    amenities = Column(JSON, default=list)  # 設備: ["投影機", "白板"]
+    google_calendar_id = Column(String(255), nullable=True)  # Google Calendar ID
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    bookings = relationship("MeetingRoomBooking", back_populates="room", cascade="all, delete-orphan")
+
+
+class MeetingRoomBooking(Base):
+    """會議室預約模型"""
+    __tablename__ = "meeting_room_bookings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    booking_number = Column(String(30), unique=True, nullable=False)  # MR-20241215-0001
+    meeting_room_id = Column(Integer, ForeignKey("meeting_rooms.id"), nullable=False)
+
+    # 客戶資訊（來自 LINE）
+    customer_line_id = Column(String(255), nullable=False)  # LINE User ID
+    customer_name = Column(String(255), nullable=False)
+
+    # 預約時間
+    booking_date = Column(String(10), nullable=False)  # YYYY-MM-DD
+    start_time = Column(String(5), nullable=False)  # HH:MM
+    end_time = Column(String(5), nullable=False)  # HH:MM
+    duration_minutes = Column(Integer, nullable=False)
+
+    # Google Calendar
+    google_event_id = Column(String(255), nullable=True)
+
+    # 狀態
+    status = Column(String(20), default="confirmed")  # confirmed, cancelled, completed
+    cancelled_at = Column(DateTime, nullable=True)
+    cancel_reason = Column(String(255), nullable=True)
+
+    # 提醒
+    reminder_sent = Column(Boolean, default=False)
+
+    # 備註
+    purpose = Column(String(255), nullable=True)  # 會議目的
+    attendees_count = Column(Integer, nullable=True)  # 預計人數
+    notes = Column(Text, nullable=True)
+    created_by = Column(String(50), default="line")  # line, admin
+
+    # 時間戳
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    room = relationship("MeetingRoom", back_populates="bookings")

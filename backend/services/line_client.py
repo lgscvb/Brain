@@ -10,6 +10,8 @@ from linebot.v3.messaging import (
     MessagingApi,
     PushMessageRequest,
     TextMessage,
+    FlexMessage,
+    FlexContainer,
 )
 from linebot.v3.webhooks import MessageEvent, TextMessageContent
 from config import settings
@@ -101,22 +103,66 @@ class LineClient:
     def verify_signature(self, body: str, signature: str) -> bool:
         """
         驗證 Webhook 簽名
-        
+
         Args:
             body: 請求 Body（字串格式）
             signature: X-Line-Signature Header
-        
+
         Returns:
             簽名是否有效
         """
         if self.mock_mode:
             return True
-        
+
         try:
             self.handler.handle(body, signature)
             return True
         except Exception:
             return False
+
+    async def send_flex_message(self, user_id: str, alt_text: str, contents: Dict) -> bool:
+        """
+        發送 Flex Message（互動式訊息）
+
+        Args:
+            user_id: LINE 用戶 ID
+            alt_text: 替代文字（用於通知和不支援 Flex 的裝置）
+            contents: Flex Message 內容（JSON 格式）
+
+        Returns:
+            是否發送成功
+        """
+        if self.mock_mode:
+            print(f"[模擬模式] 發送 Flex Message 給 {user_id}: {alt_text}")
+            return True
+
+        try:
+            # 將 dict 轉換為 FlexContainer
+            flex_container = FlexContainer.from_dict(contents)
+            flex_message = FlexMessage(alt_text=alt_text, contents=flex_container)
+
+            request = PushMessageRequest(
+                to=user_id,
+                messages=[flex_message]
+            )
+            self.messaging_api.push_message(request)
+            return True
+        except Exception as e:
+            print(f"發送 Flex Message 失敗: {str(e)}")
+            return False
+
+    async def reply_message(self, user_id: str, text: str) -> bool:
+        """
+        回覆訊息（使用 Push API）
+
+        Args:
+            user_id: LINE 用戶 ID
+            text: 訊息內容
+
+        Returns:
+            是否發送成功
+        """
+        return await self.send_text_message(user_id, text)
 
 
 # 全域 LINE 客戶端實例

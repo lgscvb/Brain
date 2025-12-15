@@ -19,6 +19,7 @@ from brain.draft_generator import get_draft_generator
 from services.line_client import get_line_client
 from services.jungle_client import get_jungle_client
 from services.rate_limiter import get_rate_limiter
+from services.booking_handler import get_booking_handler
 from config import settings
 
 
@@ -53,8 +54,8 @@ async def line_webhook(
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON")
 
-    # 取得 jungle_client 用於轉發預約事件
-    jungle_client = get_jungle_client()
+    # 取得 booking_handler 處理會議室預約
+    booking_handler = get_booking_handler()
 
     # 處理每個事件
     for event in events:
@@ -64,27 +65,28 @@ async def line_webhook(
         if not user_id:
             continue
 
+        # 取得用戶資料（預約需要用到）
+        line_client = get_line_client()
+        user_profile = await line_client.get_user_profile(user_id)
+        user_name = user_profile.get('display_name', '未知用戶') if user_profile else '未知用戶'
+
         # === 處理 Postback 事件（會議室預約流程使用）===
         if event_type == 'postback':
             postback_data = event.get('postback', {}).get('data', '')
 
             # 檢查是否為預約相關的 postback
             if postback_data.startswith('action=book') or postback_data.startswith('action=cancel'):
-                print(f"📅 [Booking] 轉發 postback 到 MCP: {postback_data[:50]}...")
+                print(f"📅 [Booking] 處理 postback: {postback_data[:50]}...")
 
-                # 轉發到 MCP Server
-                result = await jungle_client.forward_line_event(
+                # 使用 booking_handler 處理
+                await booking_handler.handle_postback(
+                    db=db,
                     user_id=user_id,
-                    message_text="",
-                    event_type="postback",
+                    user_name=user_name,
                     postback_data=postback_data
                 )
 
-                if result.get("success"):
-                    print(f"✅ [Booking] Postback 已轉發成功")
-                else:
-                    print(f"⚠️ [Booking] Postback 轉發失敗: {result.get('error')}")
-
+                print(f"✅ [Booking] Postback 處理完成")
                 continue  # 跳過後續處理
 
         # === 處理文字訊息 ===
@@ -94,10 +96,19 @@ async def line_webhook(
             if not message_text:
                 continue
 
-            # 注意：預約意圖判斷已移至 draft_generator.py
-            # 訊息會正常存入 DB 並觸發草稿生成
-            # draft_generator 的 LLM 會判斷意圖，如果是「預約會議室」會自動轉發 MCP
             print(f"📝 [Brain] 處理訊息: '{message_text[:30]}...'")
+
+            # === 會議室預約意圖檢測（優先處理）===
+            is_booking, booking_type = booking_handler.is_booking_intent(message_text)
+            if is_booking:
+                print(f"📅 [Booking] 檢測到預約意圖: {booking_type}")
+                await booking_handler.handle_text_message(
+                    db=db,
+                    user_id=user_id,
+                    user_name=user_name,
+                    message=message_text
+                )
+                continue  # 預約訊息不進入草稿生成流程
 
             # === 防洗頻檢查 ===
             if settings.ENABLE_RATE_LIMIT:
@@ -130,15 +141,11 @@ async def line_webhook(
 
                     continue  # 跳過此訊息，不生成草稿
 
-            # 取得用戶資料
-            user_profile = await line_client.get_user_profile(user_id)
-            sender_name = user_profile.get('display_name', '未知用戶') if user_profile else '未知用戶'
-
-            # 建立訊息記錄
+            # 建立訊息記錄（使用前面取得的 user_name）
             message = Message(
                 source="line_oa",
                 sender_id=user_id,
-                sender_name=sender_name,
+                sender_name=user_name,
                 content=message_text,
                 status="pending",
                 priority="medium"
@@ -195,7 +202,7 @@ async def line_webhook(
                                     msg.status = "sent"
                                     await task_db.commit()
 
-                                print(f"✅ 自動模式：已發送草稿給 {sender_name}")
+                                print(f"✅ 自動模式：已發送草稿給 {user_name}")
 
                     except Exception as e:
                         print(f"背景草稿生成/發送失敗: {str(e)}")

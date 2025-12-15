@@ -108,6 +108,9 @@ class Settings(BaseSettings):
     # 是否啟用 CRM 整合（查詢客戶資料）
     ENABLE_JUNGLE_INTEGRATION: bool = False
 
+    # === Google Calendar 設定 ===
+    GOOGLE_CALENDAR_CREDENTIALS: Optional[str] = None  # Service Account JSON 路徑
+
     class Config:
         env_file = find_env_file()
         case_sensitive = True
