@@ -47,6 +47,56 @@ class ClaudeClient:
                 self.anthropic_client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
                 print(f"✅ Anthropic 客戶端已初始化，模型: {self.model}")
 
+    def _parse_json_response(self, content: str) -> Optional[Dict]:
+        """
+        穩健的 JSON 解析，處理各種格式的 LLM 回應
+
+        支援：
+        - 純 JSON
+        - Markdown code block 包裹的 JSON
+        - 有前後文字的 JSON
+        """
+        import re
+
+        content = content.strip()
+
+        # 嘗試 1：直接解析
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            pass
+
+        # 嘗試 2：移除 markdown code blocks
+        if "```" in content:
+            # 提取 code block 內容
+            match = re.search(r'```(?:json)?\s*([\s\S]*?)```', content)
+            if match:
+                try:
+                    return json.loads(match.group(1).strip())
+                except json.JSONDecodeError:
+                    pass
+
+        # 嘗試 3：尋找 JSON 物件（{ ... }）
+        match = re.search(r'\{[\s\S]*"draft"[\s\S]*\}', content)
+        if match:
+            try:
+                return json.loads(match.group(0))
+            except json.JSONDecodeError:
+                pass
+
+        # 嘗試 4：找第一個 { 到最後一個 }
+        first_brace = content.find('{')
+        last_brace = content.rfind('}')
+        if first_brace != -1 and last_brace != -1 and last_brace > first_brace:
+            try:
+                return json.loads(content[first_brace:last_brace + 1])
+            except json.JSONDecodeError:
+                pass
+
+        # 全部失敗
+        print(f"⚠️ JSON 解析失敗，原始內容前 200 字: {content[:200]}")
+        return None
+
     async def route_task(self, message: str) -> Dict:
         """
         [LLM Routing 第一步] 路由分析：判斷任務複雜度
@@ -96,18 +146,12 @@ class ClaudeClient:
                     "model": self.model
                 }
 
-            # 嘗試解析 JSON
-            try:
-                # 清理可能的 markdown 格式
-                content = content.strip()
-                if content.startswith("```"):
-                    content = content.split("```")[1]
-                    if content.startswith("json"):
-                        content = content[4:]
-                result = json.loads(content)
+            # 嘗試解析 JSON（使用穩健的解析方法）
+            result = self._parse_json_response(content)
+            if result:
                 result["_usage"] = usage
                 return result
-            except json.JSONDecodeError:
+            else:
                 return {
                     "complexity": "COMPLEX",
                     "reason": "JSON解析失敗",
@@ -219,19 +263,20 @@ class ClaudeClient:
                     "model": target_model
                 }
 
-            # 嘗試解析 JSON
-            try:
-                content = content.strip()
-                if content.startswith("```"):
-                    content = content.split("```")[1]
-                    if content.startswith("json"):
-                        content = content[4:]
-                result = json.loads(content)
-            except json.JSONDecodeError:
+            # 嘗試解析 JSON（更穩健的解析）
+            result = self._parse_json_response(content)
+            if result is None:
+                # 解析失敗，嘗試提取純文字作為草稿
+                clean_content = content.strip()
+                # 移除 markdown code blocks
+                if "```" in clean_content:
+                    import re
+                    clean_content = re.sub(r'```(?:json)?\s*', '', clean_content)
+                    clean_content = clean_content.replace('```', '').strip()
                 result = {
                     "intent": "其他",
-                    "strategy": "系統自動生成",
-                    "draft": content,
+                    "strategy": "系統自動生成（JSON解析失敗）",
+                    "draft": clean_content,
                     "next_action": "人工審核"
                 }
 
