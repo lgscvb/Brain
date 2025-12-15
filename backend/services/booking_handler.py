@@ -431,11 +431,13 @@ class BookingHandler:
         user_name: str,
         date: str,
         start_time: str,
-        end_time: str
+        end_time: str,
+        room_id: int = 1
     ):
         """建立預約"""
-        result = await self.booking_service.create_booking(
+        booking, message = await self.booking_service.create_booking(
             db=db,
+            room_id=room_id,  # 預設使用會議室 ID=1
             customer_line_id=user_id,
             customer_name=user_name,
             date=date,
@@ -443,9 +445,8 @@ class BookingHandler:
             end_time=end_time
         )
 
-        if result.get("success"):
-            booking = result.get("booking", {})
-            booking_number = booking.get("booking_number", "")
+        if booking:
+            booking_number = booking.booking_number
 
             # 解析日期顯示
             date_obj = datetime.strptime(date, "%Y-%m-%d")
@@ -541,7 +542,7 @@ class BookingHandler:
                 flex_contents
             )
         else:
-            error_msg = result.get("error", "預約失敗，請稍後再試")
+            error_msg = message or "預約失敗，請稍後再試"
             await self.line_client.send_text_message(
                 user_id,
                 f"❌ {error_msg}\n\n請重新選擇時段，或聯繫客服協助。"
@@ -561,7 +562,7 @@ class BookingHandler:
         # 建立預約列表
         booking_bubbles = []
         for booking in bookings[:5]:  # 最多顯示 5 筆
-            date_obj = datetime.strptime(booking["booking_date"], "%Y-%m-%d")
+            date_obj = datetime.strptime(booking["date"], "%Y-%m-%d")
             weekday = ["一", "二", "三", "四", "五", "六", "日"][date_obj.weekday()]
             date_display = f"{date_obj.month}/{date_obj.day} ({weekday})"
 
