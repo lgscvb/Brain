@@ -138,42 +138,63 @@ async def line_webhook(
 
             print(f"🤖 [Routing] complexity={complexity}, intent={suggested_intent}")
 
-            # === BOOKING 意圖 → 轉發到 MCP Server ===
+            # === BOOKING 意圖 → 先檢查會員身份 ===
             if complexity == "BOOKING":
-                print(f"📅 [Booking] LLM 判斷為預約意圖，轉發到 MCP Server")
+                print(f"📅 [Booking] LLM 判斷為預約意圖，檢查會員身份")
 
-                # 記錄訊息到 Brain（狀態為 booking）
-                booking_message = Message(
-                    source="line_oa",
-                    sender_id=user_id,
-                    sender_name=user_name,
-                    content=message_text,
-                    status="booking",
-                    priority="low"
-                )
-                db.add(booking_message)
-                await db.commit()
-                print(f"📝 [Brain] 已記錄預約訊息 (ID: {booking_message.id})")
-
-                # 轉發到 MCP Server（MCP Server 的 LLM 有 booking tools）
+                # 檢查是否為會員（有 active 合約）
                 jungle_client = get_jungle_client()
-                forward_result = await jungle_client.forward_line_event(
-                    user_id=user_id,
-                    message_text=message_text,
-                    event_type="message"
-                )
+                customer = await jungle_client.get_customer_by_line_id(user_id)
 
-                if forward_result.get("success"):
-                    print(f"✅ [Booking] 已轉發到 MCP Server")
+                is_member = False
+                if customer:
+                    contracts = customer.get("contracts", [])
+                    active_contracts = [c for c in contracts if c.get("contract_status") == "active"]
+                    is_member = len(active_contracts) > 0
+                    print(f"👤 [Booking] 客戶: {customer.get('name')}, 有效合約: {len(active_contracts)}")
                 else:
-                    print(f"⚠️ [Booking] 轉發失敗: {forward_result.get('error')}")
-                    # 轉發失敗時，用備用回覆
-                    await line_client.reply_message(
-                        user_id,
-                        "抱歉，預約系統暫時無法使用，請稍後再試或直接聯繫客服。"
+                    print(f"👤 [Booking] 非 CRM 客戶")
+
+                if is_member:
+                    # === 會員 → 轉發到 MCP Server 自助預約 ===
+                    print(f"✅ [Booking] 會員，轉發到 MCP Server 自助預約")
+
+                    # 記錄訊息到 Brain（狀態為 booking）
+                    booking_message = Message(
+                        source="line_oa",
+                        sender_id=user_id,
+                        sender_name=user_name,
+                        content=message_text,
+                        status="booking",
+                        priority="low"
+                    )
+                    db.add(booking_message)
+                    await db.commit()
+                    print(f"📝 [Brain] 已記錄預約訊息 (ID: {booking_message.id})")
+
+                    # 轉發到 MCP Server
+                    forward_result = await jungle_client.forward_line_event(
+                        user_id=user_id,
+                        message_text=message_text,
+                        event_type="message"
                     )
 
-                continue  # 預約訊息不進入草稿生成流程
+                    if forward_result.get("success"):
+                        print(f"✅ [Booking] 已轉發到 MCP Server")
+                    else:
+                        print(f"⚠️ [Booking] 轉發失敗: {forward_result.get('error')}")
+                        await line_client.reply_message(
+                            user_id,
+                            "抱歉，預約系統暫時無法使用，請稍後再試或直接聯繫客服。"
+                        )
+
+                    continue  # 會員預約不進入草稿生成流程
+                else:
+                    # === 非會員 → 走正常草稿生成，讓 AI 引導付費租借方案 ===
+                    print(f"💰 [Booking] 非會員，走正常草稿生成（引導付費租借）")
+                    # 不 continue，繼續往下走草稿生成流程
+                    # 把 suggested_intent 標記為會議室租借
+                    suggested_intent = "會議室租借"
 
             # === 其他意圖 → 正常草稿生成 ===
             # 建立訊息記錄（使用前面取得的 user_name）
