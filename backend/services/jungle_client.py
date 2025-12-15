@@ -345,6 +345,54 @@ class JungleClient:
         print(f"📝 互動記錄: {line_user_id} - {interaction_type}: {content[:50]}...")
         return True
 
+    async def forward_line_event(
+        self,
+        user_id: str,
+        message_text: str,
+        event_type: str = "message",
+        postback_data: str = None
+    ) -> Dict[str, Any]:
+        """
+        轉發 LINE 事件到 MCP Server 處理會議室預約
+
+        Args:
+            user_id: LINE 用戶 ID
+            message_text: 訊息文字
+            event_type: 事件類型 (message/postback)
+            postback_data: postback 資料
+
+        Returns:
+            處理結果
+        """
+        if not self.enabled or not self.base_url:
+            return {"success": False, "error": "CRM integration disabled"}
+
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(
+                    f"{self.base_url}/api/line/forward",
+                    headers=self._get_headers(),
+                    json={
+                        "user_id": user_id,
+                        "message_text": message_text,
+                        "event_type": event_type,
+                        "postback_data": postback_data
+                    }
+                )
+
+                if response.status_code == 200:
+                    return response.json()
+                else:
+                    print(f"⚠️ LINE 事件轉發失敗: {response.status_code}")
+                    return {"success": False, "error": f"HTTP {response.status_code}"}
+
+        except httpx.TimeoutException:
+            print(f"⚠️ LINE 事件轉發超時")
+            return {"success": False, "error": "Timeout"}
+        except Exception as e:
+            print(f"⚠️ LINE 事件轉發失敗: {e}")
+            return {"success": False, "error": str(e)}
+
     def format_customer_context(self, customer: Dict[str, Any]) -> str:
         """
         將客戶資料格式化為 AI Prompt 使用的上下文
