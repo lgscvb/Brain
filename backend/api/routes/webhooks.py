@@ -102,6 +102,20 @@ async def line_webhook(
             is_booking, booking_type = booking_handler.is_booking_intent(message_text)
             if is_booking:
                 print(f"📅 [Booking] 檢測到預約意圖: {booking_type}")
+
+                # 記錄預約訊息到 Brain（狀態為 booking，不生成草稿）
+                booking_message = Message(
+                    source="line_oa",
+                    sender_id=user_id,
+                    sender_name=user_name,
+                    content=message_text,
+                    status="booking",  # 標記為預約類訊息
+                    priority="low"
+                )
+                db.add(booking_message)
+                await db.commit()
+                print(f"📝 [Brain] 已記錄預約訊息 (ID: {booking_message.id})")
+
                 await booking_handler.handle_text_message(
                     db=db,
                     user_id=user_id,
