@@ -204,10 +204,10 @@ class BookingHandler:
             flex_contents
         )
 
-    async def _show_time_slots(self, db: AsyncSession, user_id: str, date: str):
+    async def _show_time_slots(self, db: AsyncSession, user_id: str, date: str, room_id: int = 1):
         """顯示可用時段"""
-        # 取得可用時段
-        available_slots = await self.booking_service.get_available_slots(db, date)
+        # 取得可用時段 (預設使用會議室 ID=1)
+        available_slots = await self.booking_service.get_available_slots(db, room_id, date)
 
         if not available_slots:
             await self.line_client.send_text_message(
