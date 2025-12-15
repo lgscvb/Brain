@@ -2,11 +2,14 @@
 Brain - Webhook API 路由
 處理 LINE Webhook 事件
 
-架構說明 (方案 B - LLM 意圖分類)：
-1. 所有 LINE 訊息先轉發到 MCP Server
-2. MCP 使用 LLM 判斷意圖
-3. 如果是預約相關意圖 → MCP 處理並回覆
-4. 如果是其他意圖 → 返回 Brain 處理（生成草稿）
+架構說明：
+1. LINE 訊息進入 Brain
+2. 訊息存入 DB，觸發草稿生成 (draft_generator.py)
+3. draft_generator 使用 LLM 生成草稿時自動判斷意圖
+4. 如果 LLM 判斷是「預約會議室」→ 自動轉發 MCP 處理
+5. 如果是其他意圖 → 正常草稿流程
+
+注意：預約相關的 Postback 事件需直接轉發到 MCP
 """
 from fastapi import APIRouter, Request, HTTPException, BackgroundTasks, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -91,27 +94,10 @@ async def line_webhook(
             if not message_text:
                 continue
 
-            # === 方案 B：所有訊息先轉發到 MCP 進行 LLM 意圖分類 ===
-            print(f"🔄 [MCP] 轉發訊息進行意圖分類: {message_text[:50]}...")
-
-            mcp_result = await jungle_client.forward_line_event(
-                user_id=user_id,
-                message_text=message_text,
-                event_type="message"
-            )
-
-            intent = mcp_result.get("intent", "error")
-            handled = mcp_result.get("handled", False)
-
-            print(f"🎯 [MCP] 意圖分類結果: intent={intent}, handled={handled}")
-
-            # 如果 MCP 已處理（預約相關意圖），跳過 Brain 處理
-            if mcp_result.get("success") and handled:
-                print(f"✅ [MCP] 已處理 ({intent})，跳過 Brain")
-                continue
-
-            # 如果是 other 意圖或 MCP 未處理，繼續 Brain 流程
-            print(f"📝 [Brain] MCP 未處理 ({intent})，繼續 Brain 流程")
+            # 注意：預約意圖判斷已移至 draft_generator.py
+            # 訊息會正常存入 DB 並觸發草稿生成
+            # draft_generator 的 LLM 會判斷意圖，如果是「預約會議室」會自動轉發 MCP
+            print(f"📝 [Brain] 處理訊息: '{message_text[:30]}...'")
 
             # === 防洗頻檢查 ===
             if settings.ENABLE_RATE_LIMIT:
