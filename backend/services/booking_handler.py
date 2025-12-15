@@ -7,6 +7,7 @@ from typing import Dict, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from services.booking_service import BookingService
 from services.line_client import get_line_client
+from services.jungle_client import get_jungle_client
 
 
 # 預約相關關鍵字
@@ -30,6 +31,32 @@ class BookingHandler:
     def __init__(self):
         self.booking_service = BookingService()
         self.line_client = get_line_client()
+        self.jungle_client = get_jungle_client()
+
+    async def _verify_member(self, user_id: str) -> Tuple[bool, Optional[Dict]]:
+        """
+        驗證用戶是否為會員（有 active 合約）
+
+        Returns:
+            (是否為會員, 客戶資料)
+        """
+        # 查詢 CRM 客戶資料
+        customer = await self.jungle_client.get_customer_by_line_id(user_id)
+
+        if not customer:
+            print(f"⚠️ [Booking] 用戶 {user_id[:20]}... 不在 CRM 中")
+            return False, None
+
+        # 檢查是否有 active 合約
+        contracts = customer.get("contracts", [])
+        active_contracts = [c for c in contracts if c.get("contract_status") == "active"]
+
+        if not active_contracts:
+            print(f"⚠️ [Booking] 用戶 {customer.get('name')} 無有效合約")
+            return False, customer
+
+        print(f"✅ [Booking] 會員驗證通過: {customer.get('name')} (合約: {len(active_contracts)} 份)")
+        return True, customer
 
     def is_booking_intent(self, message: str) -> Tuple[bool, str]:
         """
@@ -137,6 +164,32 @@ class BookingHandler:
 
     async def _start_booking_flow(self, db: AsyncSession, user_id: str, user_name: str):
         """開始預約流程 - 顯示日期選擇"""
+        # === 會員驗證 ===
+        is_member, customer = await self._verify_member(user_id)
+
+        if not is_member:
+            # 非會員，拒絕預約
+            if customer:
+                # 有客戶資料但無有效合約
+                await self.line_client.send_text_message(
+                    user_id,
+                    f"抱歉，{customer.get('name', user_name)}，會議室預約服務僅限現有客戶使用。\n\n"
+                    "您目前沒有生效中的合約。如有需要，請聯繫我們了解租賃方案：\n"
+                    "📞 LINE 通話或留言給我們～"
+                )
+            else:
+                # 完全沒有客戶資料
+                await self.line_client.send_text_message(
+                    user_id,
+                    "抱歉，會議室預約服務僅限 Hour Jungle 現有客戶使用。\n\n"
+                    "如果您對我們的服務有興趣，歡迎留言詢問！我們提供：\n"
+                    "✅ 營業登記地址\n"
+                    "✅ 共享辦公室\n"
+                    "✅ 獨立辦公室\n\n"
+                    "成為客戶後，即可免費使用會議室預約服務！"
+                )
+            return
+
         # 生成接下來 7 天的日期選項
         today = datetime.now()
         date_buttons = []
