@@ -12,9 +12,13 @@ class JungleClient:
 
     def __init__(self):
         """初始化客戶端"""
-        self.base_url = settings.CRM_API_URL  # https://auto.yourspce.org
+        # 優先使用 CRM_API_URL，否則使用 JUNGLE_API_URL（向後相容）
+        self.base_url = settings.CRM_API_URL or settings.JUNGLE_API_URL
         self.enabled = settings.ENABLE_JUNGLE_INTEGRATION
         self.timeout = 10.0  # 秒
+
+        if self.enabled:
+            print(f"🔗 JungleClient 初始化: base_url={self.base_url}")
 
     def _get_headers(self) -> Dict[str, str]:
         """取得請求標頭"""
@@ -368,9 +372,13 @@ class JungleClient:
             return {"success": False, "error": "CRM integration disabled"}
 
         try:
+            # 注意：base_url 已經包含 /api，所以只需要 /line/forward
+            url = f"{self.base_url}/line/forward"
+            print(f"🔗 轉發到 MCP: {url}")
+
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(
-                    f"{self.base_url}/api/line/forward",
+                    url,
                     headers=self._get_headers(),
                     json={
                         "user_id": user_id,

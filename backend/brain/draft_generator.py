@@ -193,65 +193,12 @@ class DraftGenerator:
                 customer_context=customer_context
             )
 
-            # === 第三.五步：檢查是否為預約會議室意圖 ===
-            result_intent = draft_result.get("intent", "")
-            use_tool = draft_result.get("use_tool")
-
-            if result_intent == "預約會議室" or use_tool == "booking":
-                print(f"🏢 偵測到會議室預約意圖，轉發至 MCP Server")
-
-                # 轉發到 MCP Server 處理
-                mcp_result = await self.jungle_client.forward_line_event(
-                    user_id=sender_id,
-                    message_text=content,
-                    event_type="message"
-                )
-
-                # 記錄 API 用量
-                usage_info = draft_result.pop("_usage", None)
-                if usage_info:
-                    api_usage = APIUsage(
-                        provider="openrouter" if settings.AI_PROVIDER == "openrouter" else "anthropic",
-                        model=usage_info.get("model", "unknown"),
-                        operation="booking_intent_detection",
-                        input_tokens=usage_info.get("input_tokens", 0),
-                        output_tokens=usage_info.get("output_tokens", 0),
-                        total_tokens=usage_info.get("input_tokens", 0) + usage_info.get("output_tokens", 0),
-                        estimated_cost=calculate_cost(
-                            usage_info.get("model", "default"),
-                            usage_info.get("input_tokens", 0),
-                            usage_info.get("output_tokens", 0)
-                        ),
-                        success=True
-                    )
-                    db.add(api_usage)
-
-                # 建立一個特殊的草稿，標記為已由 MCP 處理
-                draft = Draft(
-                    message_id=message_id,
-                    content=f"[會議室預約] 已轉發至預約系統處理",
-                    strategy="🏢 會議室預約流程\nMCP 處理結果: {0}".format(
-                        mcp_result.get("reply_text", "處理中...")
-                    ),
-                    intent="預約會議室",
-                    is_selected=True  # 自動選擇，因為已經發送
-                )
-
-                db.add(draft)
-
-                # 更新 Message 狀態
-                result = await db.execute(
-                    select(Message).where(Message.id == message_id)
-                )
-                message = result.scalar_one_or_none()
-                if message:
-                    message.status = "responded"  # 標記為已回覆
-
-                await db.commit()
-                await db.refresh(draft)
-
-                print(f"✅ 會議室預約已轉發 (Message ID: {message_id})")
-                return draft
+            # === 第三.五步：會議室預約意圖處理（暫時停用）===
+            # 目前會議室相關詢問由客服人員處理，不自動轉發 MCP
+            # 待系統穩定後再啟用
+            # result_intent = draft_result.get("intent", "")
+            # if result_intent == "預約會議室":
+            #     ... (暫時停用)
 
             # === 第四步：記錄生成的 API 用量 ===
             usage_info = draft_result.pop("_usage", None)
