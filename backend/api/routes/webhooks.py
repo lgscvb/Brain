@@ -4,12 +4,11 @@ Brain - Webhook API 路由
 
 架構說明：
 1. LINE 訊息進入 Brain
-2. 訊息存入 DB，觸發草稿生成 (draft_generator.py)
-3. draft_generator 使用 LLM 生成草稿時自動判斷意圖
-4. 如果 LLM 判斷是「預約會議室」→ 自動轉發 MCP 處理
-5. 如果是其他意圖 → 正常草稿流程
+2. 使用 LLM Routing 判斷意圖（包含「預約會議室」意圖）
+3. 如果 LLM 判斷是「BOOKING」→ 轉發到 MCP Server（MCP 的 LLM 有 booking tools）
+4. 如果是其他意圖 → 正常草稿生成流程
 
-注意：預約相關的 Postback 事件需直接轉發到 MCP
+注意：預約相關的 Postback 事件也轉發到 MCP Server 處理
 """
 from fastapi import APIRouter, Request, HTTPException, BackgroundTasks, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -19,7 +18,7 @@ from brain.draft_generator import get_draft_generator
 from services.line_client import get_line_client
 from services.jungle_client import get_jungle_client
 from services.rate_limiter import get_rate_limiter
-from services.booking_handler import get_booking_handler
+from services.claude_client import get_claude_client
 from config import settings
 
 
@@ -54,9 +53,6 @@ async def line_webhook(
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON")
 
-    # 取得 booking_handler 處理會議室預約
-    booking_handler = get_booking_handler()
-
     # 處理每個事件
     for event in events:
         event_type = event.get('type')
@@ -78,15 +74,20 @@ async def line_webhook(
             if postback_data.startswith('action=book') or postback_data.startswith('action=cancel'):
                 print(f"📅 [Booking] 處理 postback: {postback_data[:50]}...")
 
-                # 使用 booking_handler 處理
-                await booking_handler.handle_postback(
-                    db=db,
+                # 轉發到 MCP Server 處理（MCP Server 的 LLM 有 booking tools）
+                jungle_client = get_jungle_client()
+                forward_result = await jungle_client.forward_line_event(
                     user_id=user_id,
-                    user_name=user_name,
+                    message_text="",  # postback 沒有文字
+                    event_type="postback",
                     postback_data=postback_data
                 )
 
-                print(f"✅ [Booking] Postback 處理完成")
+                if forward_result.get("success"):
+                    print(f"✅ [Booking] Postback 已轉發到 MCP Server")
+                else:
+                    print(f"⚠️ [Booking] Postback 轉發失敗: {forward_result.get('error')}")
+
                 continue  # 跳過後續處理
 
         # === 處理文字訊息 ===
@@ -98,33 +99,7 @@ async def line_webhook(
 
             print(f"📝 [Brain] 處理訊息: '{message_text[:30]}...'")
 
-            # === 會議室預約意圖檢測（優先處理）===
-            is_booking, booking_type = booking_handler.is_booking_intent(message_text)
-            if is_booking:
-                print(f"📅 [Booking] 檢測到預約意圖: {booking_type}")
-
-                # 記錄預約訊息到 Brain（狀態為 booking，不生成草稿）
-                booking_message = Message(
-                    source="line_oa",
-                    sender_id=user_id,
-                    sender_name=user_name,
-                    content=message_text,
-                    status="booking",  # 標記為預約類訊息
-                    priority="low"
-                )
-                db.add(booking_message)
-                await db.commit()
-                print(f"📝 [Brain] 已記錄預約訊息 (ID: {booking_message.id})")
-
-                await booking_handler.handle_text_message(
-                    db=db,
-                    user_id=user_id,
-                    user_name=user_name,
-                    message=message_text
-                )
-                continue  # 預約訊息不進入草稿生成流程
-
-            # === 防洗頻檢查 ===
+            # === 防洗頻檢查（放在 LLM routing 之前，節省 API 費用）===
             if settings.ENABLE_RATE_LIMIT:
                 rate_limiter = get_rate_limiter()
                 is_allowed, reason = rate_limiter.check_rate_limit(user_id, message_text)
@@ -155,6 +130,52 @@ async def line_webhook(
 
                     continue  # 跳過此訊息，不生成草稿
 
+            # === LLM Routing 意圖判斷 ===
+            claude_client = get_claude_client()
+            routing_result = await claude_client.route_task(message_text)
+            complexity = routing_result.get("complexity", "COMPLEX")
+            suggested_intent = routing_result.get("suggested_intent", "其他")
+
+            print(f"🤖 [Routing] complexity={complexity}, intent={suggested_intent}")
+
+            # === BOOKING 意圖 → 轉發到 MCP Server ===
+            if complexity == "BOOKING":
+                print(f"📅 [Booking] LLM 判斷為預約意圖，轉發到 MCP Server")
+
+                # 記錄訊息到 Brain（狀態為 booking）
+                booking_message = Message(
+                    source="line_oa",
+                    sender_id=user_id,
+                    sender_name=user_name,
+                    content=message_text,
+                    status="booking",
+                    priority="low"
+                )
+                db.add(booking_message)
+                await db.commit()
+                print(f"📝 [Brain] 已記錄預約訊息 (ID: {booking_message.id})")
+
+                # 轉發到 MCP Server（MCP Server 的 LLM 有 booking tools）
+                jungle_client = get_jungle_client()
+                forward_result = await jungle_client.forward_line_event(
+                    user_id=user_id,
+                    message_text=message_text,
+                    event_type="message"
+                )
+
+                if forward_result.get("success"):
+                    print(f"✅ [Booking] 已轉發到 MCP Server")
+                else:
+                    print(f"⚠️ [Booking] 轉發失敗: {forward_result.get('error')}")
+                    # 轉發失敗時，用備用回覆
+                    await line_client.reply_message(
+                        user_id,
+                        "抱歉，預約系統暫時無法使用，請稍後再試或直接聯繫客服。"
+                    )
+
+                continue  # 預約訊息不進入草稿生成流程
+
+            # === 其他意圖 → 正常草稿生成 ===
             # 建立訊息記錄（使用前面取得的 user_name）
             message = Message(
                 source="line_oa",
@@ -169,7 +190,7 @@ async def line_webhook(
             await db.commit()
             await db.refresh(message)
 
-            # 背景生成草稿（使用獨立 Session）
+            # 背景生成草稿（使用獨立 Session，傳入 routing 結果避免重複 API 呼叫）
             async def generate_draft_task():
                 from db.database import AsyncSessionLocal
                 from db.models import Draft
