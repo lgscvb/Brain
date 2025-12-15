@@ -1,6 +1,12 @@
 """
 Brain - Webhook API 路由
 處理 LINE Webhook 事件
+
+架構說明 (方案 B - LLM 意圖分類)：
+1. 所有 LINE 訊息先轉發到 MCP Server
+2. MCP 使用 LLM 判斷意圖
+3. 如果是預約相關意圖 → MCP 處理並回覆
+4. 如果是其他意圖 → 返回 Brain 處理（生成草稿）
 """
 from fastapi import APIRouter, Request, HTTPException, BackgroundTasks, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,19 +20,6 @@ from config import settings
 
 
 router = APIRouter()
-
-# 會議室預約相關關鍵字（轉發到 MCP 處理）
-BOOKING_KEYWORDS = [
-    "預約", "預約會議室", "book", "booking",
-    "我的預約", "查詢預約", "mybooking", "查詢",
-    "取消預約", "取消"
-]
-
-
-def is_booking_intent(text: str) -> bool:
-    """檢查訊息是否為會議室預約意圖"""
-    text_lower = text.strip().lower()
-    return any(kw.lower() == text_lower for kw in BOOKING_KEYWORDS)
 
 
 @router.post("/webhook/line")
@@ -98,27 +91,27 @@ async def line_webhook(
             if not message_text:
                 continue
 
-            # === 檢查是否為會議室預約意圖 ===
-            if is_booking_intent(message_text):
-                print(f"📅 [Booking] 偵測到預約意圖: {message_text}")
+            # === 方案 B：所有訊息先轉發到 MCP 進行 LLM 意圖分類 ===
+            print(f"🔄 [MCP] 轉發訊息進行意圖分類: {message_text[:50]}...")
 
-                # 轉發到 MCP Server 處理
-                result = await jungle_client.forward_line_event(
-                    user_id=user_id,
-                    message_text=message_text,
-                    event_type="message"
-                )
+            mcp_result = await jungle_client.forward_line_event(
+                user_id=user_id,
+                message_text=message_text,
+                event_type="message"
+            )
 
-                if result.get("success") and result.get("handled"):
-                    print(f"✅ [Booking] 已轉發到 MCP 處理")
-                else:
-                    # MCP 未處理（可能用戶不是客戶），回到一般流程
-                    print(f"⚠️ [Booking] MCP 未處理，回到一般流程: {result}")
-                    # 繼續後續處理...
-                    pass
+            intent = mcp_result.get("intent", "error")
+            handled = mcp_result.get("handled", False)
 
-                # 預約相關訊息已轉發，跳過草稿生成
+            print(f"🎯 [MCP] 意圖分類結果: intent={intent}, handled={handled}")
+
+            # 如果 MCP 已處理（預約相關意圖），跳過 Brain 處理
+            if mcp_result.get("success") and handled:
+                print(f"✅ [MCP] 已處理 ({intent})，跳過 Brain")
                 continue
+
+            # 如果是 other 意圖或 MCP 未處理，繼續 Brain 流程
+            print(f"📝 [Brain] MCP 未處理 ({intent})，繼續 Brain 流程")
 
             # === 防洗頻檢查 ===
             if settings.ENABLE_RATE_LIMIT:
