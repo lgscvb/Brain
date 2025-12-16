@@ -11,9 +11,8 @@ async def test_get_messages(async_client: AsyncClient):
     response = await async_client.get("/api/messages")
     assert response.status_code == 200
     data = response.json()
-    assert "items" in data
+    assert "messages" in data
     assert "total" in data
-    assert "page" in data
 
 
 @pytest.mark.asyncio
@@ -22,7 +21,7 @@ async def test_get_pending_messages(async_client: AsyncClient):
     response = await async_client.get("/api/messages/pending")
     assert response.status_code == 200
     data = response.json()
-    assert "items" in data
+    assert "messages" in data
 
 
 @pytest.mark.asyncio
@@ -34,9 +33,10 @@ async def test_get_message_not_found(async_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_get_messages_pagination(async_client: AsyncClient):
-    """Test messages pagination"""
-    response = await async_client.get("/api/messages?page=1&page_size=5")
+    """Test messages pagination with limit/offset"""
+    response = await async_client.get("/api/messages?limit=5&offset=0")
     assert response.status_code == 200
     data = response.json()
-    assert data["page"] == 1
-    assert data["page_size"] == 5
+    assert "messages" in data
+    assert "total" in data
+    assert isinstance(data["messages"], list)

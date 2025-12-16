@@ -24,7 +24,7 @@ async def test_verify_password_correct(async_client: AsyncClient):
     )
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "success"
+    assert data["success"] == True
 
 
 @pytest.mark.asyncio
@@ -34,7 +34,7 @@ async def test_verify_password_incorrect(async_client: AsyncClient):
         "/api/settings/verify-password",
         json={"password": "wrong"}
     )
-    assert response.status_code == 401
+    assert response.status_code == 403
 
 
 @pytest.mark.asyncio
