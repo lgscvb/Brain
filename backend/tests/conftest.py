@@ -13,19 +13,30 @@ from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 
-# Set test environment
-os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test.db"
-os.environ["ADMIN_PASSWORD"] = "test123"
-os.environ["AI_PROVIDER"] = "openrouter"
-os.environ["OPENROUTER_API_KEY"] = "test-key"
+# Set test environment - 使用環境變數或預設值
+# CI 環境會透過 .env.test 設定 DATABASE_URL
+if "DATABASE_URL" not in os.environ:
+    os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test.db"
+if "ADMIN_PASSWORD" not in os.environ:
+    os.environ["ADMIN_PASSWORD"] = "test123"
+if "AI_PROVIDER" not in os.environ:
+    os.environ["AI_PROVIDER"] = "openrouter"
+if "OPENROUTER_API_KEY" not in os.environ:
+    os.environ["OPENROUTER_API_KEY"] = "test-key"
 
 from main import app
 from db.database import Base, get_db
 
 
-# Test database setup
-TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
-test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+# Test database setup - 優先使用環境變數
+TEST_DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite+aiosqlite:///./test.db")
+
+# SQLite 需要特殊處理
+connect_args = {}
+if TEST_DATABASE_URL.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
+
+test_engine = create_async_engine(TEST_DATABASE_URL, echo=False, connect_args=connect_args)
 TestSessionLocal = sessionmaker(
     test_engine, class_=AsyncSession, expire_on_commit=False
 )

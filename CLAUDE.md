@@ -137,3 +137,213 @@ docker compose logs -f
 2. **資料庫遷移**: 新增 model 欄位後需重建資料庫或執行遷移
 3. **前端部署**: 修改前端後需重新 build Docker image
 4. **成本監控**: 定期檢查 OpenRouter 用量避免超支
+
+---
+
+## Hour Jungle 專案整合
+
+### 專案關係
+
+Brain 是 Hour Jungle 生態系統的一部分：
+
+```
+┌──────────────┐    API調用    ┌──────────────────────┐
+│ opus高級前端  │ ────────────→ │  hourjungle-crm      │
+│ (CRM前端UI)   │              │  (MCP Server+DB)     │
+└──────────────┘              └──────────────────────┘
+                                      ↑
+                                      │ Jungle整合
+                                      │
+                    ┌─────────────────┘
+                    │
+              ┌─────▼─────┐
+              │   brain   │
+              │ (AI客服)  │
+              └───────────┘
+```
+
+### Jungle CRM 整合
+
+Brain 透過 `JungleClient` 連接 hourjungle-crm：
+
+```python
+# backend/services/jungle_client.py
+
+# 查詢客戶資料
+customer = await jungle_client.get_customer_by_line_id(line_user_id)
+
+# 取得合約狀態
+contracts = await jungle_client.get_customer_contracts(customer_id)
+
+# 取得繳費狀態
+payments = await jungle_client.get_pending_payments(customer_id)
+```
+
+### 環境變數（Jungle 整合）
+
+```env
+# Jungle CRM API
+JUNGLE_API_URL=https://auto.yourspce.org
+JUNGLE_API_KEY=xxx
+ENABLE_JUNGLE_INTEGRATION=true
+```
+
+---
+
+## 待完成功能
+
+- [ ] 平面圖生成
+- [ ] 必要文件生成
+- [ ] 自動化測試
+- [ ] 人工作業測試
+- [ ] RAG 優化
+- [ ] LLM Routing 調優
+- [ ] 知識庫擴充
+
+---
+
+## 相關專案
+
+| 專案 | 路徑 | 說明 |
+|------|------|------|
+| opus高級前端 | `../opus高級前端/` | CRM 管理後台 UI |
+| hourjungle-crm | `../hourjungle-crm/` | MCP Server + PostgreSQL |
+
+請參考 `../CLAUDE.md` 了解完整的專案架構和開發理念
+
+---
+
+## LINE Bot 配置
+
+### Webhook 端點
+
+```
+POST /webhook/line
+```
+
+LINE Bot 訊息會透過此端點進入系統，處理流程：
+
+```
+LINE → Webhook → 建立 Message → AI 生成草稿 → 人工審核 → 發送回覆
+```
+
+### LINE Developers Console 設定
+
+| 項目 | 值 |
+|------|-----|
+| Webhook URL | `https://brain.yourspce.org/webhook/line` |
+| Use webhook | ✅ 啟用 |
+| Auto-reply | ❌ 關閉 |
+| Greeting | ❌ 關閉 |
+
+### 對話狀態管理
+
+Brain 使用記憶體/SQLite 儲存對話狀態（不使用 Redis）：
+
+```python
+# backend/db/models.py
+
+class Message(Base):
+    sender_id = Column(String)      # LINE user ID
+    sender_name = Column(String)    # 顯示名稱
+    content = Column(Text)          # 訊息內容
+    status = Column(String)         # pending/drafted/sent/archived
+```
+
+### 取得對話歷史
+
+```python
+# 取得同一用戶的最近 N 則對話
+messages = await get_conversation_history(
+    sender_id=line_user_id,
+    limit=CONVERSATION_HISTORY_LIMIT  # 預設 30
+)
+```
+
+---
+
+## GCP 部署配置
+
+### 部署架構
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Cloudflare (DNS + SSL)               │
+│                    brain.yourspce.org                   │
+└─────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────┐
+│              GCP Compute Engine VM                      │
+│              brain-ai-system (us-west1-b)               │
+│  ┌───────────────────────────────────────────────────┐ │
+│  │  Docker Compose                                    │ │
+│  │  ├─ nginx (80) → 前端靜態檔案                     │ │
+│  │  └─ backend (8000/8787) → FastAPI                 │ │
+│  └───────────────────────────────────────────────────┘ │
+│                                                         │
+│  資料存儲：                                             │
+│  └─ ./data/brain.db (SQLite)                           │
+└─────────────────────────────────────────────────────────┘
+```
+
+### VM 資訊
+
+| 項目 | 值 |
+|------|-----|
+| VM 名稱 | `brain-ai-system` |
+| 區域 | `us-west1-b` |
+| 機器類型 | `e2-small` 或 `e2-medium` |
+| 作業系統 | Ubuntu 22.04 LTS |
+
+### 部署指令
+
+```bash
+# 1. SSH 到 VM
+gcloud compute ssh --zone "us-west1-b" "brain-ai-system"
+
+# 2. 進入專案目錄並更新
+cd ~/Brain
+git pull origin main
+
+# 3. 重建並啟動
+docker compose build
+docker compose up -d
+
+# 4. 查看日誌
+docker compose logs -f backend
+```
+
+### 一鍵部署腳本
+
+```bash
+# 從本地執行
+gcloud compute ssh --zone "us-west1-b" "brain-ai-system" \
+  --command="cd ~/Brain && git pull origin main && docker compose build && docker compose up -d"
+```
+
+### Cloudflare 設定
+
+| 項目 | 值 |
+|------|-----|
+| DNS Record | `brain` → GCP VM IP (A record) |
+| Proxy | ✅ 啟用 (橘色雲朵) |
+| SSL/TLS | Full (strict) |
+
+### 環境變數檢查
+
+確保 VM 上的 `.env` 包含：
+
+```env
+# AI Provider
+AI_PROVIDER=openrouter
+OPENROUTER_API_KEY=sk-or-v1-xxx
+
+# LINE Bot
+LINE_CHANNEL_ACCESS_TOKEN=xxx
+LINE_CHANNEL_SECRET=xxx
+
+# Jungle CRM 整合
+CRM_API_URL=https://auto.yourspce.org
+ENABLE_JUNGLE_INTEGRATION=true
+```

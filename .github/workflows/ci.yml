@@ -12,21 +12,7 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: brain_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    # 使用 SQLite 進行測試，不需要 PostgreSQL service
 
     steps:
       - name: Checkout code
@@ -44,25 +30,20 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Create test env file
-        working-directory: ./backend
-        run: |
-          cat > .env.test << EOF
-          DATABASE_URL=postgresql://postgres:postgres@localhost:5432/brain_test
-          ADMIN_PASSWORD=test123
-          LINE_CHANNEL_SECRET=test_secret
-          LINE_CHANNEL_ACCESS_TOKEN=test_token
-          AI_PROVIDER=openrouter
-          OPENROUTER_API_KEY=test_key
-          ENVIRONMENT=test
-          EOF
-
       - name: Run tests
         working-directory: ./backend
+        timeout-minutes: 10
         env:
           TESTING: "1"
+          DATABASE_URL: "sqlite+aiosqlite:///./test.db"
+          ADMIN_PASSWORD: "test123"
+          LINE_CHANNEL_SECRET: "test_secret"
+          LINE_CHANNEL_ACCESS_TOKEN: "test_token"
+          AI_PROVIDER: "openrouter"
+          OPENROUTER_API_KEY: "test_key"
         run: |
-          pytest --tb=short -v
+          pip install pytest-timeout
+          pytest --tb=short -v --timeout=60
 
   lint:
     runs-on: ubuntu-latest
