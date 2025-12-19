@@ -114,10 +114,21 @@ class LineClient:
         if self.mock_mode:
             return True
 
+        import hashlib
+        import hmac
+        import base64
+
         try:
-            self.handler.handle(body, signature)
-            return True
-        except Exception:
+            # 使用 HMAC-SHA256 驗證簽名
+            channel_secret = settings.LINE_CHANNEL_SECRET.encode('utf-8')
+            body_bytes = body.encode('utf-8')
+
+            hash_value = hmac.new(channel_secret, body_bytes, hashlib.sha256).digest()
+            expected_signature = base64.b64encode(hash_value).decode('utf-8')
+
+            return hmac.compare_digest(signature, expected_signature)
+        except Exception as e:
+            print(f"簽名驗證失敗: {str(e)}")
             return False
 
     async def send_flex_message(self, user_id: str, alt_text: str, contents: Dict) -> bool:
