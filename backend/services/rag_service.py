@@ -252,7 +252,11 @@ class RAGService:
             "value_prop": "價值主張",
             "objection": "異議處理",
             "faq": "常見問題",
-            "service_info": "服務資訊"
+            "service_info": "服務資訊",
+            "process": "作業流程",
+            "example_response": "回覆範例",
+            "tactics": "銷售技巧",
+            "scenario": "情境判斷"
         }
 
         for cat, items in categories.items():
