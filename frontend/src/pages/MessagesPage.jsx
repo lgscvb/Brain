@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, memo } from 'react'
 import { MessageSquare, Clock, User, Send, RefreshCw, Archive, ChevronRight, ChevronLeft, X, Bell, BellOff, Volume2, VolumeX } from 'lucide-react'
 import axios from 'axios'
 import FeedbackPanel from '../components/FeedbackPanel'
+import RefinementChat from '../components/RefinementChat'
 import notificationService from '../services/notificationService'
 
 // =====================================================
@@ -331,6 +332,13 @@ const MessageDetailPanel = memo(function MessageDetailPanel({
                                         feedback_reason: messageDetail.drafts[0].feedback_reason
                                     }}
                                     onFeedbackSubmit={onFeedbackSubmit}
+                                />
+
+                                {/* Refinement Chat - AI 修正對話 */}
+                                <RefinementChat
+                                    draftId={messageDetail.drafts[0].id}
+                                    initialContent={replyContent}
+                                    onContentUpdate={onReplyContentChange}
                                 />
                             </>
                         ) : (

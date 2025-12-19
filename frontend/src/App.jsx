@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Settings, BookOpen, Activity, MessageSquare, FileText, ThumbsUp, Database, Link2 } from 'lucide-react'
+import { Settings, BookOpen, Activity, MessageSquare, FileText, ThumbsUp, Database, Link2, GraduationCap } from 'lucide-react'
 import SettingsPage from './pages/SettingsPage'
 import GuidePage from './pages/GuidePage'
 import DashboardPage from './pages/DashboardPage'
@@ -8,6 +8,7 @@ import FeedbackPage from './pages/FeedbackPage'
 import MessagesPage from './pages/MessagesPage'
 import KnowledgePage from './pages/KnowledgePage'
 import UidAlignmentPage from './pages/UidAlignmentPage'
+import TrainingPage from './pages/TrainingPage'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard')
@@ -17,6 +18,7 @@ function App() {
     { id: 'messages', name: '訊息管理', icon: MessageSquare },
     { id: 'uid-alignment', name: 'UID 對齊', icon: Link2 },
     { id: 'knowledge', name: '知識庫', icon: Database },
+    { id: 'training', name: '訓練資料', icon: GraduationCap },
     { id: 'feedback', name: 'AI 回饋', icon: ThumbsUp },
     { id: 'logs', name: '系統日誌', icon: FileText },
     { id: 'settings', name: '系統設定', icon: Settings },
@@ -39,6 +41,8 @@ function App() {
         return <KnowledgePage />
       case 'uid-alignment':
         return <UidAlignmentPage />
+      case 'training':
+        return <TrainingPage />
       case 'dashboard':
       default:
         return <DashboardPage onNavigate={setCurrentPage} />

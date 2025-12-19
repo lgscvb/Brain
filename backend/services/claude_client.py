@@ -286,6 +286,68 @@ class ClaudeClient:
         except Exception as e:
             raise Exception(f"AI API 調用失敗 ({target_model}): {str(e)}")
 
+    async def generate_response(
+        self,
+        prompt: str,
+        max_tokens: int = 1000,
+        temperature: float = 0.7,
+        model: str = None
+    ) -> Dict:
+        """
+        通用的 AI 回應生成方法
+
+        Args:
+            prompt: 提示詞
+            max_tokens: 最大 token 數
+            temperature: 溫度
+            model: 指定模型（可選）
+
+        Returns:
+            包含 content, model, usage 的字典
+        """
+        if self.mock_mode:
+            return {
+                "content": "這是模擬回應（mock mode）",
+                "model": "mock",
+                "usage": {"input_tokens": 0, "output_tokens": 0}
+            }
+
+        target_model = model or (settings.MODEL_SMART if self.provider == "openrouter" else self.model)
+
+        try:
+            if self.provider == "openrouter":
+                response = await self.openrouter_client.chat.completions.create(
+                    model=target_model,
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=temperature,
+                    max_tokens=max_tokens
+                )
+                return {
+                    "content": response.choices[0].message.content.strip(),
+                    "model": target_model,
+                    "usage": {
+                        "input_tokens": response.usage.prompt_tokens if response.usage else 0,
+                        "output_tokens": response.usage.completion_tokens if response.usage else 0
+                    }
+                }
+            else:
+                response = self.anthropic_client.messages.create(
+                    model=target_model,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                return {
+                    "content": response.content[0].text.strip(),
+                    "model": target_model,
+                    "usage": {
+                        "input_tokens": response.usage.input_tokens,
+                        "output_tokens": response.usage.output_tokens
+                    }
+                }
+        except Exception as e:
+            raise Exception(f"AI API 調用失敗: {str(e)}")
+
     async def analyze_modification(
         self,
         original: str,

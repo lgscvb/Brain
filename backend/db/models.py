@@ -56,6 +56,7 @@ class Draft(Base):
 
     # Relationships
     message = relationship("Message", back_populates="drafts")
+    refinements = relationship("DraftRefinement", back_populates="draft", cascade="all, delete-orphan")
 
 
 class Response(Base):
@@ -122,6 +123,37 @@ class KnowledgeChunk(Base):
     # 時間戳
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class DraftRefinement(Base):
+    """草稿修正對話模型 - 多輪修正歷史"""
+    __tablename__ = "draft_refinements"
+
+    id = Column(Integer, primary_key=True, index=True)
+    draft_id = Column(Integer, ForeignKey("drafts.id"), nullable=False)
+    round_number = Column(Integer, default=1)  # 第幾輪修正
+    instruction = Column(Text, nullable=False)  # 用戶修正指令
+    original_content = Column(Text, nullable=False)  # 修正前內容
+    refined_content = Column(Text, nullable=False)  # 修正後內容
+    model_used = Column(String(100), nullable=True)  # 使用的模型
+    input_tokens = Column(Integer, default=0)
+    output_tokens = Column(Integer, default=0)
+    is_accepted = Column(Boolean, nullable=True)  # 用戶是否接受此修正
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    draft = relationship("Draft", back_populates="refinements")
+
+
+class TrainingExport(Base):
+    """訓練資料匯出記錄"""
+    __tablename__ = "training_exports"
+
+    id = Column(Integer, primary_key=True, index=True)
+    export_type = Column(String(20), nullable=False)  # sft, rlhf, dpo
+    record_count = Column(Integer, nullable=False)
+    file_path = Column(String(500), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 class MeetingRoom(Base):
