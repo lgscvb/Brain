@@ -20,7 +20,9 @@ const getSourceIcon = (source) => {
 
 const formatTime = (dateString) => {
     if (!dateString) return ''
-    const date = new Date(dateString)
+    // 資料庫存的是 UTC 時間，需要加上 'Z' 讓 JS 正確解析
+    const utcString = dateString.endsWith('Z') ? dateString : dateString + 'Z'
+    const date = new Date(utcString)
     return date.toLocaleString('zh-TW', {
         month: 'numeric',
         day: 'numeric',
