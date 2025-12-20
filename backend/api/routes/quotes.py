@@ -33,6 +33,8 @@ class ServicePlanSuggestion(BaseModel):
     amount: float = 0       # 小計
     confidence: float = 0.8 # LLM 信心度
     reason: str = ""        # 建議原因
+    revenue_type: str = "own"       # own=自己收款, referral=代辦服務
+    billing_cycle: str = "one_time" # one_time=一次性, monthly=月繳
 
 
 class QuoteAnalysisRequest(BaseModel):
@@ -265,7 +267,9 @@ async def analyze_conversation_for_quote(
                     quantity=quantity,
                     amount=unit_price * quantity,
                     confidence=rec.get("confidence", 0.8),
-                    reason=rec.get("reason", "")
+                    reason=rec.get("reason", ""),
+                    revenue_type=plan.get("revenue_type", "own"),
+                    billing_cycle=plan.get("billing_cycle", "one_time")
                 )
                 suggested_services.append(suggestion)
 

@@ -3,6 +3,79 @@ import { X, FileText, Loader2, Check, AlertCircle, ExternalLink, Trash2, Edit3 }
 import axios from 'axios'
 
 /**
+ * 服務項目元件
+ */
+function ServiceItem({ service, selected, onToggle, isReferral = false }) {
+    // 判斷是否為非一次性服務（月繳）
+    const isMonthly = service.billing_cycle !== 'one_time' && service.unit !== '次'
+
+    return (
+        <div
+            onClick={onToggle}
+            className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                selected
+                    ? isReferral
+                        ? 'border-gray-400 bg-gray-50 dark:bg-gray-700/50'
+                        : 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                    : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
+            }`}
+        >
+            <div className="flex items-start justify-between">
+                <div className="flex-1">
+                    <div className="flex items-center space-x-2">
+                        <input
+                            type="checkbox"
+                            checked={selected}
+                            onChange={() => {}}
+                            className={`w-4 h-4 rounded ${isReferral ? 'text-gray-500' : 'text-green-600'}`}
+                        />
+                        <span className="font-medium text-gray-900 dark:text-white">
+                            {service.name}
+                        </span>
+                        {isReferral && (
+                            <span className="text-xs px-1.5 py-0.5 bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 rounded">
+                                代辦
+                            </span>
+                        )}
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
+                        {service.reason}
+                    </p>
+                </div>
+                <div className="text-right ml-4">
+                    {isReferral && isMonthly ? (
+                        // 非一次性代辦服務：只顯示月費
+                        <>
+                            <p className="font-semibold text-gray-700 dark:text-gray-300">
+                                ${service.unit_price.toLocaleString()}/月
+                            </p>
+                            <p className="text-xs text-gray-400">
+                                月繳服務
+                            </p>
+                        </>
+                    ) : (
+                        // 一次性服務或自有服務：顯示總額
+                        <>
+                            <p className={`font-semibold ${isReferral ? 'text-gray-700 dark:text-gray-300' : 'text-gray-900 dark:text-white'}`}>
+                                ${service.amount.toLocaleString()}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                                ${service.unit_price.toLocaleString()}/{service.unit} x {service.quantity}
+                            </p>
+                        </>
+                    )}
+                    {service.deposit > 0 && (
+                        <p className="text-xs text-orange-600">
+                            押金 ${service.deposit.toLocaleString()}
+                        </p>
+                    )}
+                </div>
+            </div>
+        </div>
+    )
+}
+
+/**
  * 報價建議 Modal
  *
  * 當使用者點擊「報價單」按鈕時，會先分析對話內容，
@@ -70,21 +143,34 @@ export default function QuoteSuggestionModal({
         })
     }
 
-    // 計算選擇的服務總金額
+    // 計算選擇的服務總金額（只計算自有服務，代辦服務不計入合計）
     const calculateTotal = () => {
-        if (!analysis) return { amount: 0, deposit: 0 }
+        if (!analysis) return { ownAmount: 0, deposit: 0 }
 
-        let amount = 0
+        let ownAmount = 0
         let deposit = 0
 
         for (const service of analysis.suggested_services) {
             if (selectedServices.includes(service.code)) {
-                amount += service.amount
-                deposit += service.deposit
+                // 只計算自有服務
+                if (service.revenue_type !== 'referral') {
+                    ownAmount += service.amount
+                    deposit += service.deposit
+                }
             }
         }
 
-        return { amount, deposit }
+        return { ownAmount, deposit }
+    }
+
+    // 分類服務（用於顯示）
+    const categorizeServices = () => {
+        if (!analysis) return { ownServices: [], referralServices: [] }
+
+        const ownServices = analysis.suggested_services.filter(s => s.revenue_type !== 'referral')
+        const referralServices = analysis.suggested_services.filter(s => s.revenue_type === 'referral')
+
+        return { ownServices, referralServices }
     }
 
     // 建立報價單
@@ -206,71 +292,66 @@ export default function QuoteSuggestionModal({
                                 </p>
                             </div>
 
-                            {/* 建議服務列表 */}
-                            <div>
-                                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                    建議服務項目
-                                </h4>
+                            {/* 建議服務列表 - 分類顯示 */}
+                            <div className="space-y-4">
                                 {analysis.suggested_services.length === 0 ? (
                                     <p className="text-gray-500 dark:text-gray-400 text-sm">
                                         無法從對話中識別適合的服務
                                     </p>
                                 ) : (
-                                    <div className="space-y-2">
-                                        {analysis.suggested_services.map((service) => (
-                                            <div
-                                                key={service.code}
-                                                onClick={() => toggleService(service.code)}
-                                                className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                                                    selectedServices.includes(service.code)
-                                                        ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                                                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                                                }`}
-                                            >
-                                                <div className="flex items-start justify-between">
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center space-x-2">
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={selectedServices.includes(service.code)}
-                                                                onChange={() => {}}
-                                                                className="w-4 h-4 text-green-600 rounded"
-                                                            />
-                                                            <span className="font-medium text-gray-900 dark:text-white">
-                                                                {service.name}
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">
-                                                            {service.reason}
-                                                        </p>
-                                                    </div>
-                                                    <div className="text-right ml-4">
-                                                        <p className="font-semibold text-gray-900 dark:text-white">
-                                                            ${service.amount.toLocaleString()}
-                                                        </p>
-                                                        <p className="text-xs text-gray-500">
-                                                            ${service.unit_price.toLocaleString()}/{service.unit} x {service.quantity}
-                                                        </p>
-                                                        {service.deposit > 0 && (
-                                                            <p className="text-xs text-orange-600">
-                                                                押金 ${service.deposit.toLocaleString()}
-                                                            </p>
-                                                        )}
-                                                    </div>
+                                    <>
+                                        {/* 自有服務（簽約應付） */}
+                                        {categorizeServices().ownServices.length > 0 && (
+                                            <div>
+                                                <h4 className="text-sm font-medium text-green-700 dark:text-green-400 mb-2">
+                                                    簽約應付款項
+                                                </h4>
+                                                <div className="space-y-2">
+                                                    {categorizeServices().ownServices.map((service) => (
+                                                        <ServiceItem
+                                                            key={service.code}
+                                                            service={service}
+                                                            selected={selectedServices.includes(service.code)}
+                                                            onToggle={() => toggleService(service.code)}
+                                                        />
+                                                    ))}
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
+                                        )}
+
+                                        {/* 代辦服務（後收） */}
+                                        {categorizeServices().referralServices.length > 0 && (
+                                            <div>
+                                                <h4 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
+                                                    代辦服務（費用於服務完成後收取）
+                                                </h4>
+                                                <div className="space-y-2">
+                                                    {categorizeServices().referralServices.map((service) => (
+                                                        <ServiceItem
+                                                            key={service.code}
+                                                            service={service}
+                                                            selected={selectedServices.includes(service.code)}
+                                                            onToggle={() => toggleService(service.code)}
+                                                            isReferral
+                                                        />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                             </div>
 
-                            {/* 總計 */}
-                            {analysis.suggested_services.length > 0 && (
-                                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                            {/* 總計 - 只顯示簽約應付（自有服務） */}
+                            {categorizeServices().ownServices.length > 0 && (
+                                <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
+                                    <h4 className="text-sm font-medium text-green-800 dark:text-green-300 mb-2">
+                                        簽約應付合計
+                                    </h4>
                                     <div className="flex justify-between items-center">
                                         <span className="text-gray-600 dark:text-gray-400">服務費用</span>
                                         <span className="font-semibold text-gray-900 dark:text-white">
-                                            ${totals.amount.toLocaleString()}
+                                            ${totals.ownAmount.toLocaleString()}
                                         </span>
                                     </div>
                                     {totals.deposit > 0 && (
@@ -281,13 +362,20 @@ export default function QuoteSuggestionModal({
                                             </span>
                                         </div>
                                     )}
-                                    <div className="border-t border-gray-200 dark:border-gray-600 mt-2 pt-2 flex justify-between items-center">
-                                        <span className="font-medium text-gray-900 dark:text-white">合計</span>
+                                    <div className="border-t border-green-200 dark:border-green-700 mt-2 pt-2 flex justify-between items-center">
+                                        <span className="font-medium text-green-800 dark:text-green-300">合計</span>
                                         <span className="text-lg font-bold text-green-600">
-                                            ${(totals.amount + totals.deposit).toLocaleString()}
+                                            ${(totals.ownAmount + totals.deposit).toLocaleString()}
                                         </span>
                                     </div>
                                 </div>
+                            )}
+
+                            {/* 代辦服務說明 */}
+                            {categorizeServices().referralServices.length > 0 && (
+                                <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+                                    * 代辦服務費用於服務完成後另行收取，不計入簽約應付金額
+                                </p>
                             )}
 
                             {/* 分析總結 */}
