@@ -280,17 +280,17 @@ export default function RefinementChat({
     // autoExpand 模式下不顯示外框和收合按鈕（用於獨立第四欄）
     if (autoExpand) {
         return (
-            <div className="p-3 space-y-3 bg-white dark:bg-gray-800 h-full flex flex-col">
+            <div className="p-3 bg-white dark:bg-gray-800 h-full flex flex-col overflow-hidden">
                 {/* 知識建議提示 */}
                 <KnowledgeSuggestionBanner />
 
-                {/* 修正歷史 */}
+                {/* 修正歷史 - 佔據上半部，可滾動 */}
                 {historyLoading ? (
-                    <div className="text-center py-4 text-gray-500">
+                    <div className="text-center py-4 text-gray-500 flex-shrink-0">
                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600 mx-auto"></div>
                     </div>
                 ) : history.length > 0 ? (
-                    <div className="space-y-2 flex-1 overflow-y-auto">
+                    <div className="space-y-2 flex-1 overflow-y-auto min-h-0 mb-3">
                         {history.map((item) => (
                             <div
                                 key={item.id}
@@ -306,8 +306,8 @@ export default function RefinementChat({
                                     </p>
                                 </div>
 
-                                {/* 修正結果 - 可展開查看完整內容 */}
-                                <div className="bg-gray-50 dark:bg-gray-700/50 rounded p-2 mb-2 max-h-40 overflow-y-auto">
+                                {/* 修正結果 - 可滾動查看完整內容 */}
+                                <div className="bg-gray-50 dark:bg-gray-700/50 rounded p-2 mb-2 max-h-60 overflow-y-auto">
                                     <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap text-sm">
                                         {item.refined_content}
                                     </p>
@@ -358,17 +358,15 @@ export default function RefinementChat({
                         ))}
                     </div>
                 ) : (
-                    <div className="flex-1 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm">
-                        <div className="text-center">
-                            <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                            <p>輸入指令讓 AI 修正草稿</p>
-                            <p className="text-xs mt-1">例如：「語氣更正式一點」</p>
-                        </div>
+                    <div className="py-6 text-gray-500 dark:text-gray-400 text-sm text-center flex-shrink-0">
+                        <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p>輸入指令讓 AI 修正草稿</p>
+                        <p className="text-xs mt-1">例如：「語氣更正式一點」</p>
                     </div>
                 )}
 
-                {/* 輸入區 - 固定在底部 */}
-                <div className="mt-auto space-y-2">
+                {/* 輸入區 - 固定高度 */}
+                <div className="flex-shrink-0 space-y-2 border-t border-gray-200 dark:border-gray-700 pt-3">
                     <div className="flex flex-col space-y-2">
                         <textarea
                             ref={textareaRef}
