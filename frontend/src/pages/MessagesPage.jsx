@@ -347,7 +347,7 @@ const ChatPanel = memo(function ChatPanel({
                                         value={replyContent}
                                         onChange={(e) => onReplyContentChange(e.target.value)}
                                         className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
-                                        rows={4}
+                                        rows={15}
                                         placeholder="編輯回覆內容..."
                                     />
 
