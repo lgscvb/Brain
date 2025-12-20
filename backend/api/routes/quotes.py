@@ -212,8 +212,12 @@ async def analyze_conversation_for_quote(
                 message="找不到該用戶的對話記錄"
             )
 
-        # 取得客戶名稱
-        customer_name = messages[0].sender_name if messages else None
+        # 取得客戶名稱（排除 bot 回覆）
+        customer_msg = next(
+            (m for m in messages if m.source not in ('line_bot', 'system')),
+            None
+        )
+        customer_name = customer_msg.sender_name if customer_msg else None
 
         # 2. 查詢對應的回覆記錄
         message_ids = [m.id for m in messages]
