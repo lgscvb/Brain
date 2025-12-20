@@ -77,6 +77,15 @@ class SearchResult(BaseModel):
     similarity: float
 
 
+class KnowledgeFromRefinement(BaseModel):
+    """從修正指令建立知識"""
+    content: str  # 知識內容
+    category: str  # 分類
+    refinement_id: Optional[int] = None  # 關聯的修正記錄 ID（可選）
+    sub_category: Optional[str] = None
+    service_type: Optional[str] = None
+
+
 # === API Endpoints ===
 
 @router.get("", response_model=KnowledgeListResponse)
@@ -385,3 +394,50 @@ async def bulk_import(
         "imported": imported,
         "errors": errors
     }
+
+
+@router.post("/from-refinement", response_model=KnowledgeResponse)
+async def create_knowledge_from_refinement(
+    data: KnowledgeFromRefinement,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    從修正指令建立知識條目
+
+    當使用者在 RefinementChat 中輸入包含知識的修正指令時，
+    可以透過此 API 將知識儲存到知識庫。
+
+    Args:
+        data: 包含知識內容、分類、可選的修正記錄 ID
+
+    Returns:
+        新建的知識條目
+    """
+    rag_service = get_rag_service()
+
+    # 建立元資料
+    metadata = {
+        "source": "refinement",  # 標記來源為修正指令
+        "refinement_id": data.refinement_id
+    }
+
+    chunk = await rag_service.add_knowledge(
+        db=db,
+        content=data.content,
+        category=data.category,
+        sub_category=data.sub_category,
+        service_type=data.service_type,
+        metadata=metadata
+    )
+
+    return KnowledgeResponse(
+        id=chunk.id,
+        content=chunk.content,
+        category=chunk.category,
+        sub_category=chunk.sub_category,
+        service_type=chunk.service_type,
+        metadata=chunk.extra_data,
+        is_active=chunk.is_active,
+        created_at=chunk.created_at.isoformat() if chunk.created_at else "",
+        updated_at=chunk.updated_at.isoformat() if chunk.updated_at else ""
+    )

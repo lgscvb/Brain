@@ -214,7 +214,7 @@ const MessageHistoryPanel = memo(function MessageHistoryPanel({
     )
 })
 
-// === 右欄：訊息詳情元件 ===
+// === 第三欄：訊息詳情元件（移除 RefinementChat，簡化為訊息+草稿+操作）===
 const MessageDetailPanel = memo(function MessageDetailPanel({
     isMobile = false,
     selectedMessage,
@@ -318,11 +318,11 @@ const MessageDetailPanel = memo(function MessageDetailPanel({
                                     value={replyContent}
                                     onChange={(e) => onReplyContentChange(e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                                    rows={6}
+                                    rows={5}
                                     placeholder="編輯回覆內容..."
                                 />
 
-                                {/* Feedback Panel */}
+                                {/* Feedback Panel - 評分 */}
                                 <FeedbackPanel
                                     draftId={messageDetail.drafts[0].id}
                                     idSuffix={isMobile ? '-mobile' : ''}
@@ -332,13 +332,6 @@ const MessageDetailPanel = memo(function MessageDetailPanel({
                                         feedback_reason: messageDetail.drafts[0].feedback_reason
                                     }}
                                     onFeedbackSubmit={onFeedbackSubmit}
-                                />
-
-                                {/* Refinement Chat - AI 修正對話 */}
-                                <RefinementChat
-                                    draftId={messageDetail.drafts[0].id}
-                                    initialContent={replyContent}
-                                    onContentUpdate={onReplyContentChange}
                                 />
                             </>
                         ) : (
@@ -404,6 +397,54 @@ const MessageDetailPanel = memo(function MessageDetailPanel({
                     </div>
                 </div>
             ) : null}
+        </div>
+    )
+})
+
+// === 第四欄：AI 修正對話元件（獨立出來的 RefinementChat）===
+const RefinementPanel = memo(function RefinementPanel({
+    messageDetail,
+    replyContent,
+    onReplyContentChange
+}) {
+    const draftId = messageDetail?.drafts?.[0]?.id
+
+    return (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
+                    <span>✨</span>
+                    <span>AI 草稿修正</span>
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">輸入指令讓 AI 幫你調整草稿</p>
+            </div>
+
+            {!messageDetail ? (
+                <div className="flex-1 flex items-center justify-center p-8 text-center text-gray-500 dark:text-gray-400">
+                    <div>
+                        <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p>選擇一則訊息後</p>
+                        <p className="text-sm">即可使用 AI 修正功能</p>
+                    </div>
+                </div>
+            ) : !draftId ? (
+                <div className="flex-1 flex items-center justify-center p-8 text-center text-gray-500 dark:text-gray-400">
+                    <div>
+                        <RefreshCw className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p>尚無 AI 草稿</p>
+                        <p className="text-sm mt-1">請先生成草稿後再使用修正功能</p>
+                    </div>
+                </div>
+            ) : (
+                <div className="flex-1 overflow-y-auto">
+                    <RefinementChat
+                        draftId={draftId}
+                        initialContent={replyContent}
+                        onContentUpdate={onReplyContentChange}
+                        autoExpand={true}
+                    />
+                </div>
+            )}
         </div>
     )
 })
@@ -670,47 +711,65 @@ export default function MessagesPage() {
     }, [messageDetail, fetchMessageDetail])
 
     return (
-        <div className="space-y-6 h-full">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center space-x-3">
+        <div className="h-full flex flex-col">
+            {/* 壓縮的標題列 + 篩選器 */}
+            <div className="flex-shrink-0 flex items-center justify-between mb-2">
+                <div className="flex items-center space-x-4">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center space-x-2">
                         <span>訊息管理</span>
                         {newMessageCount > 0 && (
-                            <span className="px-2 py-1 text-sm bg-red-500 text-white rounded-full animate-pulse">
-                                {newMessageCount} 則新訊息
+                            <span className="px-2 py-0.5 text-xs bg-red-500 text-white rounded-full animate-pulse">
+                                {newMessageCount} 新
                             </span>
                         )}
                     </h2>
-                    <p className="mt-2 text-gray-600 dark:text-gray-400">
-                        審核 AI 草稿，發送回覆給客戶
-                    </p>
+                    {/* 篩選 Tabs - 移到標題旁邊 */}
+                    <div className="hidden sm:flex items-center space-x-1">
+                        {[
+                            { id: 'pending', label: '待處理' },
+                            { id: 'drafted', label: '已生成' },
+                            { id: 'sent', label: '已發送' },
+                            { id: 'all', label: '全部' }
+                        ].map((tab) => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setFilter(tab.id)}
+                                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                                    filter === tab.id
+                                        ? 'bg-blue-600 text-white'
+                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                }`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-1">
                     {/* 音效開關 */}
                     <button
                         onClick={toggleSound}
-                        className={`p-2 rounded-lg border transition-colors ${
+                        className={`p-1.5 rounded-md transition-colors ${
                             soundEnabled
-                                ? 'bg-green-50 border-green-200 text-green-600 dark:bg-green-900/30 dark:border-green-700 dark:text-green-400'
-                                : 'bg-gray-50 border-gray-200 text-gray-400 dark:bg-gray-800 dark:border-gray-700'
+                                ? 'bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                                : 'bg-gray-100 text-gray-400 dark:bg-gray-700'
                         }`}
                         title={soundEnabled ? '音效已開啟' : '音效已關閉'}
                     >
-                        {soundEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+                        {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
                     </button>
 
                     {/* 通知開關 */}
                     <button
                         onClick={toggleNotification}
-                        className={`p-2 rounded-lg border transition-colors ${
+                        className={`p-1.5 rounded-md transition-colors ${
                             notificationEnabled
-                                ? 'bg-blue-50 border-blue-200 text-blue-600 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-400'
-                                : 'bg-gray-50 border-gray-200 text-gray-400 dark:bg-gray-800 dark:border-gray-700'
+                                ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                                : 'bg-gray-100 text-gray-400 dark:bg-gray-700'
                         }`}
                         title={notificationEnabled ? '通知已開啟' : '點擊開啟通知'}
                     >
-                        {notificationEnabled ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
+                        {notificationEnabled ? <Bell className="w-4 h-4" /> : <BellOff className="w-4 h-4" />}
                     </button>
 
                     {/* 重新整理 */}
@@ -720,29 +779,29 @@ export default function MessagesPage() {
                             fetchMessages()
                             clearNewMessageCount()
                         }}
-                        className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        className="p-1.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                        title="重新整理"
                     >
                         <RefreshCw className="w-4 h-4" />
-                        <span className="hidden sm:inline">重新整理</span>
                     </button>
                 </div>
             </div>
 
-            {/* Filter Tabs */}
-            <div className="flex space-x-2 overflow-x-auto pb-2">
+            {/* 手機版篩選（小螢幕顯示）*/}
+            <div className="sm:hidden flex space-x-1 overflow-x-auto mb-2">
                 {[
                     { id: 'pending', label: '待處理' },
-                    { id: 'drafted', label: '已生成草稿' },
+                    { id: 'drafted', label: '已生成' },
                     { id: 'sent', label: '已發送' },
                     { id: 'all', label: '全部' }
                 ].map((tab) => (
                     <button
                         key={tab.id}
                         onClick={() => setFilter(tab.id)}
-                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
+                        className={`px-3 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${
                             filter === tab.id
                                 ? 'bg-blue-600 text-white'
-                                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                         }`}
                     >
                         {tab.label}
@@ -750,8 +809,43 @@ export default function MessagesPage() {
                 ))}
             </div>
 
-            {/* === 桌面版三欄佈局 === */}
-            <div className="hidden lg:grid lg:grid-cols-[280px_350px_1fr] gap-4 h-[calc(100vh-280px)]">
+            {/* === 桌面版四欄佈局 === */}
+            <div className="hidden xl:grid xl:grid-cols-[220px_280px_1fr_320px] gap-3 flex-1 min-h-0">
+                <ConversationListPanel
+                    conversations={conversations}
+                    loading={loading}
+                    selectedConversation={selectedConversation}
+                    onSelectConversation={handleSelectConversation}
+                />
+                <MessageHistoryPanel
+                    selectedConversation={selectedConversation}
+                    conversationMessages={conversationMessages}
+                    conversationLoading={conversationLoading}
+                    selectedMessage={selectedMessage}
+                    onSelectMessage={handleSelectMessage}
+                />
+                <MessageDetailPanel
+                    selectedMessage={selectedMessage}
+                    messageDetail={messageDetail}
+                    detailLoading={detailLoading}
+                    replyContent={replyContent}
+                    sending={sending}
+                    onReplyContentChange={handleReplyContentChange}
+                    onSendReply={handleSendReply}
+                    onRegenerate={handleRegenerate}
+                    onArchive={handleArchive}
+                    onClose={handleCloseDetail}
+                    onFeedbackSubmit={handleFeedbackSubmit}
+                />
+                <RefinementPanel
+                    messageDetail={messageDetail}
+                    replyContent={replyContent}
+                    onReplyContentChange={handleReplyContentChange}
+                />
+            </div>
+
+            {/* === 中型螢幕三欄佈局（平板橫放）=== */}
+            <div className="hidden lg:grid xl:hidden lg:grid-cols-[250px_300px_1fr] gap-3 flex-1 min-h-0">
                 <ConversationListPanel
                     conversations={conversations}
                     loading={loading}
@@ -781,7 +875,7 @@ export default function MessagesPage() {
             </div>
 
             {/* === 手機版層疊導航 === */}
-            <div className="lg:hidden h-[calc(100vh-280px)]">
+            <div className="lg:hidden flex-1 min-h-0">
                 {mobileView === 'conversations' && (
                     <ConversationListPanel
                         isMobile

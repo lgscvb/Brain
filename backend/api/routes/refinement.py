@@ -16,8 +16,11 @@ from db.schemas import (
     RefinementHistory,
     TrainingExportRequest,
     TrainingExportResponse,
+    KnowledgeSuggestion,
 )
 from services.claude_client import get_claude_client
+import json
+import re
 
 
 router = APIRouter()
@@ -66,7 +69,7 @@ async def refine_draft(
     # 呼叫 AI 修正
     claude_client = get_claude_client()
 
-    refine_prompt = f"""你是一個客服回覆修正助手。
+    refine_prompt = f"""你是一個客服回覆修正助手，同時也負責識別有價值的知識。
 
 ## 原始回覆
 {current_content}
@@ -75,19 +78,70 @@ async def refine_draft(
 {request.instruction}
 
 ## 任務
-根據修正指令調整回覆內容。保持專業、有禮貌的語氣。
+1. 根據修正指令調整回覆內容，保持專業、有禮貌的語氣。
+2. 分析修正指令是否包含「可以儲存為知識庫的資訊」。
 
-請直接輸出修正後的回覆，不需要其他說明。"""
+### 什麼是可儲存的知識？
+- 事實性資訊：價格、地址、時間、流程步驟
+- 法規/規定：公司登記規定、稅務規定
+- 客戶背景：特定客戶的特殊情況
+- 常見問題：重複被問到的問題答案
+- 異議處理：如何回應客戶的疑慮
+
+### 什麼不是可儲存的知識？
+- 語氣調整（「更正式」「更親切」）
+- 格式調整（「分點列出」「加上問候」）
+- 長度調整（「簡短一點」「詳細一點」）
+
+## 輸出格式
+請輸出 JSON 格式：
+```json
+{{
+  "refined_content": "修正後的回覆內容",
+  "knowledge_detected": true 或 false,
+  "knowledge_content": "如果偵測到知識，這裡是整理後的知識內容",
+  "knowledge_category": "faq/service_info/process/objection/customer_info 擇一",
+  "knowledge_reason": "為什麼建議儲存這個知識"
+}}
+```
+
+若沒有偵測到可儲存知識，knowledge_content/category/reason 可為 null。"""
 
     try:
         response = await claude_client.generate_response(
             prompt=refine_prompt,
-            max_tokens=1000
+            max_tokens=1500
         )
-        refined_content = response.get("content", current_content)
+        raw_content = response.get("content", "")
         model_used = response.get("model", "unknown")
         input_tokens = response.get("usage", {}).get("input_tokens", 0)
         output_tokens = response.get("usage", {}).get("output_tokens", 0)
+
+        # 解析 JSON 回應
+        refined_content = current_content
+        knowledge_suggestion = KnowledgeSuggestion(detected=False)
+
+        try:
+            # 嘗試提取 JSON
+            json_match = re.search(r'\{[\s\S]*\}', raw_content)
+            if json_match:
+                parsed = json.loads(json_match.group(0))
+                refined_content = parsed.get("refined_content", current_content)
+
+                if parsed.get("knowledge_detected"):
+                    knowledge_suggestion = KnowledgeSuggestion(
+                        detected=True,
+                        content=parsed.get("knowledge_content"),
+                        category=parsed.get("knowledge_category"),
+                        reason=parsed.get("knowledge_reason")
+                    )
+            else:
+                # 如果沒有 JSON，直接使用原始內容
+                refined_content = raw_content.strip()
+        except json.JSONDecodeError:
+            # JSON 解析失敗，使用原始內容
+            refined_content = raw_content.strip()
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI 修正失敗: {str(e)}")
 
@@ -107,7 +161,18 @@ async def refine_draft(
     await db.commit()
     await db.refresh(refinement)
 
-    return refinement
+    # 建構回應（包含 knowledge_suggestion）
+    return RefinementRead(
+        id=refinement.id,
+        round_number=refinement.round_number,
+        instruction=refinement.instruction,
+        original_content=refinement.original_content,
+        refined_content=refinement.refined_content,
+        model_used=refinement.model_used,
+        is_accepted=refinement.is_accepted,
+        created_at=refinement.created_at,
+        knowledge_suggestion=knowledge_suggestion
+    )
 
 
 @router.get("/drafts/{draft_id}/refinements", response_model=RefinementHistory)

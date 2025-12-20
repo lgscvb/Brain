@@ -125,6 +125,14 @@ class RefinementRequest(BaseModel):
     instruction: str  # 用戶修正指令，如「語氣更正式一點」
 
 
+class KnowledgeSuggestion(BaseModel):
+    """知識建議 Schema - AI 從修正指令中偵測到的知識"""
+    detected: bool = False  # 是否偵測到可儲存的知識
+    content: Optional[str] = None  # 建議的知識內容
+    category: Optional[str] = None  # 建議分類：faq, service_info, process, objection
+    reason: Optional[str] = None  # 為什麼建議儲存
+
+
 class RefinementRead(BaseModel):
     """草稿修正記錄 Schema"""
     id: int
@@ -135,6 +143,7 @@ class RefinementRead(BaseModel):
     model_used: Optional[str] = None
     is_accepted: Optional[bool] = None
     created_at: datetime
+    knowledge_suggestion: Optional[KnowledgeSuggestion] = None  # AI 知識建議
 
     class Config:
         from_attributes = True

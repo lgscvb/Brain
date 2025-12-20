@@ -50,33 +50,22 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
-                <span className="text-white font-bold text-xl">🧠</span>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Brain</h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Hour Jungle AI 輔助客服系統</p>
-              </div>
+    <div className="h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
+      {/* 合併的 Header + Navigation（單行）*/}
+      <header className="flex-shrink-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div className="max-w-[1600px] mx-auto px-4 flex items-center justify-between">
+          {/* Logo + Title */}
+          <div className="flex items-center space-x-2 py-2">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">🧠</span>
             </div>
-            <div className="flex items-center space-x-2">
-              <span className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 text-xs font-medium rounded-full">
-                ● 運行中
-              </span>
-            </div>
+            <span className="font-bold text-gray-900 dark:text-white">Brain</span>
+            <span className="hidden sm:inline text-xs text-gray-400 dark:text-gray-500">|</span>
+            <span className="hidden sm:inline text-xs text-gray-500 dark:text-gray-400">Hour Jungle AI</span>
           </div>
-        </div>
-      </header>
 
-      {/* Navigation */}
-      <nav className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex space-x-1">
+          {/* Navigation */}
+          <nav className="flex items-center space-x-1 overflow-x-auto">
             {navigation.map((item) => {
               const Icon = item.icon
               const isActive = currentPage === item.id
@@ -84,31 +73,31 @@ function App() {
                 <button
                   key={item.id}
                   onClick={() => setCurrentPage(item.id)}
-                  className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${isActive
-                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300'
+                  className={`flex items-center space-x-1.5 px-3 py-2 text-sm font-medium rounded-md transition-colors ${isActive
+                    ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                     }`}
                 >
                   <Icon className="w-4 h-4" />
-                  <span>{item.name}</span>
+                  <span className="hidden lg:inline">{item.name}</span>
                 </button>
               )
             })}
+          </nav>
+
+          {/* Status */}
+          <div className="flex items-center">
+            <span className="px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-400 text-xs font-medium rounded-full">
+              ● 運行中
+            </span>
           </div>
         </div>
-      </nav>
+      </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lng:px-8 py-8">
+      {/* Main Content - 佔滿剩餘空間 */}
+      <main className="flex-1 overflow-hidden max-w-[1600px] w-full mx-auto px-4 py-3">
         {renderPage()}
       </main>
-
-      {/* Footer */}
-      <footer className="mt-12 py-6 border-t border-gray-200 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-gray-500 dark:text-gray-400">
-          <p>Brain v0.1.0 - Hour Jungle AI 輔助客服系統</p>
-        </div>
-      </footer>
     </div>
   )
 }
