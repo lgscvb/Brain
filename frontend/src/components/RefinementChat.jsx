@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useId } from 'react'
 import { MessageCircle, Send, Check, X, ChevronDown, ChevronUp, Sparkles, BookmarkPlus, Lightbulb } from 'lucide-react'
 import axios from 'axios'
 
@@ -17,6 +17,7 @@ export default function RefinementChat({
     onContentUpdate,
     autoExpand = false
 }) {
+    const uniqueId = useId()
     const [isExpanded, setIsExpanded] = useState(autoExpand)
     const [instruction, setInstruction] = useState('')
     const [loading, setLoading] = useState(false)
@@ -218,8 +219,10 @@ export default function RefinementChat({
                     </h3>
                     <div className="space-y-3">
                         <div>
-                            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">知識內容</label>
+                            <label htmlFor={`${uniqueId}-manual-content`} className="block text-sm text-gray-600 dark:text-gray-400 mb-1">知識內容</label>
                             <textarea
+                                id={`${uniqueId}-manual-content`}
+                                name={`${uniqueId}-manual-content`}
                                 value={manualContent}
                                 onChange={(e) => setManualContent(e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm h-24"
@@ -227,8 +230,10 @@ export default function RefinementChat({
                             />
                         </div>
                         <div>
-                            <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">分類</label>
+                            <label htmlFor={`${uniqueId}-manual-category`} className="block text-sm text-gray-600 dark:text-gray-400 mb-1">分類</label>
                             <select
+                                id={`${uniqueId}-manual-category`}
+                                name={`${uniqueId}-manual-category`}
                                 value={manualCategory}
                                 onChange={(e) => setManualCategory(e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
@@ -353,6 +358,8 @@ export default function RefinementChat({
                 <div className="mt-auto space-y-2">
                     <div className="flex space-x-2">
                         <input
+                            id={`${uniqueId}-instruction-expanded`}
+                            name={`${uniqueId}-instruction-expanded`}
                             type="text"
                             value={instruction}
                             onChange={(e) => setInstruction(e.target.value)}
@@ -523,6 +530,8 @@ export default function RefinementChat({
                     {/* 輸入區 */}
                     <div className="flex space-x-2">
                         <input
+                            id={`${uniqueId}-instruction-collapsed`}
+                            name={`${uniqueId}-instruction-collapsed`}
                             type="text"
                             value={instruction}
                             onChange={(e) => setInstruction(e.target.value)}

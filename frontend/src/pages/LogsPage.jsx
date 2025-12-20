@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useId } from 'react'
 import { FileText, Trash2, RefreshCw, Search, Filter, AlertCircle, Info, AlertTriangle } from 'lucide-react'
 import axios from 'axios'
 
 export default function LogsPage() {
+    const uniqueId = useId()
     const [logs, setLogs] = useState([])
     const [stats, setStats] = useState(null)
     const [loading, setLoading] = useState(false)
@@ -167,10 +168,12 @@ export default function LogsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     {/* Log Type */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label htmlFor={`${uniqueId}-log-type`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             日誌類型
                         </label>
                         <select
+                            id={`${uniqueId}-log-type`}
+                            name={`${uniqueId}-log-type`}
                             value={logType}
                             onChange={(e) => setLogType(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
@@ -182,10 +185,12 @@ export default function LogsPage() {
 
                     {/* Level Filter */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label htmlFor={`${uniqueId}-level-filter`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             等級篩選
                         </label>
                         <select
+                            id={`${uniqueId}-level-filter`}
+                            name={`${uniqueId}-level-filter`}
                             value={levelFilter}
                             onChange={(e) => setLevelFilter(e.target.value)}
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
@@ -199,11 +204,13 @@ export default function LogsPage() {
 
                     {/* Search */}
                     <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        <label htmlFor={`${uniqueId}-search`} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             搜尋關鍵字
                         </label>
                         <div className="flex space-x-2">
                             <input
+                                id={`${uniqueId}-search`}
+                                name={`${uniqueId}-search`}
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
