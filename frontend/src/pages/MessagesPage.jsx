@@ -3,6 +3,7 @@ import { MessageSquare, Clock, User, Send, RefreshCw, Archive, ChevronRight, Che
 import axios from 'axios'
 import FeedbackPanel from '../components/FeedbackPanel'
 import RefinementChat from '../components/RefinementChat'
+import QuoteSuggestionModal from '../components/QuoteSuggestionModal'
 import notificationService from '../services/notificationService'
 
 // =====================================================
@@ -200,6 +201,7 @@ const ChatPanel = memo(function ChatPanel({
     onFeedbackSubmit
 }) {
     const chatContainerRef = useRef(null)
+    const [quoteModalOpen, setQuoteModalOpen] = useState(false)
 
     // 自動滾動到最新訊息
     useEffect(() => {
@@ -234,25 +236,10 @@ const ChatPanel = memo(function ChatPanel({
                     )}
                 </div>
                 <div className="flex items-center space-x-1">
-                    {/* 建立報價單按鈕（跳轉到 CRM）*/}
+                    {/* 建立報價單按鈕（開啟報價建議 Modal）*/}
                     {selectedConversation && selectedConversation.sender_id && (
                         <button
-                            onClick={() => {
-                                // 組合客戶需求（最後幾則訊息）
-                                const lastMessages = [...conversationMessages]
-                                    .filter(m => m.status !== 'sent')
-                                    .slice(-3)
-                                    .map(m => m.content)
-                                    .join('\n---\n')
-
-                                // 跳轉到 CRM 報價單頁面
-                                const params = new URLSearchParams({
-                                    customer_name: selectedConversation.sender_name || '',
-                                    line_user_id: selectedConversation.sender_id,
-                                    notes: lastMessages || ''
-                                })
-                                window.open(`https://hj.yourspce.org/quotes/new?${params.toString()}`, '_blank')
-                            }}
+                            onClick={() => setQuoteModalOpen(true)}
                             className="flex items-center space-x-1 text-xs text-green-600 hover:text-green-700 px-2 py-1 rounded hover:bg-green-50 dark:hover:bg-green-900/20"
                             title="建立報價單"
                         >
@@ -458,6 +445,14 @@ const ChatPanel = memo(function ChatPanel({
                     )}
                 </>
             )}
+
+            {/* 報價建議 Modal */}
+            <QuoteSuggestionModal
+                isOpen={quoteModalOpen}
+                onClose={() => setQuoteModalOpen(false)}
+                lineUserId={selectedConversation?.sender_id}
+                customerName={selectedConversation?.sender_name}
+            />
         </div>
     )
 })
