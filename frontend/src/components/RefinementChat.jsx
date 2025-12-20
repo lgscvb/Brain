@@ -1,4 +1,4 @@
-import { useState, useEffect, useId } from 'react'
+import { useState, useEffect, useId, useRef, useCallback } from 'react'
 import { MessageCircle, Send, Check, X, ChevronDown, ChevronUp, Sparkles, BookmarkPlus, Lightbulb } from 'lucide-react'
 import axios from 'axios'
 
@@ -18,11 +18,24 @@ export default function RefinementChat({
     autoExpand = false
 }) {
     const uniqueId = useId()
+    const textareaRef = useRef(null)
     const [isExpanded, setIsExpanded] = useState(autoExpand)
     const [instruction, setInstruction] = useState('')
     const [loading, setLoading] = useState(false)
     const [history, setHistory] = useState([])
     const [historyLoading, setHistoryLoading] = useState(false)
+
+    // 自動調整 textarea 高度
+    const adjustTextareaHeight = useCallback(() => {
+        const textarea = textareaRef.current
+        if (textarea) {
+            textarea.style.height = 'auto'
+            const minHeight = 180 // 約 9 行
+            const maxHeight = 300
+            const scrollHeight = textarea.scrollHeight
+            textarea.style.height = `${Math.min(Math.max(scrollHeight, minHeight), maxHeight)}px`
+        }
+    }, [])
     // 知識建議相關 state
     const [knowledgeSuggestion, setKnowledgeSuggestion] = useState(null)
     const [savingKnowledge, setSavingKnowledge] = useState(false)
@@ -356,33 +369,49 @@ export default function RefinementChat({
 
                 {/* 輸入區 - 固定在底部 */}
                 <div className="mt-auto space-y-2">
-                    <div className="flex space-x-2">
-                        <input
+                    <div className="flex flex-col space-y-2">
+                        <textarea
+                            ref={textareaRef}
                             id={`${uniqueId}-instruction-expanded`}
                             name={`${uniqueId}-instruction-expanded`}
-                            type="text"
                             value={instruction}
-                            onChange={(e) => setInstruction(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-                            placeholder="輸入修正指令..."
-                            className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            onChange={(e) => {
+                                setInstruction(e.target.value)
+                                adjustTextareaHeight()
+                            }}
+                            onKeyDown={(e) => {
+                                // Ctrl+Enter 或 Cmd+Enter 送出
+                                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                                    e.preventDefault()
+                                    handleSubmit()
+                                }
+                            }}
+                            placeholder="輸入修正指令...&#10;&#10;例如：&#10;• 語氣更正式一點&#10;• 加入價格資訊&#10;• 簡化回覆內容&#10;&#10;按 Ctrl+Enter 送出"
+                            className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                            style={{ minHeight: '180px' }}
                             disabled={loading}
                         />
-                        <button
-                            onClick={handleSubmit}
-                            disabled={loading || !instruction.trim()}
-                            className={`px-3 py-2 rounded-lg flex items-center space-x-1 ${
-                                loading || !instruction.trim()
-                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    : 'bg-purple-600 hover:bg-purple-700 text-white'
-                            }`}
-                        >
-                            {loading ? (
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                                <Send className="w-4 h-4" />
-                            )}
-                        </button>
+                        <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-400">Ctrl+Enter 送出</span>
+                            <button
+                                onClick={handleSubmit}
+                                disabled={loading || !instruction.trim()}
+                                className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${
+                                    loading || !instruction.trim()
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        : 'bg-purple-600 hover:bg-purple-700 text-white'
+                                }`}
+                            >
+                                {loading ? (
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <>
+                                        <Send className="w-4 h-4" />
+                                        <span>送出修正</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
 
                     {/* 常用指令快捷按鈕 + 手動儲存 */}
@@ -528,33 +557,44 @@ export default function RefinementChat({
                     )}
 
                     {/* 輸入區 */}
-                    <div className="flex space-x-2">
-                        <input
+                    <div className="flex flex-col space-y-2">
+                        <textarea
                             id={`${uniqueId}-instruction-collapsed`}
                             name={`${uniqueId}-instruction-collapsed`}
-                            type="text"
                             value={instruction}
                             onChange={(e) => setInstruction(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
-                            placeholder="輸入修正指令，如「語氣更親切」..."
-                            className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            onKeyDown={(e) => {
+                                if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                                    e.preventDefault()
+                                    handleSubmit()
+                                }
+                            }}
+                            placeholder="輸入修正指令...&#10;例如：語氣更親切、加入價格資訊&#10;&#10;按 Ctrl+Enter 送出"
+                            className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                            rows={5}
                             disabled={loading}
                         />
-                        <button
-                            onClick={handleSubmit}
-                            disabled={loading || !instruction.trim()}
-                            className={`px-3 py-2 rounded-lg flex items-center space-x-1 ${
-                                loading || !instruction.trim()
-                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                    : 'bg-purple-600 hover:bg-purple-700 text-white'
-                            }`}
-                        >
-                            {loading ? (
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            ) : (
-                                <Send className="w-4 h-4" />
-                            )}
-                        </button>
+                        <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-400">Ctrl+Enter 送出</span>
+                            <button
+                                onClick={handleSubmit}
+                                disabled={loading || !instruction.trim()}
+                                className={`px-4 py-2 rounded-lg flex items-center space-x-2 ${
+                                    loading || !instruction.trim()
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        : 'bg-purple-600 hover:bg-purple-700 text-white'
+                                }`}
+                            >
+                                {loading ? (
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                ) : (
+                                    <>
+                                        <Send className="w-4 h-4" />
+                                        <span>送出</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
 
                     {/* 常用指令快捷按鈕 + 手動儲存 */}

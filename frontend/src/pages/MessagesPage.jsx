@@ -51,17 +51,67 @@ const getStatusBadge = (status) => {
 // === 左欄：對話列表元件 ===
 const ConversationListPanel = memo(function ConversationListPanel({
     isMobile = false,
+    isCollapsed = false,
     conversations,
     loading,
     selectedConversation,
     onSelectConversation,
-    onDeleteConversation
+    onDeleteConversation,
+    onToggleCollapse
 }) {
+    // 縮小模式：只顯示圖示列表
+    if (isCollapsed && !isMobile) {
+        return (
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col w-14">
+                {/* 展開按鈕 */}
+                <button
+                    onClick={onToggleCollapse}
+                    className="p-3 border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    title="展開對話列表"
+                >
+                    <ChevronRight className="w-5 h-5 text-gray-500 mx-auto" />
+                </button>
+
+                {/* 對話圖示列表 */}
+                <div className="flex-1 overflow-y-auto">
+                    {conversations.map((conv) => (
+                        <button
+                            key={conv.sender_id}
+                            onClick={() => onSelectConversation(conv)}
+                            className={`w-full p-2 flex flex-col items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
+                                selectedConversation?.sender_id === conv.sender_id ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                            }`}
+                            title={conv.sender_name}
+                        >
+                            <span className="text-lg">{getSourceIcon(conv.source)}</span>
+                            {conv.unread_count > 0 && (
+                                <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full mt-1">
+                                    {conv.unread_count}
+                                </span>
+                            )}
+                        </button>
+                    ))}
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col ${isMobile ? 'h-full' : ''}`}>
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 className="font-semibold text-gray-900 dark:text-white">對話列表</h3>
-                <p className="text-xs text-gray-500 mt-1">{conversations.length} 個對話</p>
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">對話列表</h3>
+                    <p className="text-xs text-gray-500 mt-1">{conversations.length} 個對話</p>
+                </div>
+                {!isMobile && onToggleCollapse && (
+                    <button
+                        onClick={onToggleCollapse}
+                        className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                        title="縮小對話列表"
+                    >
+                        <ChevronLeft className="w-4 h-4 text-gray-500" />
+                    </button>
+                )}
             </div>
 
             {loading ? (
@@ -495,6 +545,9 @@ export default function MessagesPage() {
     // === 手機版視圖狀態 ===
     const [mobileView, setMobileView] = useState('conversations') // 'conversations' | 'history' | 'detail'
 
+    // === 第一欄縮小狀態 ===
+    const [isFirstColumnCollapsed, setIsFirstColumnCollapsed] = useState(false)
+
     // 請求通知權限
     const requestNotificationPermission = async () => {
         const granted = await notificationService.requestPermission()
@@ -554,7 +607,14 @@ export default function MessagesPage() {
         setSelectedMessage(null)
         setMessageDetail(null)
         setMobileView('history')
+        // 自動縮小第一欄
+        setIsFirstColumnCollapsed(true)
     }, [fetchConversationMessages])
+
+    // === 切換第一欄縮放 ===
+    const handleToggleFirstColumn = useCallback(() => {
+        setIsFirstColumnCollapsed(prev => !prev)
+    }, [])
 
     // === 選擇訊息 ===
     const fetchMessageDetail = useCallback(async (messageId) => {
@@ -848,13 +908,19 @@ export default function MessagesPage() {
             </div>
 
             {/* === 桌面版四欄佈局 === */}
-            <div className="hidden xl:grid xl:grid-cols-[220px_280px_1fr_320px] gap-3 flex-1 min-h-0">
+            <div className={`hidden xl:grid gap-3 flex-1 min-h-0 ${
+                isFirstColumnCollapsed
+                    ? 'xl:grid-cols-[56px_320px_1fr_360px]'
+                    : 'xl:grid-cols-[220px_280px_1fr_320px]'
+            }`}>
                 <ConversationListPanel
+                    isCollapsed={isFirstColumnCollapsed}
                     conversations={conversations}
                     loading={loading}
                     selectedConversation={selectedConversation}
                     onSelectConversation={handleSelectConversation}
                     onDeleteConversation={handleDeleteConversation}
+                    onToggleCollapse={handleToggleFirstColumn}
                 />
                 <MessageHistoryPanel
                     selectedConversation={selectedConversation}
@@ -885,13 +951,19 @@ export default function MessagesPage() {
             </div>
 
             {/* === 中型螢幕三欄佈局（平板橫放）=== */}
-            <div className="hidden lg:grid xl:hidden lg:grid-cols-[250px_300px_1fr] gap-3 flex-1 min-h-0">
+            <div className={`hidden lg:grid xl:hidden gap-3 flex-1 min-h-0 ${
+                isFirstColumnCollapsed
+                    ? 'lg:grid-cols-[56px_320px_1fr]'
+                    : 'lg:grid-cols-[250px_300px_1fr]'
+            }`}>
                 <ConversationListPanel
+                    isCollapsed={isFirstColumnCollapsed}
                     conversations={conversations}
                     loading={loading}
                     selectedConversation={selectedConversation}
                     onSelectConversation={handleSelectConversation}
                     onDeleteConversation={handleDeleteConversation}
+                    onToggleCollapse={handleToggleFirstColumn}
                 />
                 <MessageHistoryPanel
                     selectedConversation={selectedConversation}
