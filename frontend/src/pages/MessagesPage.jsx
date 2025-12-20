@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, memo } from 'react'
-import { MessageSquare, Clock, User, Send, RefreshCw, Archive, ChevronRight, ChevronLeft, X, Bell, BellOff, Volume2, VolumeX } from 'lucide-react'
+import { MessageSquare, Clock, User, Send, RefreshCw, Archive, ChevronRight, ChevronLeft, X, Bell, BellOff, Volume2, VolumeX, Trash2 } from 'lucide-react'
 import axios from 'axios'
 import FeedbackPanel from '../components/FeedbackPanel'
 import RefinementChat from '../components/RefinementChat'
@@ -54,7 +54,8 @@ const ConversationListPanel = memo(function ConversationListPanel({
     conversations,
     loading,
     selectedConversation,
-    onSelectConversation
+    onSelectConversation,
+    onDeleteConversation
 }) {
     return (
         <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col ${isMobile ? 'h-full' : ''}`}>
@@ -74,38 +75,53 @@ const ConversationListPanel = memo(function ConversationListPanel({
             ) : (
                 <div className="flex-1 divide-y divide-gray-200 dark:divide-gray-700 overflow-y-auto">
                     {conversations.map((conv) => (
-                        <button
+                        <div
                             key={conv.sender_id}
-                            onClick={() => onSelectConversation(conv)}
-                            className={`w-full p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
+                            className={`relative group ${
                                 selectedConversation?.sender_id === conv.sender_id ? 'bg-blue-50 dark:bg-blue-900/20' : ''
                             }`}
                         >
-                            <div className="flex items-center justify-between mb-1">
-                                <div className="flex items-center space-x-2 min-w-0">
-                                    <span>{getSourceIcon(conv.source)}</span>
-                                    <span className="font-medium text-gray-900 dark:text-white truncate">
-                                        {conv.sender_name}
+                            <button
+                                onClick={() => onSelectConversation(conv)}
+                                className="w-full p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                            >
+                                <div className="flex items-center justify-between mb-1">
+                                    <div className="flex items-center space-x-2 min-w-0">
+                                        <span>{getSourceIcon(conv.source)}</span>
+                                        <span className="font-medium text-gray-900 dark:text-white truncate">
+                                            {conv.sender_name}
+                                        </span>
+                                    </div>
+                                    {conv.unread_count > 0 && (
+                                        <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full flex-shrink-0">
+                                            {conv.unread_count}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
+                                    {conv.last_message_preview}
+                                </p>
+                                <div className="flex items-center justify-between mt-1">
+                                    <span className="text-xs text-gray-400">
+                                        {formatTime(conv.last_message_at)}
+                                    </span>
+                                    <span className="text-xs text-gray-400">
+                                        {conv.message_count} 則訊息
                                     </span>
                                 </div>
-                                {conv.unread_count > 0 && (
-                                    <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full flex-shrink-0">
-                                        {conv.unread_count}
-                                    </span>
-                                )}
-                            </div>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                                {conv.last_message_preview}
-                            </p>
-                            <div className="flex items-center justify-between mt-1">
-                                <span className="text-xs text-gray-400">
-                                    {formatTime(conv.last_message_at)}
-                                </span>
-                                <span className="text-xs text-gray-400">
-                                    {conv.message_count} 則訊息
-                                </span>
-                            </div>
-                        </button>
+                            </button>
+                            {/* 刪除按鈕 - hover 時顯示 */}
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    onDeleteConversation(conv)
+                                }}
+                                className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                                title="刪除對話"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
                     ))}
                 </div>
             )}
@@ -681,6 +697,27 @@ export default function MessagesPage() {
         }
     }, [messageDetail, selectedConversation, fetchConversationMessages, fetchConversations, fetchMessages])
 
+    // 刪除整個對話
+    const handleDeleteConversation = useCallback(async (conversation) => {
+        if (!confirm(`確定要刪除 ${conversation.sender_name} 的所有訊息嗎？此操作無法復原。`)) return
+
+        try {
+            await axios.delete(`/api/conversations/${encodeURIComponent(conversation.sender_id)}`)
+            // 如果刪除的是當前選中的對話，清空選中狀態
+            if (selectedConversation?.sender_id === conversation.sender_id) {
+                setSelectedConversation(null)
+                setConversationMessages([])
+                setSelectedMessage(null)
+                setMessageDetail(null)
+            }
+            fetchConversations()
+            fetchMessages()
+        } catch (error) {
+            console.error('刪除對話失敗:', error)
+            alert('刪除失敗：' + (error.response?.data?.detail || error.message))
+        }
+    }, [selectedConversation, fetchConversations, fetchMessages])
+
     const handleCloseDetail = useCallback(() => {
         setSelectedMessage(null)
         setMessageDetail(null)
@@ -816,6 +853,7 @@ export default function MessagesPage() {
                     loading={loading}
                     selectedConversation={selectedConversation}
                     onSelectConversation={handleSelectConversation}
+                    onDeleteConversation={handleDeleteConversation}
                 />
                 <MessageHistoryPanel
                     selectedConversation={selectedConversation}
@@ -851,6 +889,7 @@ export default function MessagesPage() {
                     loading={loading}
                     selectedConversation={selectedConversation}
                     onSelectConversation={handleSelectConversation}
+                    onDeleteConversation={handleDeleteConversation}
                 />
                 <MessageHistoryPanel
                     selectedConversation={selectedConversation}
@@ -883,6 +922,7 @@ export default function MessagesPage() {
                         loading={loading}
                         selectedConversation={selectedConversation}
                         onSelectConversation={handleSelectConversation}
+                        onDeleteConversation={handleDeleteConversation}
                     />
                 )}
                 {mobileView === 'history' && (

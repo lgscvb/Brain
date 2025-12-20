@@ -266,6 +266,86 @@ async def archive_message(
     return {"success": True, "message": "訊息已封存"}
 
 
+@router.delete("/messages/{message_id}")
+async def delete_message(
+    message_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """刪除訊息（含相關草稿和回覆）"""
+    result = await db.execute(
+        select(Message).where(Message.id == message_id)
+    )
+    message = result.scalar_one_or_none()
+
+    if not message:
+        raise HTTPException(status_code=404, detail="訊息不存在")
+
+    # 刪除相關草稿
+    await db.execute(
+        select(Draft).where(Draft.message_id == message_id)
+    )
+    drafts = (await db.execute(
+        select(Draft).where(Draft.message_id == message_id)
+    )).scalars().all()
+    for draft in drafts:
+        await db.delete(draft)
+
+    # 刪除相關回覆
+    responses = (await db.execute(
+        select(Response).where(Response.message_id == message_id)
+    )).scalars().all()
+    for response in responses:
+        await db.delete(response)
+
+    # 刪除訊息本身
+    await db.delete(message)
+    await db.commit()
+
+    return {"success": True, "message": "訊息已刪除"}
+
+
+@router.delete("/conversations/{sender_id:path}")
+async def delete_conversation(
+    sender_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """刪除整個對話（該客戶所有訊息）"""
+    decoded_sender_id = unquote(sender_id)
+
+    # 查詢該客戶所有訊息
+    result = await db.execute(
+        select(Message).where(Message.sender_id == decoded_sender_id)
+    )
+    messages = result.scalars().all()
+
+    if not messages:
+        raise HTTPException(status_code=404, detail="對話不存在")
+
+    deleted_count = 0
+    for message in messages:
+        # 刪除相關草稿
+        drafts = (await db.execute(
+            select(Draft).where(Draft.message_id == message.id)
+        )).scalars().all()
+        for draft in drafts:
+            await db.delete(draft)
+
+        # 刪除相關回覆
+        responses = (await db.execute(
+            select(Response).where(Response.message_id == message.id)
+        )).scalars().all()
+        for response in responses:
+            await db.delete(response)
+
+        # 刪除訊息
+        await db.delete(message)
+        deleted_count += 1
+
+    await db.commit()
+
+    return {"success": True, "message": f"已刪除 {deleted_count} 則訊息"}
+
+
 # ====== 對話列表 API（三欄式佈局用）======
 
 @router.get("/conversations")
