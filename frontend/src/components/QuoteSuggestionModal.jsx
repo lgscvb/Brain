@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { X, FileText, Loader2, Check, AlertCircle, ExternalLink, Trash2 } from 'lucide-react'
+import { X, FileText, Loader2, Check, AlertCircle, ExternalLink, Trash2, Edit3 } from 'lucide-react'
 import axios from 'axios'
 
 /**
@@ -122,6 +122,16 @@ export default function QuoteSuggestionModal({
         if (createdQuote?.quote_id) {
             window.open(`https://hj.yourspce.org/quotes/${createdQuote.quote_id}`, '_blank')
         }
+    }
+
+    // 跳轉到 CRM 報價單建立頁面（手動編輯）
+    const openInCRMEdit = () => {
+        const params = new URLSearchParams({
+            customer_name: analysis?.customer_name || customerName || '',
+            line_user_id: lineUserId || '',
+            notes: analysis?.customer_needs || ''
+        })
+        window.open(`https://hj.yourspce.org/quotes/new?${params.toString()}`, '_blank')
     }
 
     if (!isOpen) return null
@@ -298,6 +308,13 @@ export default function QuoteSuggestionModal({
                             className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                         >
                             取消
+                        </button>
+                        <button
+                            onClick={openInCRMEdit}
+                            className="flex items-center space-x-2 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                        >
+                            <Edit3 className="w-4 h-4" />
+                            <span>手動編輯</span>
                         </button>
                         <button
                             onClick={createQuote}
