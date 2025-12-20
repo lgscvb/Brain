@@ -179,19 +179,44 @@ const ConversationListPanel = memo(function ConversationListPanel({
     )
 })
 
-// === 中欄：訊息歷史元件 ===
-const MessageHistoryPanel = memo(function MessageHistoryPanel({
+// === 中欄：聊天式對話介面（合併訊息歷史 + 回覆區）===
+const ChatPanel = memo(function ChatPanel({
     isMobile = false,
+    idSuffix = '',
     selectedConversation,
     conversationMessages,
     conversationLoading,
     selectedMessage,
+    messageDetail,
+    detailLoading,
+    replyContent,
+    sending,
     onSelectMessage,
-    onBack
+    onReplyContentChange,
+    onSendReply,
+    onRegenerate,
+    onArchive,
+    onBack,
+    onFeedbackSubmit
 }) {
+    const chatContainerRef = useRef(null)
+
+    // 自動滾動到最新訊息
+    useEffect(() => {
+        if (chatContainerRef.current && conversationMessages.length > 0) {
+            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight
+        }
+    }, [conversationMessages])
+
+    // 找出目前選中的訊息（用於顯示回覆區）
+    const activeMessage = selectedMessage || (conversationMessages.length > 0 ? conversationMessages[conversationMessages.length - 1] : null)
+    const hasDraft = messageDetail?.drafts && messageDetail.drafts.length > 0
+    const needsReply = activeMessage && activeMessage.status !== 'sent' && activeMessage.status !== 'archived'
+
     return (
         <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col ${isMobile ? 'h-full' : ''}`}>
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            {/* 標題列 */}
+            <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
                 {isMobile && (
                     <button
                         onClick={onBack}
@@ -200,21 +225,32 @@ const MessageHistoryPanel = memo(function MessageHistoryPanel({
                         <ChevronLeft className="w-5 h-5" />
                     </button>
                 )}
-                <div className="flex-1">
-                    <h3 className="font-semibold text-gray-900 dark:text-white">
-                        {selectedConversation ? selectedConversation.sender_name : '訊息歷史'}
+                <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+                        {selectedConversation ? selectedConversation.sender_name : '對話'}
                     </h3>
                     {selectedConversation && (
                         <p className="text-xs text-gray-500">{conversationMessages.length} 則訊息</p>
                     )}
                 </div>
+                {activeMessage && needsReply && (
+                    <button
+                        onClick={onRegenerate}
+                        className="flex items-center space-x-1 text-xs text-blue-600 hover:text-blue-700 px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                        title={hasDraft ? '重新生成草稿' : '生成 AI 草稿'}
+                    >
+                        <RefreshCw className="w-3 h-3" />
+                        <span>{hasDraft ? '重新生成' : '生成草稿'}</span>
+                    </button>
+                )}
             </div>
 
+            {/* 對話歷史區 */}
             {!selectedConversation ? (
                 <div className="flex-1 flex items-center justify-center p-8 text-center text-gray-500 dark:text-gray-400">
                     <div>
                         <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                        <p>選擇一個對話查看訊息</p>
+                        <p>選擇一個對話開始</p>
                     </div>
                 </div>
             ) : conversationLoading ? (
@@ -222,248 +258,175 @@ const MessageHistoryPanel = memo(function MessageHistoryPanel({
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
             ) : (
-                <div className="flex-1 divide-y divide-gray-200 dark:divide-gray-700 overflow-y-auto">
-                    {conversationMessages.map((message) => (
-                        <div key={message.id} className="border-b border-gray-200 dark:border-gray-700 last:border-b-0">
-                            {/* 客戶訊息 */}
-                            <button
-                                onClick={() => onSelectMessage(message)}
-                                className={`w-full p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
-                                    selectedMessage?.id === message.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                                }`}
-                            >
-                                <div className="flex items-start justify-between">
-                                    <div className="flex-1 min-w-0">
+                <>
+                    {/* 聊天訊息列表 */}
+                    <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-3 space-y-3">
+                        {conversationMessages.map((message) => (
+                            <div key={message.id} className="space-y-2">
+                                {/* 客戶訊息（靠左） */}
+                                <div
+                                    onClick={() => onSelectMessage(message)}
+                                    className={`max-w-[85%] cursor-pointer transition-all ${
+                                        selectedMessage?.id === message.id
+                                            ? 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-gray-800'
+                                            : 'hover:shadow-md'
+                                    }`}
+                                >
+                                    <div className="bg-gray-100 dark:bg-gray-700 rounded-lg rounded-tl-none p-3">
                                         <div className="flex items-center space-x-2 mb-1">
-                                            {getStatusBadge(message.status)}
+                                            <User className="w-3 h-3 text-gray-500" />
                                             <span className="text-xs text-gray-500">
                                                 {formatTime(message.created_at)}
                                             </span>
+                                            {getStatusBadge(message.status)}
                                         </div>
-                                        <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
+                                        <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
                                             {message.content}
                                         </p>
                                         {message.drafts && message.drafts.length > 0 && !message.response && (
-                                            <p className="text-xs text-blue-500 mt-1">
-                                                有 AI 草稿
+                                            <p className="text-xs text-blue-500 mt-2 flex items-center space-x-1">
+                                                <span>🤖</span>
+                                                <span>有 AI 草稿</span>
                                             </p>
                                         )}
                                     </div>
-                                    <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0 ml-2 mt-1" />
                                 </div>
-                            </button>
 
-                            {/* Hour Jungle 回覆 */}
-                            {message.response && message.response.final_content && (
-                                <div className="ml-4 mr-3 mb-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border-l-4 border-green-500">
-                                    <div className="flex items-center space-x-2 mb-1">
-                                        <span className="text-xs font-medium text-green-600 dark:text-green-400">
-                                            Hour Jungle 回覆
-                                        </span>
-                                        <span className="text-xs text-gray-400">
-                                            {formatTime(message.response.sent_at)}
-                                        </span>
-                                        {message.response.is_modified && (
-                                            <span className="text-xs text-orange-500">已修改</span>
-                                        )}
+                                {/* Hour Jungle 回覆（靠右） */}
+                                {message.response && message.response.final_content && (
+                                    <div className="flex justify-end">
+                                        <div className="max-w-[85%] bg-green-100 dark:bg-green-900/30 rounded-lg rounded-tr-none p-3">
+                                            <div className="flex items-center space-x-2 mb-1">
+                                                <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                                                    Hour Jungle
+                                                </span>
+                                                <span className="text-xs text-gray-400">
+                                                    {formatTime(message.response.sent_at)}
+                                                </span>
+                                                {message.response.is_modified && (
+                                                    <span className="text-xs text-orange-500">已修改</span>
+                                                )}
+                                            </div>
+                                            <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                                                {message.response.final_content}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-3">
-                                        {message.response.final_content}
+                                )}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* 回覆區（固定在底部）*/}
+                    {activeMessage && needsReply && (
+                        <div className="border-t border-gray-200 dark:border-gray-700 p-3 space-y-3 flex-shrink-0 bg-gray-50 dark:bg-gray-800/50">
+                            {detailLoading ? (
+                                <div className="flex items-center justify-center py-4">
+                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                                    <span className="ml-2 text-sm text-gray-500">載入中...</span>
+                                </div>
+                            ) : hasDraft ? (
+                                <>
+                                    {/* 策略提示 */}
+                                    {messageDetail.drafts[0].strategy && (
+                                        <div className="text-xs text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 rounded p-2">
+                                            <span className="font-medium">策略：</span>
+                                            {messageDetail.drafts[0].strategy}
+                                        </div>
+                                    )}
+
+                                    {/* 回覆編輯區 */}
+                                    <label htmlFor={`reply-content-${messageDetail.id}${idSuffix}`} className="sr-only">
+                                        回覆內容
+                                    </label>
+                                    <textarea
+                                        id={`reply-content-${messageDetail.id}${idSuffix}`}
+                                        name={`reply-content-${messageDetail.id}${idSuffix}`}
+                                        value={replyContent}
+                                        onChange={(e) => onReplyContentChange(e.target.value)}
+                                        className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-sm"
+                                        rows={4}
+                                        placeholder="編輯回覆內容..."
+                                    />
+
+                                    {/* 評分 + 操作按鈕 */}
+                                    <div className="flex items-center justify-between">
+                                        <FeedbackPanel
+                                            draftId={messageDetail.drafts[0].id}
+                                            idSuffix={idSuffix}
+                                            initialFeedback={{
+                                                is_good: messageDetail.drafts[0].is_good,
+                                                rating: messageDetail.drafts[0].rating,
+                                                feedback_reason: messageDetail.drafts[0].feedback_reason
+                                            }}
+                                            onFeedbackSubmit={onFeedbackSubmit}
+                                            compact={true}
+                                        />
+                                        <div className="flex space-x-2">
+                                            <button
+                                                onClick={onArchive}
+                                                className="flex items-center space-x-1 px-3 py-1.5 text-sm bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                                            >
+                                                <Archive className="w-3 h-3" />
+                                                <span>封存</span>
+                                            </button>
+                                            <button
+                                                onClick={onSendReply}
+                                                disabled={sending || !replyContent.trim()}
+                                                className={`flex items-center space-x-1 px-4 py-1.5 text-sm rounded-lg transition-colors ${
+                                                    sending || !replyContent.trim()
+                                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                                }`}
+                                            >
+                                                {sending ? (
+                                                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                                ) : (
+                                                    <Send className="w-3 h-3" />
+                                                )}
+                                                <span>{sending ? '發送中...' : '發送'}</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                /* 沒有草稿時顯示生成按鈕 */
+                                <div className="text-center py-4">
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                                        尚無 AI 草稿
                                     </p>
+                                    <button
+                                        onClick={onRegenerate}
+                                        className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
+                                    >
+                                        <RefreshCw className="w-4 h-4" />
+                                        <span>生成草稿</span>
+                                    </button>
                                 </div>
                             )}
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
-    )
-})
 
-// === 第三欄：訊息詳情元件（移除 RefinementChat，簡化為訊息+草稿+操作）===
-const MessageDetailPanel = memo(function MessageDetailPanel({
-    isMobile = false,
-    idSuffix = '',  // 用於區分不同佈局的 ID 後綴
-    selectedMessage,
-    messageDetail,
-    detailLoading,
-    replyContent,
-    sending,
-    onReplyContentChange,
-    onSendReply,
-    onRegenerate,
-    onArchive,
-    onClose,
-    onBack,
-    onFeedbackSubmit
-}) {
-    return (
-        <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col ${isMobile ? 'h-full' : ''}`}>
-            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                {isMobile && (
-                    <button
-                        onClick={onBack}
-                        className="mr-2 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                    >
-                        <ChevronLeft className="w-5 h-5" />
-                    </button>
-                )}
-                <h3 className="font-semibold text-gray-900 dark:text-white flex-1">訊息詳情</h3>
-                {selectedMessage && (
-                    <button
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                    >
-                        <X className="w-5 h-5" />
-                    </button>
-                )}
-            </div>
-
-            {!selectedMessage ? (
-                <div className="flex-1 flex items-center justify-center p-8 text-center text-gray-500 dark:text-gray-400">
-                    <div>
-                        <MessageSquare className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                        <p>選擇一則訊息查看詳情</p>
-                    </div>
-                </div>
-            ) : detailLoading ? (
-                <div className="flex-1 flex items-center justify-center py-12">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                </div>
-            ) : messageDetail ? (
-                <div className="flex-1 p-4 space-y-4 overflow-y-auto">
-                    {/* Original Message */}
-                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                        <div className="flex items-center space-x-2 mb-2">
-                            <User className="w-4 h-4 text-gray-500" />
-                            <span className="font-medium text-gray-900 dark:text-white">
-                                {messageDetail.sender_name}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                                {formatTime(messageDetail.created_at)}
-                            </span>
-                        </div>
-                        <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
-                            {messageDetail.content}
-                        </p>
-                    </div>
-
-                    {/* AI Draft - 永遠顯示區塊，有無草稿都可操作 */}
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <h4 className="font-medium text-gray-900 dark:text-white flex items-center space-x-2">
-                                <span>🤖</span>
-                                <span>AI 草稿</span>
-                            </h4>
-                            <button
-                                onClick={onRegenerate}
-                                className="flex items-center space-x-1 text-sm text-blue-600 hover:text-blue-700"
-                            >
-                                <RefreshCw className="w-4 h-4" />
-                                <span>{messageDetail.drafts && messageDetail.drafts.length > 0 ? '重新生成' : '生成草稿'}</span>
-                            </button>
-                        </div>
-
-                        {/* 有草稿時顯示內容 */}
-                        {messageDetail.drafts && messageDetail.drafts.length > 0 ? (
-                            <>
-                                {/* Draft Strategy */}
-                                {messageDetail.drafts[0].strategy && (
-                                    <div className="text-sm text-gray-500 dark:text-gray-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
-                                        <span className="font-medium">策略：</span>
-                                        {messageDetail.drafts[0].strategy}
-                                    </div>
-                                )}
-
-                                {/* Editable Reply */}
-                                <label htmlFor={`reply-content-${messageDetail.id}${idSuffix}`} className="sr-only">
-                                    回覆內容
-                                </label>
-                                <textarea
-                                    id={`reply-content-${messageDetail.id}${idSuffix}`}
-                                    name={`reply-content-${messageDetail.id}${idSuffix}`}
-                                    value={replyContent}
-                                    onChange={(e) => onReplyContentChange(e.target.value)}
-                                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                                    rows={5}
-                                    placeholder="編輯回覆內容..."
-                                />
-
-                                {/* Feedback Panel - 評分 */}
-                                <FeedbackPanel
-                                    draftId={messageDetail.drafts[0].id}
-                                    idSuffix={idSuffix}
-                                    initialFeedback={{
-                                        is_good: messageDetail.drafts[0].is_good,
-                                        rating: messageDetail.drafts[0].rating,
-                                        feedback_reason: messageDetail.drafts[0].feedback_reason
-                                    }}
-                                    onFeedbackSubmit={onFeedbackSubmit}
-                                />
-                            </>
-                        ) : (
-                            /* 沒有草稿時顯示提示 */
-                            <div className="text-center py-6 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                <p className="text-gray-500 dark:text-gray-400 mb-3">
-                                    尚無 AI 草稿
+                            {/* 訊息代號 */}
+                            {messageDetail && (
+                                <p className="text-[10px] text-gray-400 dark:text-gray-500 font-mono">
+                                    訊息 #{messageDetail.id}
+                                    {messageDetail.drafts?.[0]?.id && ` | 草稿 #${messageDetail.drafts[0].id}`}
                                 </p>
-                                <button
-                                    onClick={onRegenerate}
-                                    className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                                >
-                                    <RefreshCw className="w-4 h-4" />
-                                    <span>生成草稿</span>
-                                </button>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Action Buttons */}
-                    {messageDetail.status !== 'sent' && messageDetail.status !== 'archived' && (
-                        <div className="flex space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                            <button
-                                onClick={onSendReply}
-                                disabled={sending || !replyContent.trim()}
-                                className={`flex-1 flex items-center justify-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
-                                    sending || !replyContent.trim()
-                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                        : 'bg-blue-600 hover:bg-blue-700 text-white'
-                                }`}
-                            >
-                                {sending ? (
-                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                    <Send className="w-4 h-4" />
-                                )}
-                                <span>{sending ? '發送中...' : '發送回覆'}</span>
-                            </button>
-                            <button
-                                onClick={onArchive}
-                                className="flex items-center justify-center space-x-2 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                            >
-                                <Archive className="w-4 h-4" />
-                                <span>封存</span>
-                            </button>
+                            )}
                         </div>
                     )}
 
-                    {/* Already Sent */}
-                    {messageDetail.status === 'sent' && (
-                        <div className="text-center py-4 text-green-600 dark:text-green-400">
-                            ✓ 此訊息已發送回覆
+                    {/* 已發送或已封存的訊息 */}
+                    {activeMessage && !needsReply && (
+                        <div className="border-t border-gray-200 dark:border-gray-700 p-3 text-center text-sm text-gray-500 dark:text-gray-400 flex-shrink-0">
+                            {activeMessage.status === 'sent' ? (
+                                <span className="text-green-600 dark:text-green-400">✓ 已發送回覆</span>
+                            ) : (
+                                <span>已封存</span>
+                            )}
                         </div>
                     )}
-
-                    {/* 對話代號（用於追蹤與 Bug 回報）*/}
-                    <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-700/50">
-                        <p className="text-xs text-gray-400 dark:text-gray-500 font-mono select-all">
-                            對話: {messageDetail.sender_id?.slice(-8) || '-'} |
-                            訊息: #{messageDetail.id}
-                            {messageDetail.drafts?.[0]?.id && ` | 草稿: #${messageDetail.drafts[0].id}`}
-                        </p>
-                    </div>
-                </div>
-            ) : null}
+                </>
+            )}
         </div>
     )
 })
@@ -588,11 +551,35 @@ export default function MessagesPage() {
     }, [])
 
     // === 對話訊息 API ===
-    const fetchConversationMessages = useCallback(async (senderId) => {
+    const fetchConversationMessages = useCallback(async (senderId, autoSelectLatest = true) => {
         setConversationLoading(true)
         try {
             const response = await axios.get(`/api/conversations/${encodeURIComponent(senderId)}/messages`)
-            setConversationMessages(response.data.messages)
+            const messages = response.data.messages
+            setConversationMessages(messages)
+
+            // 自動選擇最後一則待處理/已生成草稿的訊息
+            if (autoSelectLatest && messages.length > 0) {
+                // 優先找待處理或已生成草稿的訊息
+                const pendingMsg = [...messages].reverse().find(m =>
+                    m.status === 'pending' || m.status === 'drafted'
+                )
+                const targetMsg = pendingMsg || messages[messages.length - 1]
+                setSelectedMessage(targetMsg)
+                // 載入訊息詳情
+                setDetailLoading(true)
+                try {
+                    const detailRes = await axios.get(`/api/messages/${targetMsg.id}`)
+                    setMessageDetail(detailRes.data)
+                    if (detailRes.data.drafts && detailRes.data.drafts.length > 0) {
+                        setReplyContent(detailRes.data.drafts[0].content)
+                    }
+                } catch (err) {
+                    console.error('載入訊息詳情失敗:', err)
+                } finally {
+                    setDetailLoading(false)
+                }
+            }
         } catch (error) {
             console.error('獲取對話訊息失敗:', error)
         } finally {
@@ -711,12 +698,9 @@ export default function MessagesPage() {
                 draft_id: draftId
             })
             alert('回覆已發送！')
-            setSelectedMessage(null)
-            setMessageDetail(null)
-            setMobileView('history')
-            // 重新載入對話訊息和對話列表
+            // 重新載入對話訊息和對話列表（不自動選擇，因為剛發送的已是 sent 狀態）
             if (selectedConversation) {
-                fetchConversationMessages(selectedConversation.sender_id)
+                fetchConversationMessages(selectedConversation.sender_id, false)
             }
             fetchConversations()
             fetchMessages()
@@ -907,11 +891,11 @@ export default function MessagesPage() {
                 ))}
             </div>
 
-            {/* === 桌面版四欄佈局 === */}
+            {/* === 桌面版三欄佈局（聊天 + AI 修正）=== */}
             <div className={`hidden xl:grid gap-3 flex-1 min-h-0 ${
                 isFirstColumnCollapsed
-                    ? 'xl:grid-cols-[56px_320px_1fr_360px]'
-                    : 'xl:grid-cols-[220px_280px_1fr_320px]'
+                    ? 'xl:grid-cols-[56px_1fr_380px]'
+                    : 'xl:grid-cols-[220px_1fr_380px]'
             }`}>
                 <ConversationListPanel
                     isCollapsed={isFirstColumnCollapsed}
@@ -922,25 +906,21 @@ export default function MessagesPage() {
                     onDeleteConversation={handleDeleteConversation}
                     onToggleCollapse={handleToggleFirstColumn}
                 />
-                <MessageHistoryPanel
+                <ChatPanel
+                    idSuffix="-xl"
                     selectedConversation={selectedConversation}
                     conversationMessages={conversationMessages}
                     conversationLoading={conversationLoading}
-                    selectedMessage={selectedMessage}
-                    onSelectMessage={handleSelectMessage}
-                />
-                <MessageDetailPanel
-                    idSuffix="-xl"
                     selectedMessage={selectedMessage}
                     messageDetail={messageDetail}
                     detailLoading={detailLoading}
                     replyContent={replyContent}
                     sending={sending}
+                    onSelectMessage={handleSelectMessage}
                     onReplyContentChange={handleReplyContentChange}
                     onSendReply={handleSendReply}
                     onRegenerate={handleRegenerate}
                     onArchive={handleArchive}
-                    onClose={handleCloseDetail}
                     onFeedbackSubmit={handleFeedbackSubmit}
                 />
                 <RefinementPanel
@@ -950,11 +930,11 @@ export default function MessagesPage() {
                 />
             </div>
 
-            {/* === 中型螢幕三欄佈局（平板橫放）=== */}
+            {/* === 中型螢幕兩欄佈局（聊天介面，無 AI 修正）=== */}
             <div className={`hidden lg:grid xl:hidden gap-3 flex-1 min-h-0 ${
                 isFirstColumnCollapsed
-                    ? 'lg:grid-cols-[56px_320px_1fr]'
-                    : 'lg:grid-cols-[250px_300px_1fr]'
+                    ? 'lg:grid-cols-[56px_1fr]'
+                    : 'lg:grid-cols-[250px_1fr]'
             }`}>
                 <ConversationListPanel
                     isCollapsed={isFirstColumnCollapsed}
@@ -965,25 +945,21 @@ export default function MessagesPage() {
                     onDeleteConversation={handleDeleteConversation}
                     onToggleCollapse={handleToggleFirstColumn}
                 />
-                <MessageHistoryPanel
+                <ChatPanel
+                    idSuffix="-lg"
                     selectedConversation={selectedConversation}
                     conversationMessages={conversationMessages}
                     conversationLoading={conversationLoading}
-                    selectedMessage={selectedMessage}
-                    onSelectMessage={handleSelectMessage}
-                />
-                <MessageDetailPanel
-                    idSuffix="-lg"
                     selectedMessage={selectedMessage}
                     messageDetail={messageDetail}
                     detailLoading={detailLoading}
                     replyContent={replyContent}
                     sending={sending}
+                    onSelectMessage={handleSelectMessage}
                     onReplyContentChange={handleReplyContentChange}
                     onSendReply={handleSendReply}
                     onRegenerate={handleRegenerate}
                     onArchive={handleArchive}
-                    onClose={handleCloseDetail}
                     onFeedbackSubmit={handleFeedbackSubmit}
                 />
             </div>
@@ -1000,32 +976,24 @@ export default function MessagesPage() {
                         onDeleteConversation={handleDeleteConversation}
                     />
                 )}
-                {mobileView === 'history' && (
-                    <MessageHistoryPanel
+                {(mobileView === 'history' || mobileView === 'detail') && (
+                    <ChatPanel
                         isMobile
+                        idSuffix="-mobile"
                         selectedConversation={selectedConversation}
                         conversationMessages={conversationMessages}
                         conversationLoading={conversationLoading}
-                        selectedMessage={selectedMessage}
-                        onSelectMessage={handleSelectMessage}
-                        onBack={handleBackToConversations}
-                    />
-                )}
-                {mobileView === 'detail' && (
-                    <MessageDetailPanel
-                        isMobile
-                        idSuffix="-mobile"
                         selectedMessage={selectedMessage}
                         messageDetail={messageDetail}
                         detailLoading={detailLoading}
                         replyContent={replyContent}
                         sending={sending}
+                        onSelectMessage={handleSelectMessage}
                         onReplyContentChange={handleReplyContentChange}
                         onSendReply={handleSendReply}
                         onRegenerate={handleRegenerate}
                         onArchive={handleArchive}
-                        onClose={handleCloseDetailMobile}
-                        onBack={handleBackToHistory}
+                        onBack={handleBackToConversations}
                         onFeedbackSubmit={handleFeedbackSubmit}
                     />
                 )}
