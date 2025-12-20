@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
-import { ThumbsUp, ThumbsDown, Star, Send } from 'lucide-react'
+import { ThumbsUp, ThumbsDown, Star } from 'lucide-react'
 import axios from 'axios'
 
 /**
- * FeedbackPanel - AI 草稿回饋元件
+ * FeedbackPanel - AI 草稿回饋元件（簡化版）
  *
- * 用於收集人工對 AI 草稿的評價，支援 AI 自我進化系統。
+ * 用於收集人工對 AI 草稿的快速評價。
+ * 如需具體改進，請使用右側的「AI 草稿修正」功能。
  *
  * Props:
  *   - draftId: 草稿 ID
@@ -23,7 +24,6 @@ export default function FeedbackPanel({
 }) {
     const [isGood, setIsGood] = useState(initialFeedback.is_good)
     const [rating, setRating] = useState(initialFeedback.rating || 0)
-    const [feedbackReason, setFeedbackReason] = useState(initialFeedback.feedback_reason || '')
     const [hoveredStar, setHoveredStar] = useState(0)
     const [submitting, setSubmitting] = useState(false)
     const [submitted, setSubmitted] = useState(false)
@@ -32,47 +32,37 @@ export default function FeedbackPanel({
     // 用 ref 追蹤前一個 draftId，避免輪詢時重置狀態
     const prevDraftId = useRef(null)
 
-    // 只在 draftId 真正改變時重置狀態（移除 initialFeedback 依賴，避免每次父組件渲染都觸發）
+    // 只在 draftId 真正改變時重置狀態
     useEffect(() => {
-        // 第一次載入或 draftId 改變時才重置狀態
         if (prevDraftId.current !== draftId) {
             prevDraftId.current = draftId
             setIsGood(initialFeedback.is_good)
             setRating(initialFeedback.rating || 0)
-            setFeedbackReason(initialFeedback.feedback_reason || '')
             setShowDetails(false)
             setSubmitted(false)
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [draftId]) // 故意只依賴 draftId，不依賴 initialFeedback
+    }, [draftId])
 
-    // 唯一 ID 用於 accessibility（加入 suffix 區分桌面/手機版）
+    // 唯一 ID 用於 accessibility
     const feedbackId = `feedback-${draftId}${idSuffix}`
 
     const handleThumbClick = async (good) => {
         setIsGood(good)
 
-        // 如果點不好，展開詳細回饋區
+        // 如果點不好，展開星級評分
         if (!good) {
             setShowDetails(true)
-        }
-
-        // 快速回饋：直接提交
-        if (good) {
+        } else {
+            // 點好直接提交
             await submitFeedback({ is_good: good })
         }
     }
 
-    const handleShowDetails = () => {
-        setShowDetails(true)
-    }
-
-    const handleStarClick = (star) => {
+    const handleStarClick = async (star) => {
         setRating(star)
-    }
-
-    const handleReasonChange = (e) => {
-        setFeedbackReason(e.target.value)
+        // 選擇星級後自動提交
+        await submitFeedback({ is_good: isGood, rating: star })
     }
 
     const submitFeedback = async (feedbackData = {}) => {
@@ -80,8 +70,8 @@ export default function FeedbackPanel({
         try {
             const payload = {
                 is_good: feedbackData.is_good ?? isGood,
-                rating: (feedbackData.rating ?? rating) || null,
-                feedback_reason: (feedbackData.feedback_reason ?? feedbackReason) || null
+                rating: feedbackData.rating ?? rating || null,
+                feedback_reason: null  // 不再收集文字回饋
             }
 
             await axios.post(`/api/drafts/${draftId}/feedback`, payload)
@@ -96,14 +86,6 @@ export default function FeedbackPanel({
         } finally {
             setSubmitting(false)
         }
-    }
-
-    const handleSubmitDetails = () => {
-        submitFeedback({
-            is_good: isGood,
-            rating: rating,
-            feedback_reason: feedbackReason
-        })
     }
 
     // 精簡模式：只顯示 thumbs up/down
@@ -143,7 +125,7 @@ export default function FeedbackPanel({
 
     // 完整模式
     return (
-        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 space-y-4">
+        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 space-y-3">
             <div className="flex items-center justify-between">
                 <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     這個草稿如何？
@@ -151,7 +133,7 @@ export default function FeedbackPanel({
                 {submitted && (
                     <span className="text-xs text-green-600 dark:text-green-400 flex items-center">
                         <span className="w-2 h-2 bg-green-500 rounded-full mr-1"></span>
-                        回饋已記錄
+                        已記錄
                     </span>
                 )}
             </div>
@@ -183,13 +165,12 @@ export default function FeedbackPanel({
                 </button>
             </div>
 
-            {/* 詳細回饋（點不好後展開，或手動展開） */}
+            {/* 星級評分（點不好後展開） */}
             {(showDetails || isGood === false) && (
-                <div className="space-y-3 pt-2 border-t border-gray-200 dark:border-gray-700">
-                    {/* 星級評分 */}
+                <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
                     <div className="flex items-center space-x-3">
                         <span id={`${feedbackId}-rating-label`} className="text-sm text-gray-500 dark:text-gray-400">
-                            詳細評分：
+                            評分：
                         </span>
                         <div
                             className="flex items-center space-x-1"
@@ -209,7 +190,7 @@ export default function FeedbackPanel({
                                     aria-pressed={rating === star}
                                 >
                                     <Star
-                                        className={`w-6 h-6 transition-colors ${star <= (hoveredStar || rating)
+                                        className={`w-5 h-5 transition-colors ${star <= (hoveredStar || rating)
                                                 ? 'fill-yellow-400 text-yellow-400'
                                                 : 'text-gray-300 dark:text-gray-600'
                                             }`}
@@ -223,63 +204,11 @@ export default function FeedbackPanel({
                             </span>
                         )}
                     </div>
-
-                    {/* 修改原因 */}
-                    <div>
-                        <label
-                            htmlFor={`${feedbackId}-reason`}
-                            className="block text-sm text-gray-500 dark:text-gray-400 mb-1"
-                        >
-                            哪裡需要改進？（選填）
-                        </label>
-                        <textarea
-                            id={`${feedbackId}-reason`}
-                            name={`${feedbackId}-reason`}
-                            value={feedbackReason}
-                            onChange={handleReasonChange}
-                            placeholder="例如：語氣太正式、缺少具體資訊、表達不夠清晰..."
-                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                            rows={3}
-                            disabled={submitting}
-                        />
-                    </div>
-
-                    {/* 提交按鈕 */}
-                    <div className="flex justify-end">
-                        <button
-                            onClick={handleSubmitDetails}
-                            disabled={submitting || submitted}
-                            className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${submitted
-                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
-                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                                } ${submitting ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        >
-                            {submitting ? (
-                                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            ) : submitted ? (
-                                <>
-                                    <span>已送出</span>
-                                </>
-                            ) : (
-                                <>
-                                    <Send className="w-4 h-4" />
-                                    <span>送出回饋</span>
-                                </>
-                            )}
-                        </button>
-                    </div>
+                    {/* 提示使用 RefinementChat */}
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                        💡 需要具體改進？請使用右側「AI 草稿修正」功能
+                    </p>
                 </div>
-            )}
-
-            {/* 展開詳細回饋按鈕 */}
-            {!showDetails && isGood !== false && (
-                <button
-                    onClick={handleShowDetails}
-                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                    type="button"
-                >
-                    詳細評分
-                </button>
             )}
         </div>
     )
