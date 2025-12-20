@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from db.database import get_db
 from db.models import Message, Response
-from brain.llm_client import get_llm_client
+from services.claude_client import get_claude_client
 
 logger = logging.getLogger(__name__)
 
@@ -88,7 +88,7 @@ async def analyze_conversation_with_llm(
     service_plans: list
 ) -> dict:
     """使用 LLM 分析對話，識別客戶需求"""
-    llm = get_llm_client()
+    client = get_claude_client()
 
     # 組合對話歷史
     conversation_parts = []
@@ -137,7 +137,7 @@ async def analyze_conversation_with_llm(
 只輸出 JSON，不要其他內容。"""
 
     try:
-        response = await llm.generate(
+        response = await client.generate_response(
             prompt=prompt,
             max_tokens=1000,
             temperature=0.3
