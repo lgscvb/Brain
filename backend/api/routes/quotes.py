@@ -214,15 +214,15 @@ async def analyze_conversation_for_quote(
 
         # 取得客戶名稱（排除 bot 回覆）
         # Debug: 列出所有訊息的 source
-        logger.info(f"[QuoteAnalyze] Total messages: {len(messages)}")
+        print(f"[QuoteAnalyze] Total messages: {len(messages)}")
         for m in messages[:5]:
-            logger.info(f"[QuoteAnalyze] Message {m.id}: source={m.source}, sender_name={m.sender_name}")
+            print(f"[QuoteAnalyze] Message {m.id}: source={m.source}, sender_name={m.sender_name}")
 
         customer_msg = next(
             (m for m in messages if m.source not in ('line_bot', 'system')),
             None
         )
-        logger.info(f"[QuoteAnalyze] customer_msg: {customer_msg.id if customer_msg else None}, source={customer_msg.source if customer_msg else None}, name={customer_msg.sender_name if customer_msg else None}")
+        print(f"[QuoteAnalyze] customer_msg: {customer_msg.id if customer_msg else None}, source={customer_msg.source if customer_msg else None}, name={customer_msg.sender_name if customer_msg else None}")
         customer_name = customer_msg.sender_name if customer_msg else None
 
         # 2. 查詢對應的回覆記錄
