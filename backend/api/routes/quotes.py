@@ -319,7 +319,7 @@ async def create_quote_from_analysis(request: CreateQuoteRequest):
                 f"{CRM_API_URL}/tools/call",
                 json={
                     "tool": "quote_create_from_service_plans",
-                    "arguments": {
+                    "parameters": {
                         "branch_id": 1,  # 預設大忠館
                         "service_codes": request.service_codes,
                         "customer_name": request.customer_name,
