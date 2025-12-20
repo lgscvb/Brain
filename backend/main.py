@@ -72,7 +72,7 @@ app.add_middleware(
 
 
 # ==================== 路由註冊 ====================
-from api.routes import messages, webhooks, stats, settings, logs, health, feedback, usage, knowledge, integration, uid_alignment, bookings, refinement
+from api.routes import messages, webhooks, stats, settings, logs, health, feedback, usage, knowledge, integration, uid_alignment, bookings, refinement, quotes
 
 app.include_router(health.router, prefix="/api", tags=["健康檢查 & 系統狀態"])
 app.include_router(messages.router, prefix="/api", tags=["訊息管理"])
@@ -87,6 +87,7 @@ app.include_router(integration.router, tags=["Jungle CRM 整合"])
 app.include_router(uid_alignment.router, tags=["UID 對齊"])
 app.include_router(bookings.router, prefix="/api", tags=["會議室預約"])
 app.include_router(refinement.router, prefix="/api", tags=["草稿修正 & 訓練資料"])
+app.include_router(quotes.router, prefix="/api", tags=["報價分析"])
 
 
 
