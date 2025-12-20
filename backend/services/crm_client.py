@@ -135,6 +135,30 @@ class CRMClient:
             message_type=message_type
         )
 
+    async def create_signing_appointment(
+        self,
+        customer_name: str,
+        appointment_datetime: str,
+        company_name: str = None,
+        plan_name: str = None,
+        customer_phone: str = None,
+        customer_email: str = None,
+        notes: str = None,
+        branch: str = "大忠館"
+    ) -> Dict[str, Any]:
+        """建立簽約行程到 Google Calendar"""
+        return await self.call_tool(
+            "calendar_create_signing_appointment",
+            customer_name=customer_name,
+            appointment_datetime=appointment_datetime,
+            company_name=company_name,
+            plan_name=plan_name,
+            customer_phone=customer_phone,
+            customer_email=customer_email,
+            notes=notes,
+            branch=branch
+        )
+
 
 class CRMError(Exception):
     """CRM API 錯誤"""
