@@ -98,12 +98,10 @@ export default function QuoteSuggestionModal({
         setError(null)
 
         try {
-            const response = await axios.post('/api/quotes/create', null, {
-                params: {
-                    line_user_id: lineUserId,
-                    service_codes: selectedServices,
-                    customer_name: analysis?.customer_name || customerName
-                }
+            const response = await axios.post('/api/quotes/create', {
+                line_user_id: lineUserId,
+                service_codes: selectedServices,
+                customer_name: analysis?.customer_name || customerName
             })
 
             if (response.data.success) {

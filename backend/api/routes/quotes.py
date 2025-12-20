@@ -57,6 +57,17 @@ class QuoteAnalysisResponse(BaseModel):
     message: Optional[str] = None
 
 
+class CreateQuoteRequest(BaseModel):
+    """建立報價單請求"""
+    line_user_id: str
+    service_codes: List[str]
+    customer_name: Optional[str] = None
+    customer_phone: Optional[str] = None
+    discount_amount: float = 0
+    discount_note: Optional[str] = None
+    notes: Optional[str] = None
+
+
 # ============================================================================
 # Helper Functions
 # ============================================================================
@@ -290,28 +301,14 @@ async def analyze_conversation_for_quote(
 
 
 @router.post("/quotes/create")
-async def create_quote_from_analysis(
-    line_user_id: str,
-    service_codes: List[str],
-    customer_name: str = None,
-    customer_phone: str = None,
-    discount_amount: float = 0,
-    discount_note: str = None,
-    notes: str = None
-):
+async def create_quote_from_analysis(request: CreateQuoteRequest):
     """
     根據分析結果建立報價單
 
     當使用者在前端確認服務項目後，調用此 API 在 CRM 建立報價單。
 
     Args:
-        line_user_id: LINE User ID
-        service_codes: 確認的服務代碼列表
-        customer_name: 客戶姓名
-        customer_phone: 客戶電話（可選）
-        discount_amount: 折扣金額
-        discount_note: 折扣說明
-        notes: 備註
+        request: 包含 line_user_id, service_codes 等資訊
 
     Returns:
         新建報價單資訊
@@ -324,13 +321,13 @@ async def create_quote_from_analysis(
                     "tool": "quote_create_from_service_plans",
                     "arguments": {
                         "branch_id": 1,  # 預設大忠館
-                        "service_codes": service_codes,
-                        "customer_name": customer_name,
-                        "customer_phone": customer_phone,
-                        "discount_amount": discount_amount,
-                        "discount_note": discount_note,
-                        "internal_notes": notes,
-                        "line_user_id": line_user_id
+                        "service_codes": request.service_codes,
+                        "customer_name": request.customer_name,
+                        "customer_phone": request.customer_phone,
+                        "discount_amount": request.discount_amount,
+                        "discount_note": request.discount_note,
+                        "internal_notes": request.notes,
+                        "line_user_id": request.line_user_id
                     }
                 }
             )
