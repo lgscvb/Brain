@@ -233,6 +233,7 @@ const MessageHistoryPanel = memo(function MessageHistoryPanel({
 // === 第三欄：訊息詳情元件（移除 RefinementChat，簡化為訊息+草稿+操作）===
 const MessageDetailPanel = memo(function MessageDetailPanel({
     isMobile = false,
+    idSuffix = '',  // 用於區分不同佈局的 ID 後綴
     selectedMessage,
     messageDetail,
     detailLoading,
@@ -325,12 +326,12 @@ const MessageDetailPanel = memo(function MessageDetailPanel({
                                 )}
 
                                 {/* Editable Reply */}
-                                <label htmlFor={`reply-content-${messageDetail.id}${isMobile ? '-mobile' : ''}`} className="sr-only">
+                                <label htmlFor={`reply-content-${messageDetail.id}${idSuffix}`} className="sr-only">
                                     回覆內容
                                 </label>
                                 <textarea
-                                    id={`reply-content-${messageDetail.id}${isMobile ? '-mobile' : ''}`}
-                                    name={`reply-content-${messageDetail.id}`}
+                                    id={`reply-content-${messageDetail.id}${idSuffix}`}
+                                    name={`reply-content-${messageDetail.id}${idSuffix}`}
                                     value={replyContent}
                                     onChange={(e) => onReplyContentChange(e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
@@ -341,7 +342,7 @@ const MessageDetailPanel = memo(function MessageDetailPanel({
                                 {/* Feedback Panel - 評分 */}
                                 <FeedbackPanel
                                     draftId={messageDetail.drafts[0].id}
-                                    idSuffix={isMobile ? '-mobile' : ''}
+                                    idSuffix={idSuffix}
                                     initialFeedback={{
                                         is_good: messageDetail.drafts[0].is_good,
                                         rating: messageDetail.drafts[0].rating,
@@ -863,6 +864,7 @@ export default function MessagesPage() {
                     onSelectMessage={handleSelectMessage}
                 />
                 <MessageDetailPanel
+                    idSuffix="-xl"
                     selectedMessage={selectedMessage}
                     messageDetail={messageDetail}
                     detailLoading={detailLoading}
@@ -899,6 +901,7 @@ export default function MessagesPage() {
                     onSelectMessage={handleSelectMessage}
                 />
                 <MessageDetailPanel
+                    idSuffix="-lg"
                     selectedMessage={selectedMessage}
                     messageDetail={messageDetail}
                     detailLoading={detailLoading}
@@ -939,6 +942,7 @@ export default function MessagesPage() {
                 {mobileView === 'detail' && (
                     <MessageDetailPanel
                         isMobile
+                        idSuffix="-mobile"
                         selectedMessage={selectedMessage}
                         messageDetail={messageDetail}
                         detailLoading={detailLoading}
