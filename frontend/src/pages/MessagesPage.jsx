@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, memo } from 'react'
-import { MessageSquare, Clock, User, Send, RefreshCw, Archive, ChevronRight, ChevronLeft, X, Bell, BellOff, Volume2, VolumeX, Trash2 } from 'lucide-react'
+import { MessageSquare, Clock, User, Send, RefreshCw, Archive, ChevronRight, ChevronLeft, X, Bell, BellOff, Volume2, VolumeX, Trash2, FileText } from 'lucide-react'
 import axios from 'axios'
 import FeedbackPanel from '../components/FeedbackPanel'
 import RefinementChat from '../components/RefinementChat'
@@ -233,16 +233,44 @@ const ChatPanel = memo(function ChatPanel({
                         <p className="text-xs text-gray-500">{conversationMessages.length} 則訊息</p>
                     )}
                 </div>
-                {activeMessage && needsReply && (
-                    <button
-                        onClick={onRegenerate}
-                        className="flex items-center space-x-1 text-xs text-blue-600 hover:text-blue-700 px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                        title={hasDraft ? '重新生成草稿' : '生成 AI 草稿'}
-                    >
-                        <RefreshCw className="w-3 h-3" />
-                        <span>{hasDraft ? '重新生成' : '生成草稿'}</span>
-                    </button>
-                )}
+                <div className="flex items-center space-x-1">
+                    {/* 建立報價單按鈕（跳轉到 CRM）*/}
+                    {selectedConversation && selectedConversation.sender_id && (
+                        <button
+                            onClick={() => {
+                                // 組合客戶需求（最後幾則訊息）
+                                const lastMessages = [...conversationMessages]
+                                    .filter(m => m.status !== 'sent')
+                                    .slice(-3)
+                                    .map(m => m.content)
+                                    .join('\n---\n')
+
+                                // 跳轉到 CRM 報價單頁面
+                                const params = new URLSearchParams({
+                                    customer_name: selectedConversation.sender_name || '',
+                                    line_user_id: selectedConversation.sender_id,
+                                    notes: lastMessages || ''
+                                })
+                                window.open(`https://hj.yourspce.org/quotes/new?${params.toString()}`, '_blank')
+                            }}
+                            className="flex items-center space-x-1 text-xs text-green-600 hover:text-green-700 px-2 py-1 rounded hover:bg-green-50 dark:hover:bg-green-900/20"
+                            title="建立報價單"
+                        >
+                            <FileText className="w-3 h-3" />
+                            <span>報價單</span>
+                        </button>
+                    )}
+                    {activeMessage && needsReply && (
+                        <button
+                            onClick={onRegenerate}
+                            className="flex items-center space-x-1 text-xs text-blue-600 hover:text-blue-700 px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                            title={hasDraft ? '重新生成草稿' : '生成 AI 草稿'}
+                        >
+                            <RefreshCw className="w-3 h-3" />
+                            <span>{hasDraft ? '重新生成' : '生成草稿'}</span>
+                        </button>
+                    )}
+                </div>
             </div>
 
             {/* 對話歷史區 */}
