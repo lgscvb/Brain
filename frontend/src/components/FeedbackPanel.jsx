@@ -70,7 +70,7 @@ export default function FeedbackPanel({
         try {
             const payload = {
                 is_good: feedbackData.is_good ?? isGood,
-                rating: feedbackData.rating ?? rating || null,
+                rating: (feedbackData.rating ?? rating) || null,
                 feedback_reason: null  // 不再收集文字回饋
             }
 
