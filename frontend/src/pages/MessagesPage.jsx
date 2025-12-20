@@ -259,9 +259,11 @@ const ChatPanel = memo(function ChatPanel({
                 </div>
             ) : (
                 <>
-                    {/* 聊天訊息列表 */}
+                    {/* 聊天訊息列表（舊的在上、新的在下） */}
                     <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-3 space-y-3">
-                        {conversationMessages.map((message) => (
+                        {[...conversationMessages].sort((a, b) =>
+                            new Date(a.created_at) - new Date(b.created_at)
+                        ).map((message) => (
                             <div key={message.id} className="space-y-2">
                                 {/* 客戶訊息（靠左） */}
                                 <div
