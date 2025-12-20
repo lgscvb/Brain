@@ -377,12 +377,22 @@ async def list_conversations(
     result = await db.execute(query)
     rows = result.all()
 
-    # 取得每個對話的最後一則訊息（用於 sender_name、source、預覽）
+    # 取得每個對話的客戶名稱和最後一則訊息（用於預覽）
     conversations = []
     for row in rows:
-        # 取得最後一則訊息的完整資訊
+        # 取得客戶發送的訊息（排除 bot 回覆）來獲取客戶名稱
+        customer_msg_result = await db.execute(
+            select(Message.sender_name, Message.source)
+            .where(Message.sender_id == row.sender_id)
+            .where(Message.source.notin_(['line_bot', 'system']))
+            .order_by(desc(Message.created_at))
+            .limit(1)
+        )
+        customer_msg = customer_msg_result.one_or_none()
+
+        # 取得最後一則訊息（用於預覽）
         last_msg_result = await db.execute(
-            select(Message.content, Message.sender_name, Message.source)
+            select(Message.content, Message.source)
             .where(Message.sender_id == row.sender_id)
             .order_by(desc(Message.created_at))
             .limit(1)
@@ -392,10 +402,14 @@ async def list_conversations(
         preview = ""
         sender_name = "Unknown"
         source = "unknown"
+
+        # 優先使用客戶訊息的名稱
+        if customer_msg:
+            sender_name = customer_msg.sender_name
+            source = customer_msg.source
+
         if last_msg:
             preview = last_msg.content[:50] + "..." if len(last_msg.content) > 50 else last_msg.content
-            sender_name = last_msg.sender_name
-            source = last_msg.source
 
         conversations.append({
             "sender_id": row.sender_id,
