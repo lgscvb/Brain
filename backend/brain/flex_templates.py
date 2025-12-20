@@ -3,19 +3,12 @@ Brain - LINE Flex Message 模板
 定義 Hour Jungle 服務項目的 Flex Message 模板
 """
 
-# GCS 圖片基礎路徑（需要上傳圖片到這裡）
-GCS_IMAGE_BASE = "https://storage.googleapis.com/hourjungle-contracts/images"
+# Cloudflare R2 圖片基礎路徑（暫時未使用，之後加入圖片時啟用）
+# R2_IMAGE_BASE = "https://img.yourspce.org"
 
 # === 共享空間（開放座位/自由座）===
 COWORKING_SPACE_FLEX = {
     "type": "bubble",
-    "hero": {
-        "type": "image",
-        "url": f"{GCS_IMAGE_BASE}/coworking-space.jpg",
-        "size": "full",
-        "aspectRatio": "20:13",
-        "aspectMode": "cover"
-    },
     "body": {
         "type": "box",
         "layout": "vertical",
@@ -157,13 +150,6 @@ COWORKING_SPACE_FLEX = {
 # === 獨立辦公室 ===
 PRIVATE_OFFICE_FLEX = {
     "type": "bubble",
-    "hero": {
-        "type": "image",
-        "url": f"{GCS_IMAGE_BASE}/private-office.jpg",
-        "size": "full",
-        "aspectRatio": "20:13",
-        "aspectMode": "cover"
-    },
     "body": {
         "type": "box",
         "layout": "vertical",
@@ -336,13 +322,6 @@ PRIVATE_OFFICE_FLEX = {
 # === 會議室 ===
 MEETING_ROOM_FLEX = {
     "type": "bubble",
-    "hero": {
-        "type": "image",
-        "url": f"{GCS_IMAGE_BASE}/meeting-room.jpg",
-        "size": "full",
-        "aspectRatio": "20:13",
-        "aspectMode": "cover"
-    },
     "body": {
         "type": "box",
         "layout": "vertical",
@@ -488,13 +467,6 @@ MEETING_ROOM_FLEX = {
 # === 活動場地 ===
 EVENT_SPACE_FLEX = {
     "type": "bubble",
-    "hero": {
-        "type": "image",
-        "url": f"{GCS_IMAGE_BASE}/event-space.jpg",
-        "size": "full",
-        "aspectRatio": "20:13",
-        "aspectMode": "cover"
-    },
     "body": {
         "type": "box",
         "layout": "vertical",
