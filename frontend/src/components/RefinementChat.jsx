@@ -30,8 +30,8 @@ export default function RefinementChat({
         const textarea = textareaRef.current
         if (textarea) {
             textarea.style.height = 'auto'
-            const minHeight = 180 // 約 9 行
-            const maxHeight = 300
+            const minHeight = 80 // 約 4 行
+            const maxHeight = 150
             const scrollHeight = textarea.scrollHeight
             textarea.style.height = `${Math.min(Math.max(scrollHeight, minHeight), maxHeight)}px`
         }
@@ -306,9 +306,9 @@ export default function RefinementChat({
                                     </p>
                                 </div>
 
-                                {/* 修正結果 */}
-                                <div className="bg-gray-50 dark:bg-gray-700/50 rounded p-2 mb-2">
-                                    <p className="text-gray-700 dark:text-gray-300 line-clamp-3">
+                                {/* 修正結果 - 可展開查看完整內容 */}
+                                <div className="bg-gray-50 dark:bg-gray-700/50 rounded p-2 mb-2 max-h-40 overflow-y-auto">
+                                    <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap text-sm">
                                         {item.refined_content}
                                     </p>
                                 </div>
@@ -386,9 +386,9 @@ export default function RefinementChat({
                                     handleSubmit()
                                 }
                             }}
-                            placeholder="輸入修正指令...&#10;&#10;例如：&#10;• 語氣更正式一點&#10;• 加入價格資訊&#10;• 簡化回覆內容&#10;&#10;按 Ctrl+Enter 送出"
+                            placeholder="輸入修正指令...（Ctrl+Enter 送出）"
                             className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                            style={{ minHeight: '180px' }}
+                            style={{ minHeight: '80px', maxHeight: '150px' }}
                             disabled={loading}
                         />
                         <div className="flex justify-between items-center">
@@ -497,9 +497,9 @@ export default function RefinementChat({
                                         </p>
                                     </div>
 
-                                    {/* 修正結果（可收合顯示） */}
-                                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded p-2 mb-2">
-                                        <p className="text-gray-700 dark:text-gray-300 line-clamp-3">
+                                    {/* 修正結果 - 可滾動查看完整內容 */}
+                                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded p-2 mb-2 max-h-32 overflow-y-auto">
+                                        <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap text-sm">
                                             {item.refined_content}
                                         </p>
                                     </div>
