@@ -276,6 +276,7 @@ const ChatPanel = memo(function ChatPanel({
                                 >
                                     <div className="bg-gray-100 dark:bg-gray-700 rounded-lg rounded-tl-none p-3">
                                         <div className="flex items-center space-x-2 mb-1">
+                                            <span className="text-[10px] text-gray-400 font-mono">#{message.id}</span>
                                             <User className="w-3 h-3 text-gray-500" />
                                             <span className="text-xs text-gray-500">
                                                 {formatTime(message.created_at)}
