@@ -163,16 +163,16 @@ const ConversationListPanel = memo(function ConversationListPanel({
                                     </span>
                                 </div>
                             </button>
-                            {/* 刪除按鈕 - hover 時顯示 */}
+                            {/* 刪除按鈕 - hover 時顯示，移到左下角避免誤觸 */}
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation()
                                     onDeleteConversation(conv)
                                 }}
-                                className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="absolute bottom-2 left-2 p-1 text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded opacity-0 group-hover:opacity-100 transition-opacity"
                                 title="刪除對話"
                             >
-                                <Trash2 className="w-4 h-4" />
+                                <Trash2 className="w-3.5 h-3.5" />
                             </button>
                         </div>
                     ))}
