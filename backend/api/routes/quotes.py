@@ -2,8 +2,6 @@
 Brain - 報價單相關 API 路由
 分析對話內容，識別客戶需求，建議服務項目
 """
-import os
-import httpx
 import logging
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
@@ -13,13 +11,11 @@ from sqlalchemy import select, desc
 from db.database import get_db
 from db.models import Message, Response
 from services.claude_client import get_claude_client
+from services.crm_client import get_crm_client, CRMError
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-# CRM API URL
-CRM_API_URL = os.getenv("CRM_API_URL", "https://auto.yourspce.org")
 
 
 # ============================================================================
@@ -75,20 +71,15 @@ class CreateQuoteRequest(BaseModel):
 async def get_service_plans() -> list:
     """從 CRM 取得服務方案列表"""
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                f"{CRM_API_URL}/tools/call",
-                json={"tool": "service_plan_list", "arguments": {}}
-            )
-            response.raise_for_status()
-            result = response.json()
+        crm = get_crm_client()
+        result = await crm.list_service_plans()
 
-            if result.get("success"):
-                return result.get("result", {}).get("plans", [])
-            else:
-                logger.error(f"CRM API error: {result.get('error')}")
-                return []
-    except Exception as e:
+        if result.get("success"):
+            return result.get("result", {}).get("plans", [])
+        else:
+            logger.error(f"CRM API error: {result.get('error')}")
+            return []
+    except CRMError as e:
         logger.error(f"Failed to get service plans: {e}")
         return []
 
@@ -314,40 +305,35 @@ async def create_quote_from_analysis(request: CreateQuoteRequest):
         新建報價單資訊
     """
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                f"{CRM_API_URL}/tools/call",
-                json={
-                    "tool": "quote_create_from_service_plans",
-                    "parameters": {
-                        "branch_id": 1,  # 預設大忠館
-                        "service_codes": request.service_codes,
-                        "customer_name": request.customer_name,
-                        "customer_phone": request.customer_phone,
-                        "discount_amount": request.discount_amount,
-                        "discount_note": request.discount_note,
-                        "internal_notes": request.notes,
-                        "line_user_id": request.line_user_id
-                    }
-                }
-            )
-            response.raise_for_status()
-            result = response.json()
+        crm = get_crm_client()
+        result = await crm.create_quote_from_service_plans(
+            branch_id=1,  # 預設大忠館
+            service_codes=request.service_codes,
+            customer_name=request.customer_name,
+            customer_phone=request.customer_phone,
+            line_user_id=request.line_user_id,
+            discount_amount=request.discount_amount,
+            discount_note=request.discount_note,
+            internal_notes=request.notes
+        )
 
-            if result.get("success"):
-                quote_result = result.get("result", {})
-                return {
-                    "success": True,
-                    "quote_id": quote_result.get("quote", {}).get("id"),
-                    "quote_number": quote_result.get("quote", {}).get("quote_number"),
-                    "message": quote_result.get("message", "報價單建立成功")
-                }
-            else:
-                return {
-                    "success": False,
-                    "message": result.get("error", "建立報價單失敗")
-                }
+        if result.get("success"):
+            quote_result = result.get("result", {})
+            return {
+                "success": True,
+                "quote_id": quote_result.get("quote", {}).get("id"),
+                "quote_number": quote_result.get("quote", {}).get("quote_number"),
+                "message": quote_result.get("message", "報價單建立成功")
+            }
+        else:
+            return {
+                "success": False,
+                "message": result.get("error", "建立報價單失敗")
+            }
 
+    except CRMError as e:
+        logger.error(f"create_quote_from_analysis CRM error: {e}")
+        raise HTTPException(status_code=502, detail=f"CRM 服務錯誤: {str(e)}")
     except Exception as e:
         logger.error(f"create_quote_from_analysis error: {e}")
         raise HTTPException(status_code=500, detail=f"建立報價單失敗: {str(e)}")
