@@ -22,6 +22,19 @@ Google Maps：https://maps.app.goo.gl/CiYeSsWHZAYQPPrJA
         "service_type": "general"
     },
     {
+        "content": """【匯款資訊】
+匯款帳戶（會議室租借、場地租借、其他費用請匯款至此帳戶）：
+- 帳戶名稱：你的空間有限公司
+- 銀行名稱：永豐商業銀行（南台中分行）
+- 行庫代號：807
+- 帳號：03801800183399
+
+收到匯款後會為您完成預約或服務確認。""",
+        "category": "fact_sheet",
+        "sub_category": "基本資訊",
+        "service_type": "payment"
+    },
+    {
         "content": """【共享空間（開放座位/自由座）價格】
 - 時租：$80
 - 日租：$350
@@ -50,17 +63,24 @@ E辦公室特色：
         "service_type": "private_office"
     },
     {
-        "content": """【會議室租借價格】
+        "content": """【會議室租借價格與規則】
 平日（週一至週五 09:00~18:00）：
 - 費用：$380/小時（含稅）
 - 人數：8~10人內
+- 最短租借時間：1 小時（計費單位為 1 小時，不足 1 小時以 1 小時計算）
 - 需提前預約
 
 假日（週六、週日）：
 - 費用：$1,650/3小時（含稅），最低起租3小時
 - 人數：8~10人內
 - 需提前預約
-- 照片：https://drive.google.com/drive/folders/1N1NhEJW6nSOI1_BRNeJj5L37OZayt5Xr""",
+- 照片：https://drive.google.com/drive/folders/1N1NhEJW6nSOI1_BRNeJj5L37OZayt5Xr
+
+預約流程：
+1. 確認日期和時間
+2. 計算費用（平日 $380/小時，假日 $1,650/3小時起）
+3. 匯款到指定帳戶
+4. 收到匯款後完成預約並傳送確認訊息""",
         "category": "fact_sheet",
         "sub_category": "空間服務",
         "service_type": "meeting_room"
