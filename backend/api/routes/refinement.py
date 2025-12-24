@@ -74,12 +74,32 @@ async def refine_draft(
 ## 原始回覆
 {current_content}
 
-## 修正指令
+## 操作者輸入
 {request.instruction}
 
+## 重要：首先判斷操作者意圖
+
+**操作者可能是在：**
+1. **給修正指令**：例如「語氣更親切」「加入價格」「更簡潔」
+2. **表達情緒/抱怨**：例如「我不想理他了」「這客戶一直騙我」「太煩了」
+3. **做出決策**：例如「不回覆了」「放棄這個客戶」
+
+**判斷規則：**
+- 如果操作者輸入包含「不想理」「不回覆」「放棄」「太煩」「一直騙」「不處理」等，這是**情緒/決策表達**
+- 此時**不要**繼續修正草稿，而是提供建議
+
 ## 任務
-1. 根據修正指令調整回覆內容，保持專業、有禮貌的語氣。
-2. 分析修正指令是否包含「可以儲存為知識庫的資訊」。
+
+### 情況 A：操作者在表達情緒或做決策
+- 不要生成回覆草稿
+- 在 refined_content 中提供建議，例如：
+  「我理解您的感受。這個客戶的訊息可以選擇『封存』處理，不需要回覆。如果之後有需要，隨時可以重新打開。」
+- operator_intent 設為 "decision" 或 "emotion"
+
+### 情況 B：操作者在給修正指令
+- 根據修正指令調整回覆內容，保持專業、有禮貌的語氣
+- 分析修正指令是否包含「可以儲存為知識庫的資訊」
+- operator_intent 設為 "refinement"
 
 ### 什麼是可儲存的知識？
 - 事實性資訊：價格、地址、時間、流程步驟
@@ -97,7 +117,8 @@ async def refine_draft(
 請輸出 JSON 格式：
 ```json
 {{
-  "refined_content": "修正後的回覆內容",
+  "operator_intent": "refinement/decision/emotion 擇一",
+  "refined_content": "修正後的回覆內容，或對操作者的建議",
   "knowledge_detected": true 或 false,
   "knowledge_content": "如果偵測到知識，這裡是整理後的知識內容",
   "knowledge_category": "faq/service_info/process/objection/customer_info 擇一",
