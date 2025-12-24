@@ -125,12 +125,21 @@ class RefinementRequest(BaseModel):
     instruction: str  # 用戶修正指令，如「語氣更正式一點」
 
 
+class KnowledgeItem(BaseModel):
+    """單個知識點 Schema"""
+    content: str  # 知識內容
+    category: str  # 分類：faq, service_info, process, objection, customer_info, template
+    reason: str  # 為什麼值得儲存
+
+
 class KnowledgeSuggestion(BaseModel):
-    """知識建議 Schema - AI 從修正指令中偵測到的知識"""
+    """知識建議 Schema - AI 從修正指令中偵測到的知識（支援多個知識點）"""
     detected: bool = False  # 是否偵測到可儲存的知識
-    content: Optional[str] = None  # 建議的知識內容
-    category: Optional[str] = None  # 建議分類：faq, service_info, process, objection
-    reason: Optional[str] = None  # 為什麼建議儲存
+    items: List[KnowledgeItem] = []  # 多個知識點
+    # 向後兼容：保留舊欄位（取第一個知識點）
+    content: Optional[str] = None
+    category: Optional[str] = None
+    reason: Optional[str] = None
 
 
 class RefinementRead(BaseModel):

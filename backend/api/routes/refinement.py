@@ -17,6 +17,7 @@ from db.schemas import (
     TrainingExportRequest,
     TrainingExportResponse,
     KnowledgeSuggestion,
+    KnowledgeItem,
 )
 from services.claude_client import get_claude_client
 import json
@@ -69,69 +70,131 @@ async def refine_draft(
     # 呼叫 AI 修正
     claude_client = get_claude_client()
 
-    refine_prompt = f"""你是一個客服回覆修正助手，同時也負責識別有價值的知識。
+    refine_prompt = f"""你是 Hour Jungle 的智能助手，負責三件事：
+1. 修正客服回覆草稿
+2. 與操作者討論客戶處理策略
+3. 識別並提取有價值的知識
 
-## 原始回覆
+## 當前草稿（供參考）
 {current_content}
 
 ## 操作者輸入
 {request.instruction}
 
-## 重要：首先判斷操作者意圖
+## 首先：判斷操作者意圖
 
 **操作者可能是在：**
-1. **給修正指令**：例如「語氣更親切」「加入價格」「更簡潔」
-2. **表達情緒/抱怨**：例如「我不想理他了」「這客戶一直騙我」「太煩了」
-3. **做出決策**：例如「不回覆了」「放棄這個客戶」
 
-**判斷規則：**
-- 如果操作者輸入包含「不想理」「不回覆」「放棄」「太煩」「一直騙」「不處理」等，這是**情緒/決策表達**
-- 此時**不要**繼續修正草稿，而是提供建議
+### A. 給修正指令
+例如：「語氣更親切」「加入價格」「更簡潔」
+→ 根據指令修正草稿
 
-## 任務
+### B. 表達情緒/決策
+例如：「不想理他了」「這客戶一直騙我」「放棄這個」
+→ 不要修正草稿，給予理解和建議（如：使用「封存」功能）
 
-### 情況 A：操作者在表達情緒或做決策
-- 不要生成回覆草稿
-- 在 refined_content 中提供建議，例如：
-  「我理解您的感受。這個客戶的訊息可以選擇『封存』處理，不需要回覆。如果之後有需要，隨時可以重新打開。」
-- operator_intent 設為 "decision" 或 "emotion"
+### C. 分享對話/討論（重要！）
+特徵：
+- 輸入內容很長（超過 100 字）
+- 包含「您好」「建議」「處理建議」「回覆草案」等詞
+- 看起來像是貼上的 AI 對話、處理策略、或專業分析
+→ 這是操作者貼上「與其他 AI 的對話」或「處理筆記」
+→ 不需要修正草稿
+→ **重點是提取其中的知識點！**
 
-### 情況 B：操作者在給修正指令
-- 根據修正指令調整回覆內容，保持專業、有禮貌的語氣
-- 分析修正指令是否包含「可以儲存為知識庫的資訊」
-- operator_intent 設為 "refinement"
+### D. 詢問建議
+例如：「這個客戶怎麼處理？」「應該怎麼回覆？」
+→ 給予策略建議
+
+## 知識提取規則（非常重要！）
 
 ### 什麼是可儲存的知識？
-- 事實性資訊：價格、地址、時間、流程步驟
-- 法規/規定：公司登記規定、稅務規定
-- 客戶背景：特定客戶的特殊情況
-- 常見問題：重複被問到的問題答案
-- 異議處理：如何回應客戶的疑慮
+1. **處理策略**：如何處理特定類型客戶（逾期、騙子、問題客戶）
+2. **回覆模板**：專業的回覆範本（拒絕續約、催繳、通知）
+3. **法律/稅務**：國稅局通報、合約終止、押金處理規定
+4. **流程步驟**：遷出登記流程、退款流程
+5. **客戶背景**：特定客戶的歷史記錄、風險標註
+6. **SPIN 應用**：銷售或客戶管理中的 SPIN 實例
 
-### 什麼不是可儲存的知識？
-- 語氣調整（「更正式」「更親切」）
-- 格式調整（「分點列出」「加上問候」）
-- 長度調整（「簡短一點」「詳細一點」）
+### 什麼不是知識？
+- 純粹的語氣調整指令
+- 格式調整
+- 情緒發洩
 
 ## 輸出格式
-請輸出 JSON 格式：
+
 ```json
 {{
-  "operator_intent": "refinement/decision/emotion 擇一",
-  "refined_content": "修正後的回覆內容，或對操作者的建議",
+  "operator_intent": "refinement/decision/emotion/discussion/question 擇一",
+  "refined_content": "根據意圖：修正後的草稿 / 理解與建議 / 討論回應 / 策略建議",
   "knowledge_detected": true 或 false,
-  "knowledge_content": "如果偵測到知識，這裡是整理後的知識內容",
-  "knowledge_category": "faq/service_info/process/objection/customer_info 擇一",
-  "knowledge_reason": "為什麼建議儲存這個知識"
+  "knowledge_items": [
+    {{
+      "content": "知識點1的內容",
+      "category": "process/objection/customer_info/faq/service_info/template 擇一",
+      "reason": "為什麼值得儲存"
+    }},
+    {{
+      "content": "知識點2的內容",
+      "category": "...",
+      "reason": "..."
+    }}
+  ]
 }}
 ```
 
-若沒有偵測到可儲存知識，knowledge_content/category/reason 可為 null。"""
+**knowledge_items 說明：**
+- 可以有多個知識點（陣列）
+- 如果沒有知識點，設為空陣列 []
+- category 新增 "template"（回覆模板）
+
+## 範例
+
+### 範例 1：操作者貼上處理策略
+輸入：「這個客戶怎麼處理？不太想理他了 已經通報國稅局無營業事實...（後面是長篇策略分析）」
+
+輸出：
+```json
+{{
+  "operator_intent": "discussion",
+  "refined_content": "收到！這個案例處理得很完整。既然已通報國稅局，確實不應再收款。我已識別出 3 個知識點可以儲存，方便日後遇到類似情況時參考。",
+  "knowledge_detected": true,
+  "knowledge_items": [
+    {{
+      "content": "【問題客戶退場流程】1. 拒絕收款（已匯則退回）2. 書面告知終止 3. 要求遷出登記證明 4. 憑證明退押金",
+      "category": "process",
+      "reason": "標準化的問題客戶退場 SOP"
+    }},
+    {{
+      "content": "【拒絕續約回覆模板】許小姐您好，這裡是 Hour Jungle。由於您的合約已於 X 到期，我們在多次提醒後仍未收到正式續約文件與全額款項。基於場域管理規範與法遵要求...",
+      "category": "template",
+      "reason": "專業的拒絕續約回覆範本"
+    }},
+    {{
+      "content": "【法遵提醒】一旦向國稅局通報「無營業事實」，若再收受該客戶租金並簽署新約，將產生法律與稅務矛盾",
+      "category": "service_info",
+      "reason": "重要的法律/稅務注意事項"
+    }}
+  ]
+}}
+```
+
+### 範例 2：簡單的修正指令
+輸入：「語氣更親切一點」
+輸出：
+```json
+{{
+  "operator_intent": "refinement",
+  "refined_content": "（修正後的草稿，語氣更親切）",
+  "knowledge_detected": false,
+  "knowledge_items": []
+}}
+```"""
 
     try:
         response = await claude_client.generate_response(
             prompt=refine_prompt,
-            max_tokens=1500
+            max_tokens=2500  # 增加輸出長度以容納多個知識點
         )
         raw_content = response.get("content", "")
         model_used = response.get("model", "unknown")
@@ -149,9 +212,38 @@ async def refine_draft(
                 parsed = json.loads(json_match.group(0))
                 refined_content = parsed.get("refined_content", current_content)
 
-                if parsed.get("knowledge_detected"):
+                # 解析 knowledge_items（新格式：多個知識點）
+                knowledge_items_raw = parsed.get("knowledge_items", [])
+                if parsed.get("knowledge_detected") and knowledge_items_raw:
+                    # 轉換為 KnowledgeItem 物件
+                    knowledge_items = []
+                    for item in knowledge_items_raw:
+                        if isinstance(item, dict) and item.get("content"):
+                            knowledge_items.append(KnowledgeItem(
+                                content=item.get("content", ""),
+                                category=item.get("category", "faq"),
+                                reason=item.get("reason", "")
+                            ))
+
+                    # 建立 KnowledgeSuggestion（同時填充向後兼容欄位）
+                    first_item = knowledge_items[0] if knowledge_items else None
                     knowledge_suggestion = KnowledgeSuggestion(
                         detected=True,
+                        items=knowledge_items,
+                        # 向後兼容：填充第一個知識點到舊欄位
+                        content=first_item.content if first_item else None,
+                        category=first_item.category if first_item else None,
+                        reason=first_item.reason if first_item else None
+                    )
+                # 向後兼容：支援舊格式 (knowledge_content/knowledge_category/knowledge_reason)
+                elif parsed.get("knowledge_detected") and parsed.get("knowledge_content"):
+                    knowledge_suggestion = KnowledgeSuggestion(
+                        detected=True,
+                        items=[KnowledgeItem(
+                            content=parsed.get("knowledge_content", ""),
+                            category=parsed.get("knowledge_category", "faq"),
+                            reason=parsed.get("knowledge_reason", "")
+                        )],
                         content=parsed.get("knowledge_content"),
                         category=parsed.get("knowledge_category"),
                         reason=parsed.get("knowledge_reason")
