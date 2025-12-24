@@ -212,10 +212,17 @@ const ChatPanel = memo(function ChatPanel({
         }
     }, [conversationMessages])
 
-    // 找出目前選中的訊息（用於顯示回覆區）
+    // 檢查對話中是否有未回覆訊息（對話導向模式）
+    const pendingMessages = conversationMessages.filter(
+        msg => (msg.status === 'pending' || msg.status === 'drafted') &&
+               msg.source !== 'line_bot' && msg.source !== 'system'
+    )
+    const hasPendingMessages = pendingMessages.length > 0
+
+    // 找出目前選中的訊息（向後兼容）
     const activeMessage = selectedMessage || (conversationMessages.length > 0 ? conversationMessages[conversationMessages.length - 1] : null)
     const hasDraft = messageDetail?.drafts && messageDetail.drafts.length > 0
-    const needsReply = activeMessage && activeMessage.status !== 'sent' && activeMessage.status !== 'archived'
+    const needsReply = hasPendingMessages  // 改為對話級別判斷
 
     return (
         <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col ${isMobile ? 'h-full' : ''}`}>
@@ -249,14 +256,14 @@ const ChatPanel = memo(function ChatPanel({
                             <span>報價單</span>
                         </button>
                     )}
-                    {activeMessage && needsReply && (
+                    {needsReply && (
                         <button
                             onClick={onRegenerate}
                             className="flex items-center space-x-1 text-xs text-blue-600 hover:text-blue-700 px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20"
                             title={hasDraft ? '重新生成草稿' : '生成 AI 草稿'}
                         >
                             <RefreshCw className="w-3 h-3" />
-                            <span>{hasDraft ? '重新生成' : '生成草稿'}</span>
+                            <span>{hasDraft ? '重新生成' : `生成草稿 (${pendingMessages.length})`}</span>
                         </button>
                     )}
                 </div>
@@ -337,9 +344,13 @@ const ChatPanel = memo(function ChatPanel({
                         ))}
                     </div>
 
-                    {/* 回覆區（固定在底部）*/}
-                    {activeMessage && needsReply && (
+                    {/* 回覆區（固定在底部）- 對話導向模式 */}
+                    {needsReply && (
                         <div className="border-t border-gray-200 dark:border-gray-700 p-3 space-y-3 flex-shrink-0 bg-gray-50 dark:bg-gray-800/50">
+                            {/* 顯示未回覆訊息數量 */}
+                            <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded px-2 py-1">
+                                📝 {pendingMessages.length} 則訊息待回覆
+                            </div>
                             {detailLoading ? (
                                 <div className="flex items-center justify-center py-4">
                                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
@@ -716,20 +727,19 @@ export default function MessagesPage() {
     }, [filter])
 
     const handleSendReply = useCallback(async () => {
-        if (!replyContent.trim() || !messageDetail) return
+        if (!replyContent.trim() || !selectedConversation) return
 
         setSending(true)
         try {
-            const draftId = messageDetail.drafts?.[0]?.id || null
-            await axios.post(`/api/messages/${messageDetail.id}/send`, {
+            const draftId = messageDetail?.drafts?.[0]?.id || null
+            // 使用對話級別發送 API - 批量更新所有訊息狀態
+            await axios.post(`/api/conversations/${encodeURIComponent(selectedConversation.sender_id)}/send`, {
                 content: replyContent,
                 draft_id: draftId
             })
             alert('回覆已發送！')
-            // 重新載入對話訊息和對話列表（不自動選擇，因為剛發送的已是 sent 狀態）
-            if (selectedConversation) {
-                fetchConversationMessages(selectedConversation.sender_id, false)
-            }
+            // 重新載入對話訊息和對話列表
+            fetchConversationMessages(selectedConversation.sender_id, false)
             fetchConversations()
             fetchMessages()
         } catch (error) {
@@ -741,16 +751,27 @@ export default function MessagesPage() {
     }, [replyContent, messageDetail, selectedConversation, fetchConversationMessages, fetchConversations, fetchMessages])
 
     const handleRegenerate = useCallback(async () => {
-        if (!messageDetail) return
+        if (!selectedConversation) return
 
         try {
-            await axios.post(`/api/messages/${messageDetail.id}/regenerate`)
-            fetchMessageDetail(messageDetail.id)
+            // 使用對話級別草稿生成 API - 合併所有未回覆訊息
+            const response = await axios.post(`/api/conversations/${encodeURIComponent(selectedConversation.sender_id)}/generate-draft`)
+            if (response.data.success && response.data.draft) {
+                // 載入新生成的草稿
+                const draft = response.data.draft
+                setReplyContent(draft.content)
+                // 更新 messageDetail 以包含草稿
+                if (draft.message_id) {
+                    fetchMessageDetail(draft.message_id)
+                }
+            }
+            // 刷新對話訊息列表
+            fetchConversationMessages(selectedConversation.sender_id, false)
         } catch (error) {
-            console.error('重新生成失敗:', error)
-            alert('重新生成失敗')
+            console.error('草稿生成失敗:', error)
+            alert('草稿生成失敗：' + (error.response?.data?.detail || error.message))
         }
-    }, [messageDetail, fetchMessageDetail])
+    }, [selectedConversation, fetchMessageDetail, fetchConversationMessages])
 
     const handleArchive = useCallback(async () => {
         if (!messageDetail) return
