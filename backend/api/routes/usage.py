@@ -205,6 +205,44 @@ async def get_recent_usage(
     }
 
 
+@router.get("/usage/errors")
+async def get_error_logs(
+    limit: int = 50,
+    days: int = 30,
+    db: AsyncSession = Depends(get_db)
+):
+    """取得最近的錯誤記錄"""
+    since = datetime.utcnow() - timedelta(days=days)
+
+    result = await db.execute(
+        select(APIUsage)
+        .where(
+            and_(
+                APIUsage.created_at >= since,
+                APIUsage.success == False
+            )
+        )
+        .order_by(APIUsage.created_at.desc())
+        .limit(limit)
+    )
+    records = result.scalars().all()
+
+    return {
+        "total": len(records),
+        "errors": [
+            {
+                "id": r.id,
+                "provider": r.provider,
+                "model": r.model,
+                "operation": r.operation,
+                "error_message": r.error_message,
+                "created_at": r.created_at.isoformat()
+            }
+            for r in records
+        ]
+    }
+
+
 async def log_api_usage(
     db: AsyncSession,
     provider: str,

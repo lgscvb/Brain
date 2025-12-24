@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react'
-import { DollarSign, Zap, AlertTriangle, TrendingUp, RefreshCw } from 'lucide-react'
+import { DollarSign, Zap, AlertTriangle, TrendingUp, RefreshCw, X } from 'lucide-react'
 import axios from 'axios'
 
 export default function UsagePanel() {
     const [stats, setStats] = useState(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
+    const [showErrorModal, setShowErrorModal] = useState(false)
+    const [errorLogs, setErrorLogs] = useState([])
+    const [loadingErrors, setLoadingErrors] = useState(false)
 
     useEffect(() => {
         fetchUsageStats()
@@ -22,6 +25,25 @@ export default function UsagePanel() {
             setError('Unable to load usage data')
         } finally {
             setLoading(false)
+        }
+    }
+
+    const fetchErrorLogs = async () => {
+        setLoadingErrors(true)
+        try {
+            const response = await axios.get('/api/usage/errors')
+            setErrorLogs(response.data.errors || [])
+            setShowErrorModal(true)
+        } catch (err) {
+            console.error('Failed to fetch error logs:', err)
+        } finally {
+            setLoadingErrors(false)
+        }
+    }
+
+    const handleCheckLogs = () => {
+        if ((stats?.total?.errors || 0) > 0) {
+            fetchErrorLogs()
         }
     }
 
@@ -137,9 +159,17 @@ export default function UsagePanel() {
                     <p className={`text-2xl font-bold ${(stats?.total?.errors || 0) > 0 ? 'text-red-800 dark:text-red-200' : 'text-gray-700 dark:text-gray-300'}`}>
                         {stats?.total?.errors || 0}
                     </p>
-                    <p className={`text-xs mt-1 ${(stats?.total?.errors || 0) > 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-500'}`}>
-                        {(stats?.total?.errors || 0) > 0 ? 'Check logs' : 'All good'}
-                    </p>
+                    {(stats?.total?.errors || 0) > 0 ? (
+                        <button
+                            onClick={handleCheckLogs}
+                            disabled={loadingErrors}
+                            className="text-xs mt-1 text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 underline cursor-pointer disabled:opacity-50"
+                        >
+                            {loadingErrors ? 'Loading...' : 'Check logs'}
+                        </button>
+                    ) : (
+                        <p className="text-xs mt-1 text-gray-500">All good</p>
+                    )}
                 </div>
             </div>
 
@@ -180,6 +210,55 @@ export default function UsagePanel() {
                         <span className="text-gray-900 dark:text-white font-medium">
                             {formatTokens(stats.total.output_tokens || 0)}
                         </span>
+                    </div>
+                </div>
+            )}
+
+            {/* Error Logs Modal */}
+            {showErrorModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden">
+                        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                                <AlertTriangle className="w-5 h-5 text-red-500" />
+                                錯誤日誌 ({errorLogs.length})
+                            </h3>
+                            <button
+                                onClick={() => setShowErrorModal(false)}
+                                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <div className="p-4 overflow-y-auto max-h-[60vh]">
+                            {errorLogs.length === 0 ? (
+                                <p className="text-gray-500 text-center py-8">沒有錯誤記錄</p>
+                            ) : (
+                                <div className="space-y-3">
+                                    {errorLogs.map((log) => (
+                                        <div
+                                            key={log.id}
+                                            className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3"
+                                        >
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-xs font-medium text-red-800 dark:text-red-300 bg-red-100 dark:bg-red-800/30 px-2 py-0.5 rounded">
+                                                    {log.operation}
+                                                </span>
+                                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                    {new Date(log.created_at).toLocaleString('zh-TW')}
+                                                </span>
+                                            </div>
+                                            <p className="text-sm text-red-700 dark:text-red-300 font-mono break-all">
+                                                {log.error_message || '未知錯誤'}
+                                            </p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                {log.provider} / {log.model}
+                                            </p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
