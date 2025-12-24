@@ -165,53 +165,74 @@ export default function RefinementChat({
         { value: 'service_info', label: '服務資訊' },
         { value: 'process', label: '作業流程' },
         { value: 'objection', label: '異議處理' },
-        { value: 'customer_info', label: '客戶背景' }
+        { value: 'customer_info', label: '客戶背景' },
+        { value: 'template', label: '回覆模板' }
     ]
 
-    // 知識建議 UI 元件
+    // 知識建議 UI 元件（支援多個知識點）
     const KnowledgeSuggestionBanner = () => {
         if (!knowledgeSuggestion) return null
+
+        // 支援新格式 (items 陣列) 和舊格式 (content/category/reason)
+        const items = knowledgeSuggestion.items?.length > 0
+            ? knowledgeSuggestion.items
+            : knowledgeSuggestion.content
+                ? [{ content: knowledgeSuggestion.content, category: knowledgeSuggestion.category, reason: knowledgeSuggestion.reason }]
+                : []
+
+        if (items.length === 0) return null
+
         return (
             <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg p-3 mb-3">
                 <div className="flex items-start space-x-2">
                     <Lightbulb className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
                     <div className="flex-1">
-                        <p className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-1">
-                            偵測到可儲存的知識
+                        <p className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
+                            偵測到 {items.length} 個可儲存的知識點
                         </p>
-                        <p className="text-xs text-amber-700 dark:text-amber-300 mb-2">
-                            {knowledgeSuggestion.reason}
-                        </p>
-                        <div className="bg-white dark:bg-gray-800 rounded p-2 mb-2 text-sm text-gray-700 dark:text-gray-300">
-                            {knowledgeSuggestion.content}
+
+                        {/* 知識點列表 */}
+                        <div className="space-y-3">
+                            {items.map((item, index) => (
+                                <div key={index} className="bg-white dark:bg-gray-800 rounded p-2 border border-amber-200 dark:border-amber-700">
+                                    <p className="text-xs text-amber-700 dark:text-amber-300 mb-1">
+                                        {item.reason}
+                                    </p>
+                                    <div className="text-sm text-gray-700 dark:text-gray-300 mb-2 whitespace-pre-wrap">
+                                        {item.content}
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs text-amber-600 dark:text-amber-400">
+                                            {categoryOptions.find(c => c.value === item.category)?.label || item.category}
+                                        </span>
+                                        <button
+                                            onClick={() => handleSaveKnowledge(
+                                                item.content,
+                                                item.category,
+                                                knowledgeSuggestion.refinementId
+                                            )}
+                                            disabled={savingKnowledge}
+                                            className="px-2 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs rounded flex items-center space-x-1"
+                                        >
+                                            {savingKnowledge ? (
+                                                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                            ) : (
+                                                <BookmarkPlus className="w-3 h-3" />
+                                            )}
+                                            <span>儲存</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
-                        <div className="flex items-center space-x-2">
-                            <span className="text-xs text-amber-600 dark:text-amber-400">
-                                建議分類：{categoryOptions.find(c => c.value === knowledgeSuggestion.category)?.label || knowledgeSuggestion.category}
-                            </span>
-                        </div>
-                        <div className="flex items-center space-x-2 mt-2">
-                            <button
-                                onClick={() => handleSaveKnowledge(
-                                    knowledgeSuggestion.content,
-                                    knowledgeSuggestion.category,
-                                    knowledgeSuggestion.refinementId
-                                )}
-                                disabled={savingKnowledge}
-                                className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white text-xs rounded flex items-center space-x-1"
-                            >
-                                {savingKnowledge ? (
-                                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                    <BookmarkPlus className="w-3 h-3" />
-                                )}
-                                <span>儲存到知識庫</span>
-                            </button>
+
+                        {/* 全部略過按鈕 */}
+                        <div className="flex justify-end mt-2">
                             <button
                                 onClick={handleDismissKnowledge}
                                 className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400 text-xs rounded hover:bg-gray-300 dark:hover:bg-gray-600"
                             >
-                                略過
+                                全部略過
                             </button>
                         </div>
                     </div>
