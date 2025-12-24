@@ -424,6 +424,131 @@ async def list_conversations(
     return {"conversations": conversations, "total": len(conversations)}
 
 
+@router.post("/conversations/{sender_id:path}/generate-draft")
+async def generate_conversation_draft(
+    sender_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    對話級別草稿生成 - 讀取所有未回覆訊息，生成一個整合回覆
+
+    這是新的「對話導向」模式的核心 API
+    """
+    decoded_sender_id = unquote(sender_id)
+    draft_generator = get_draft_generator()
+
+    try:
+        draft = await draft_generator.generate_for_conversation(
+            db=db,
+            sender_id=decoded_sender_id
+        )
+        return {
+            "success": True,
+            "draft": {
+                "id": draft.id,
+                "content": draft.content,
+                "strategy": draft.strategy,
+                "intent": draft.intent,
+                "message_id": draft.message_id
+            }
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"草稿生成失敗: {str(e)}")
+
+
+@router.post("/conversations/{sender_id:path}/send")
+async def send_conversation_reply(
+    sender_id: str,
+    response_data: ResponseCreate,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    對話級別發送回覆 - 發送後批量更新所有相關訊息狀態
+
+    這是新的「對話導向」模式的發送 API
+    """
+    decoded_sender_id = unquote(sender_id)
+
+    # 取得該客戶所有未回覆訊息
+    result = await db.execute(
+        select(Message)
+        .where(Message.sender_id == decoded_sender_id)
+        .where(Message.status.in_(["pending", "drafted"]))
+        .where(Message.source.notin_(["line_bot", "system"]))
+        .order_by(desc(Message.created_at))
+    )
+    pending_messages = result.scalars().all()
+
+    if not pending_messages:
+        raise HTTPException(status_code=404, detail="沒有待處理的訊息")
+
+    # 取得最新訊息作為回覆的關聯對象
+    latest_message = pending_messages[0]
+
+    # 取得原始草稿（如果有）
+    original_content = None
+    if response_data.draft_id:
+        draft_result = await db.execute(
+            select(Draft).where(Draft.id == response_data.draft_id)
+        )
+        draft = draft_result.scalar_one_or_none()
+        if draft:
+            original_content = draft.content
+
+    # 判斷是否修改
+    is_modified = (
+        original_content is not None and
+        original_content.strip() != response_data.content.strip()
+    )
+
+    # 分析修改原因
+    modification_reason = None
+    if is_modified:
+        learning_engine = get_learning_engine()
+        modification_reason = await learning_engine.analyze_modification(
+            db=db,
+            original_draft=original_content,
+            final_content=response_data.content
+        )
+
+    # 建立回覆記錄（關聯到最新訊息）
+    response = Response(
+        message_id=latest_message.id,
+        draft_id=response_data.draft_id,
+        original_content=original_content,
+        final_content=response_data.content,
+        is_modified=is_modified,
+        modification_reason=modification_reason,
+        sent_at=datetime.utcnow()
+    )
+    db.add(response)
+
+    # 批量更新所有相關訊息狀態為 sent
+    for msg in pending_messages:
+        msg.status = "sent"
+        msg.updated_at = datetime.utcnow()
+
+    # 發送 LINE 訊息（如果來源是 LINE）
+    if latest_message.source == "line_oa":
+        try:
+            line_client = get_line_client()
+            await line_client.send_text_message(
+                user_id=decoded_sender_id,
+                text=response_data.content
+            )
+        except Exception as e:
+            print(f"LINE 訊息發送失敗: {str(e)}")
+
+    await db.commit()
+
+    return {
+        "success": True,
+        "message": f"回覆已發送，{len(pending_messages)} 則訊息已標記為已處理"
+    }
+
+
 @router.get("/conversations/{sender_id:path}/messages")
 async def get_conversation_messages(
     sender_id: str,

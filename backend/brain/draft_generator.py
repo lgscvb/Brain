@@ -296,6 +296,64 @@ class DraftGenerator:
             sender_id=message.sender_id
         )
 
+    async def generate_for_conversation(
+        self,
+        db: AsyncSession,
+        sender_id: str
+    ) -> Draft:
+        """
+        對話級別草稿生成 - 讀取所有未回覆訊息，生成一個整合回覆
+
+        Args:
+            db: 資料庫連線
+            sender_id: 客戶 ID
+
+        Returns:
+            生成的草稿（關聯到最新的訊息）
+        """
+        # 取得該客戶所有未回覆訊息（pending 或 drafted）
+        result = await db.execute(
+            select(Message)
+            .where(Message.sender_id == sender_id)
+            .where(Message.status.in_(["pending", "drafted"]))
+            .where(Message.source.notin_(["line_bot", "system"]))  # 排除 bot 回覆
+            .order_by(Message.created_at.asc())  # 舊的在前
+        )
+        pending_messages = result.scalars().all()
+
+        if not pending_messages:
+            raise ValueError("此客戶沒有待處理的訊息")
+
+        # 合併所有未回覆訊息的內容
+        combined_content_parts = []
+        for msg in pending_messages:
+            time_str = msg.created_at.strftime("%m/%d %H:%M") if msg.created_at else ""
+            combined_content_parts.append(f"[{time_str}] {msg.content}")
+
+        combined_content = "\n\n".join(combined_content_parts)
+
+        # 取得最新訊息的基本資訊
+        latest_message = pending_messages[-1]
+
+        print(f"📬 對話級別草稿生成：合併 {len(pending_messages)} 則訊息")
+
+        # 使用標準生成流程
+        draft = await self.generate(
+            db=db,
+            message_id=latest_message.id,  # 關聯到最新訊息
+            content=combined_content,
+            sender_name=latest_message.sender_name,
+            source=latest_message.source,
+            sender_id=sender_id
+        )
+
+        # 更新所有相關訊息的狀態為 drafted
+        for msg in pending_messages:
+            msg.status = "drafted"
+        await db.commit()
+
+        return draft
+
 
 # 全域草稿生成器實例
 _draft_generator: Optional[DraftGenerator] = None
