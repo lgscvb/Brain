@@ -280,6 +280,21 @@ class ClaudeClient:
                     "next_action": "人工審核"
                 }
 
+            # 防止雙重 JSON：如果 draft 欄位看起來像 JSON，嘗試再次解析
+            draft_content = result.get("draft", "")
+            if isinstance(draft_content, str) and draft_content.strip().startswith("{"):
+                try:
+                    inner_json = json.loads(draft_content)
+                    if isinstance(inner_json, dict) and "draft" in inner_json:
+                        # 提取內層的 draft
+                        result["draft"] = inner_json.get("draft", draft_content)
+                        result["intent"] = inner_json.get("intent", result.get("intent", "其他"))
+                        result["strategy"] = inner_json.get("strategy", result.get("strategy", ""))
+                        result["next_action"] = inner_json.get("next_action", result.get("next_action", ""))
+                        print(f"⚠️ 偵測到雙重 JSON，已自動解析內層 draft")
+                except (json.JSONDecodeError, TypeError):
+                    pass  # 不是 JSON，保持原樣
+
             result["_usage"] = usage
             return result
 
