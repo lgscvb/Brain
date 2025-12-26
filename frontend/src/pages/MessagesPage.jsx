@@ -225,9 +225,9 @@ const ChatPanel = memo(function ChatPanel({
     const needsReply = hasPendingMessages  // 改為對話級別判斷
 
     return (
-        <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col ${isMobile ? 'h-full' : ''}`}>
+        <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col min-w-0 ${isMobile ? 'h-full' : ''}`}>
             {/* 標題列 */}
-            <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0">
+            <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0 min-w-0">
                 {isMobile && (
                     <button
                         onClick={onBack}
@@ -284,7 +284,7 @@ const ChatPanel = memo(function ChatPanel({
             ) : (
                 <>
                     {/* 聊天訊息列表（舊的在上、新的在下） */}
-                    <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-3 space-y-3">
+                    <div ref={chatContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-3">
                         {[...conversationMessages].sort((a, b) =>
                             new Date(a.created_at) - new Date(b.created_at)
                         ).map((message) => (
@@ -292,13 +292,13 @@ const ChatPanel = memo(function ChatPanel({
                                 {/* 客戶訊息（靠左） */}
                                 <div
                                     onClick={() => onSelectMessage(message)}
-                                    className={`max-w-[85%] cursor-pointer transition-all ${
+                                    className={`max-w-[85%] cursor-pointer transition-all overflow-hidden ${
                                         selectedMessage?.id === message.id
                                             ? 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-gray-800'
                                             : 'hover:shadow-md'
                                     }`}
                                 >
-                                    <div className="bg-gray-100 dark:bg-gray-700 rounded-lg rounded-tl-none p-3">
+                                    <div className="bg-gray-100 dark:bg-gray-700 rounded-lg rounded-tl-none p-3 overflow-hidden">
                                         <div className="flex items-center space-x-2 mb-1">
                                             <span className="text-[10px] text-gray-400 font-mono">#{message.id}</span>
                                             <User className="w-3 h-3 text-gray-500" />
@@ -307,7 +307,7 @@ const ChatPanel = memo(function ChatPanel({
                                             </span>
                                             {getStatusBadge(message.status)}
                                         </div>
-                                        <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                                        <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap break-words">
                                             {message.content}
                                         </p>
                                         {message.drafts && message.drafts.length > 0 && !message.response && (
