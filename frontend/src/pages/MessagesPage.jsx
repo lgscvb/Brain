@@ -225,7 +225,7 @@ const ChatPanel = memo(function ChatPanel({
     const needsReply = hasPendingMessages  // 改為對話級別判斷
 
     return (
-        <div className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col min-w-0 ${isMobile ? 'h-full' : ''}`}>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col min-w-0 h-full">
             {/* 標題列 */}
             <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0 min-w-0">
                 {isMobile && (
