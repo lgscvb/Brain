@@ -941,10 +941,10 @@ export default function MessagesPage() {
             </div>
 
             {/* === 桌面版三欄佈局（聊天 + AI 修正）=== */}
-            <div className={`hidden xl:grid gap-3 flex-1 min-h-0 ${
+            <div className={`hidden xl:grid gap-3 flex-1 min-h-0 overflow-hidden ${
                 isFirstColumnCollapsed
-                    ? 'xl:grid-cols-[56px_1fr_380px]'
-                    : 'xl:grid-cols-[220px_1fr_380px]'
+                    ? 'xl:grid-cols-[56px_minmax(0,1fr)_380px]'
+                    : 'xl:grid-cols-[220px_minmax(0,1fr)_380px]'
             }`}>
                 <ConversationListPanel
                     isCollapsed={isFirstColumnCollapsed}
@@ -980,10 +980,10 @@ export default function MessagesPage() {
             </div>
 
             {/* === 中型螢幕兩欄佈局（聊天介面，無 AI 修正）=== */}
-            <div className={`hidden lg:grid xl:hidden gap-3 flex-1 min-h-0 ${
+            <div className={`hidden lg:grid xl:hidden gap-3 flex-1 min-h-0 overflow-hidden ${
                 isFirstColumnCollapsed
-                    ? 'lg:grid-cols-[56px_1fr]'
-                    : 'lg:grid-cols-[250px_1fr]'
+                    ? 'lg:grid-cols-[56px_minmax(0,1fr)]'
+                    : 'lg:grid-cols-[250px_minmax(0,1fr)]'
             }`}>
                 <ConversationListPanel
                     isCollapsed={isFirstColumnCollapsed}
