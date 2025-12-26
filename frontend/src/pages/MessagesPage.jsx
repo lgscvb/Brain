@@ -1014,7 +1014,7 @@ export default function MessagesPage() {
             </div>
 
             {/* === 手機版層疊導航 === */}
-            <div className="lg:hidden flex-1 min-h-0">
+            <div className="lg:hidden flex-1 min-h-0 h-full">
                 {mobileView === 'conversations' && (
                     <ConversationListPanel
                         isMobile
