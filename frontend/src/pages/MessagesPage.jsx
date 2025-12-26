@@ -292,10 +292,10 @@ const ChatPanel = memo(function ChatPanel({
                                 {/* 客戶訊息（靠左） */}
                                 <div
                                     onClick={() => onSelectMessage(message)}
-                                    className={`max-w-[85%] cursor-pointer transition-all overflow-hidden ${
+                                    className={`max-w-[85%] cursor-pointer transition-all overflow-hidden rounded-lg ${
                                         selectedMessage?.id === message.id
-                                            ? 'ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-gray-800'
-                                            : 'hover:shadow-md'
+                                            ? 'border-2 border-blue-500 shadow-lg'
+                                            : 'border-2 border-transparent hover:shadow-md'
                                     }`}
                                 >
                                     <div className="bg-gray-100 dark:bg-gray-700 rounded-lg rounded-tl-none p-3 overflow-hidden">
