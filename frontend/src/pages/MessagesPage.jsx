@@ -284,7 +284,7 @@ const ChatPanel = memo(function ChatPanel({
             ) : (
                 <>
                     {/* 聊天訊息列表（舊的在上、新的在下） */}
-                    <div ref={chatContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-3">
+                    <div ref={chatContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-3 min-h-[200px]">
                         {[...conversationMessages].sort((a, b) =>
                             new Date(a.created_at) - new Date(b.created_at)
                         ).map((message) => (
@@ -346,7 +346,7 @@ const ChatPanel = memo(function ChatPanel({
 
                     {/* 回覆區（固定在底部）- 對話導向模式 */}
                     {needsReply && (
-                        <div className="border-t border-gray-200 dark:border-gray-700 p-3 space-y-3 flex-shrink-0 bg-gray-50 dark:bg-gray-800/50">
+                        <div className="border-t border-gray-200 dark:border-gray-700 p-3 space-y-3 flex-shrink-0 bg-gray-50 dark:bg-gray-800/50 max-h-[50vh] overflow-y-auto">
                             {/* 顯示未回覆訊息數量 */}
                             <div className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 rounded px-2 py-1">
                                 📝 {pendingMessages.length} 則訊息待回覆
