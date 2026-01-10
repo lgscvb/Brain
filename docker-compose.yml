@@ -21,6 +21,6 @@ services:
     container_name: brain-frontend
     restart: always
     ports:
-      - "80:80"
+      - "8081:80"  # 避免與 CRM nginx (port 80) 衝突
     depends_on:
       - backend
