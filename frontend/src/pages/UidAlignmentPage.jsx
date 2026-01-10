@@ -124,7 +124,7 @@ export default function UidAlignmentPage() {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="h-full flex flex-col space-y-4 overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -237,11 +237,11 @@ export default function UidAlignmentPage() {
                 </div>
             )}
 
-            {/* 雙欄佈局 */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* 雙欄佈局 - 自適應填充剩餘空間 */}
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-4 min-h-0 overflow-hidden">
                 {/* 左欄：未匹配的 LINE 發送者 */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                    <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden min-h-[300px] lg:min-h-0">
+                    <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-gray-700">
                         <h3 className="font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
                             <span className="text-xl">💬</span>
                             <span>未匹配的 LINE 發送者</span>
@@ -259,7 +259,7 @@ export default function UidAlignmentPage() {
                         </div>
                     </div>
 
-                    <div className="max-h-[500px] overflow-y-auto divide-y divide-gray-200 dark:divide-gray-700">
+                    <div className="flex-1 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-700">
                         {sendersLoading ? (
                             <div className="flex items-center justify-center py-12">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -304,8 +304,8 @@ export default function UidAlignmentPage() {
                 </div>
 
                 {/* 右欄：無 UID 的 CRM 客戶 */}
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                    <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden min-h-[300px] lg:min-h-0">
+                    <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-gray-700">
                         <h3 className="font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
                             <span className="text-xl">👤</span>
                             <span>CRM 客戶（無 LINE UID）</span>
@@ -323,7 +323,7 @@ export default function UidAlignmentPage() {
                         </div>
                     </div>
 
-                    <div className="max-h-[500px] overflow-y-auto divide-y divide-gray-200 dark:divide-gray-700">
+                    <div className="flex-1 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-700">
                         {customersLoading ? (
                             <div className="flex items-center justify-center py-12">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -373,16 +373,18 @@ export default function UidAlignmentPage() {
                 </div>
             </div>
 
-            {/* 使用說明 */}
-            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 border border-gray-200 dark:border-gray-700">
-                <h4 className="font-medium text-gray-900 dark:text-white mb-2">使用說明</h4>
-                <ol className="text-sm text-gray-600 dark:text-gray-400 space-y-1 list-decimal list-inside">
+            {/* 使用說明 - 可折疊以節省手機空間 */}
+            <details className="flex-shrink-0 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+                <summary className="p-3 font-medium text-gray-900 dark:text-white cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700/50 rounded-xl">
+                    使用說明
+                </summary>
+                <ol className="px-4 pb-3 text-sm text-gray-600 dark:text-gray-400 space-y-1 list-decimal list-inside">
                     <li>左側顯示在 Brain 收到訊息但尚未與 CRM 配對的 LINE 用戶</li>
                     <li>右側顯示 CRM 中尚未綁定 LINE UID 的客戶</li>
                     <li>點選左側的發送者，再點選右側對應的客戶</li>
                     <li>確認無誤後，點擊「確認連結」完成配對</li>
                 </ol>
-            </div>
+            </details>
         </div>
     )
 }
