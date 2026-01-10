@@ -1,10 +1,125 @@
 import { useState, useEffect, useRef, useCallback, memo } from 'react'
-import { MessageSquare, Clock, User, Send, RefreshCw, Archive, ChevronRight, ChevronLeft, X, Bell, BellOff, Volume2, VolumeX, Trash2, FileText } from 'lucide-react'
+import { MessageSquare, Clock, User, Send, RefreshCw, Archive, ChevronRight, ChevronLeft, X, Bell, BellOff, Volume2, VolumeX, Trash2, FileText, AlertCircle, Briefcase, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react'
 import axios from 'axios'
 import FeedbackPanel from '../components/FeedbackPanel'
 import RefinementChat from '../components/RefinementChat'
 import QuoteSuggestionModal from '../components/QuoteSuggestionModal'
 import notificationService from '../services/notificationService'
+
+// =====================================================
+// === 訊息分析摘要元件（方案 B）===
+// =====================================================
+const MessageAnalysisSummary = memo(function MessageAnalysisSummary({ onSelectConversation, conversations }) {
+    const [analysis, setAnalysis] = useState(null)
+    const [loading, setLoading] = useState(true)
+    const [expanded, setExpanded] = useState(true)
+
+    useEffect(() => {
+        const fetchAnalysis = async () => {
+            try {
+                const response = await axios.get('/api/analysis/summary?period=24h')
+                setAnalysis(response.data)
+            } catch (error) {
+                console.error('獲取分析摘要失敗:', error)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchAnalysis()
+    }, [])
+
+    if (loading) {
+        return (
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-3 mb-3 animate-pulse">
+                <div className="h-4 bg-blue-200 dark:bg-blue-800 rounded w-1/4"></div>
+            </div>
+        )
+    }
+
+    if (!analysis || (analysis.urgent_count === 0 && analysis.business_count === 0 && analysis.issue_count === 0)) {
+        return null
+    }
+
+    const hasImportantMessages = analysis.urgent_count > 0 || analysis.business_count > 0 || analysis.issue_count > 0
+
+    return (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800 mb-3 overflow-hidden">
+            <button
+                onClick={() => setExpanded(!expanded)}
+                className="w-full flex items-center justify-between p-3 hover:bg-blue-100/50 dark:hover:bg-blue-800/20 transition-colors"
+            >
+                <div className="flex items-center space-x-3">
+                    <span className="text-lg">📋</span>
+                    <span className="font-medium text-gray-900 dark:text-white">AI 分析摘要</span>
+                    <span className="text-xs text-gray-500">（{analysis.period}）</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                    <div className="hidden sm:flex items-center space-x-2 text-xs">
+                        {analysis.urgent_count > 0 && (
+                            <span className="flex items-center space-x-1 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 px-2 py-0.5 rounded">
+                                <AlertCircle className="w-3 h-3" />
+                                <span>{analysis.urgent_count} 緊急</span>
+                            </span>
+                        )}
+                        {analysis.business_count > 0 && (
+                            <span className="flex items-center space-x-1 bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded">
+                                <Briefcase className="w-3 h-3" />
+                                <span>{analysis.business_count} 業務</span>
+                            </span>
+                        )}
+                        {analysis.issue_count > 0 && (
+                            <span className="flex items-center space-x-1 bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 px-2 py-0.5 rounded">
+                                <AlertTriangle className="w-3 h-3" />
+                                <span>{analysis.issue_count} 問題</span>
+                            </span>
+                        )}
+                    </div>
+                    {expanded ? <ChevronUp className="w-4 h-4 text-gray-500" /> : <ChevronDown className="w-4 h-4 text-gray-500" />}
+                </div>
+            </button>
+
+            {expanded && hasImportantMessages && (
+                <div className="px-3 pb-3 space-y-2">
+                    {analysis.action_items && analysis.action_items.length > 0 && (
+                        <div className="text-xs space-y-1">
+                            {analysis.action_items.slice(0, 2).map((item, idx) => (
+                                <div key={idx} className="bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 px-2 py-1 rounded">
+                                    {item}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    <div className="flex flex-wrap gap-2 text-xs">
+                        {[...analysis.urgent_messages, ...analysis.business_messages, ...analysis.issue_messages]
+                            .slice(0, 5)
+                            .map((msg) => {
+                                const conv = conversations?.find(c => c.sender_id === msg.sender_id)
+                                return (
+                                    <button
+                                        key={msg.id}
+                                        onClick={() => conv && onSelectConversation(conv)}
+                                        className={`flex items-center space-x-1 px-2 py-1 rounded-lg transition-colors ${
+                                            msg.priority_level === 'urgent'
+                                                ? 'bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-700 dark:text-red-300'
+                                                : msg.priority_level === 'business'
+                                                ? 'bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300'
+                                                : 'bg-orange-100 hover:bg-orange-200 dark:bg-orange-900/30 dark:hover:bg-orange-900/50 text-orange-700 dark:text-orange-300'
+                                        }`}
+                                    >
+                                        <span className="font-medium truncate max-w-[80px]">{msg.sender_name}</span>
+                                        <span className="text-[10px] opacity-70">
+                                            {msg.priority_level === 'urgent' ? '🔴' : msg.priority_level === 'business' ? '💼' : '⚠️'}
+                                        </span>
+                                    </button>
+                                )
+                            })}
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+})
 
 // =====================================================
 // === 獨立元件定義（避免 React 重新掛載問題）===
@@ -939,6 +1054,12 @@ export default function MessagesPage() {
                     </button>
                 ))}
             </div>
+
+            {/* === 訊息分析摘要（方案 B）=== */}
+            <MessageAnalysisSummary
+                onSelectConversation={handleSelectConversation}
+                conversations={conversations}
+            />
 
             {/* === 桌面版三欄佈局（聊天 + AI 修正）=== */}
             <div className={`hidden xl:grid gap-3 flex-1 min-h-0 overflow-hidden ${

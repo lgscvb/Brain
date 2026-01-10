@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Settings, BookOpen, Activity, MessageSquare, FileText, ThumbsUp, Database, Link2, GraduationCap, Menu, X } from 'lucide-react'
+import { Settings, BookOpen, Activity, MessageSquare, FileText, ThumbsUp, Database, Link2, GraduationCap, Menu, X, BarChart3 } from 'lucide-react'
 import SettingsPage from './pages/SettingsPage'
 import GuidePage from './pages/GuidePage'
 import DashboardPage from './pages/DashboardPage'
@@ -9,6 +9,7 @@ import MessagesPage from './pages/MessagesPage'
 import KnowledgePage from './pages/KnowledgePage'
 import UidAlignmentPage from './pages/UidAlignmentPage'
 import TrainingPage from './pages/TrainingPage'
+import AnalysisPage from './pages/AnalysisPage'
 
 function App() {
   const [currentPage, setCurrentPage] = useState('dashboard')
@@ -17,6 +18,7 @@ function App() {
   const navigation = [
     { id: 'dashboard', name: '儀表板', icon: Activity },
     { id: 'messages', name: '訊息管理', icon: MessageSquare },
+    { id: 'analysis', name: '分析報告', icon: BarChart3 },
     { id: 'uid-alignment', name: 'UID 對齊', icon: Link2 },
     { id: 'knowledge', name: '知識庫', icon: Database },
     { id: 'training', name: '訓練資料', icon: GraduationCap },
@@ -38,6 +40,8 @@ function App() {
         return <FeedbackPage />
       case 'messages':
         return <MessagesPage />
+      case 'analysis':
+        return <AnalysisPage />
       case 'knowledge':
         return <KnowledgePage />
       case 'uid-alignment':

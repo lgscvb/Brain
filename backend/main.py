@@ -64,6 +64,9 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",  # Vite 預設開發伺服器
         "http://localhost:3000",  # 備用前端 port
+        "https://brain-app.yourspce.org",  # Brain 前端 (Production)
+        "https://hj-v2.yourspce.org",  # CRM v2 前端 (Production)
+        "https://hj-v2.pages.dev",  # CRM v2 Cloudflare Pages
     ],
     allow_credentials=True,
     allow_methods=["*"],

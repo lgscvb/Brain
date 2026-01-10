@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Activity, MessageSquare, TrendingUp, Clock } from 'lucide-react'
+import { Activity, MessageSquare, TrendingUp, Clock, AlertCircle, Briefcase, AlertTriangle, ChevronRight } from 'lucide-react'
 import axios from 'axios'
 import UsagePanel from '../components/UsagePanel'
 
@@ -7,13 +7,27 @@ export default function DashboardPage({ onNavigate }) {
     const [stats, setStats] = useState(null)
     const [settings, setSettings] = useState(null)
     const [loading, setLoading] = useState(true)
+    const [analysis, setAnalysis] = useState(null)
+    const [analysisLoading, setAnalysisLoading] = useState(true)
 
     useEffect(() => {
         fetchStats()
         fetchSettings()
+        fetchAnalysis()
         const interval = setInterval(fetchStats, 10000) // 每 10 秒更新
         return () => clearInterval(interval)
     }, [])
+
+    const fetchAnalysis = async () => {
+        try {
+            const response = await axios.get('/api/analysis/summary?period=24h')
+            setAnalysis(response.data)
+        } catch (error) {
+            console.error('獲取分析摘要失敗:', error)
+        } finally {
+            setAnalysisLoading(false)
+        }
+    }
 
     const fetchStats = async () => {
         try {
@@ -122,6 +136,108 @@ export default function DashboardPage({ onNavigate }) {
                             </div>
                         )
                     })}
+                </div>
+            )}
+
+            {/* 訊息分析摘要卡片 - 方案 A */}
+            {analysisLoading ? (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                    <div className="animate-pulse flex space-x-4">
+                        <div className="flex-1 space-y-3">
+                            <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4"></div>
+                            <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-3/4"></div>
+                        </div>
+                    </div>
+                </div>
+            ) : analysis && (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center space-x-2">
+                            <span>📋</span>
+                            <span>訊息分析摘要</span>
+                            <span className="text-sm font-normal text-gray-500">（{analysis.period}）</span>
+                        </h3>
+                        <button
+                            onClick={() => onNavigate && onNavigate('analysis')}
+                            className="text-sm text-blue-600 hover:text-blue-700 flex items-center space-x-1"
+                        >
+                            <span>完整報告</span>
+                            <ChevronRight className="w-4 h-4" />
+                        </button>
+                    </div>
+
+                    {/* 行動建議 */}
+                    {analysis.action_items && analysis.action_items.length > 0 && (
+                        <div className="mb-4 space-y-2">
+                            {analysis.action_items.map((item, idx) => (
+                                <div key={idx} className="text-sm bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 px-3 py-2 rounded-lg">
+                                    {item}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* 分類統計 */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                        <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
+                            <div className="flex items-center space-x-2 mb-1">
+                                <AlertCircle className="w-4 h-4 text-red-500" />
+                                <span className="text-xs text-red-600 dark:text-red-400">緊急</span>
+                            </div>
+                            <p className="text-2xl font-bold text-red-700 dark:text-red-300">{analysis.urgent_count}</p>
+                        </div>
+                        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
+                            <div className="flex items-center space-x-2 mb-1">
+                                <Briefcase className="w-4 h-4 text-blue-500" />
+                                <span className="text-xs text-blue-600 dark:text-blue-400">業務</span>
+                            </div>
+                            <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{analysis.business_count}</p>
+                        </div>
+                        <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3">
+                            <div className="flex items-center space-x-2 mb-1">
+                                <AlertTriangle className="w-4 h-4 text-orange-500" />
+                                <span className="text-xs text-orange-600 dark:text-orange-400">問題</span>
+                            </div>
+                            <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">{analysis.issue_count}</p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3">
+                            <div className="flex items-center space-x-2 mb-1">
+                                <MessageSquare className="w-4 h-4 text-gray-500" />
+                                <span className="text-xs text-gray-600 dark:text-gray-400">一般</span>
+                            </div>
+                            <p className="text-2xl font-bold text-gray-700 dark:text-gray-300">{analysis.general_count}</p>
+                        </div>
+                    </div>
+
+                    {/* 重要訊息預覽 */}
+                    {(analysis.urgent_messages?.length > 0 || analysis.business_messages?.length > 0) && (
+                        <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">需要關注的訊息</h4>
+                            <div className="space-y-2 max-h-40 overflow-y-auto">
+                                {[...analysis.urgent_messages, ...analysis.business_messages].slice(0, 5).map((msg) => (
+                                    <div
+                                        key={msg.id}
+                                        className="flex items-start space-x-2 text-sm bg-gray-50 dark:bg-gray-700/50 rounded-lg p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700"
+                                        onClick={() => onNavigate && onNavigate('messages')}
+                                    >
+                                        <span className={`flex-shrink-0 px-1.5 py-0.5 rounded text-xs ${
+                                            msg.priority_level === 'urgent'
+                                                ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
+                                                : 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                                        }`}>
+                                            {msg.priority_level === 'urgent' ? '緊急' : '業務'}
+                                        </span>
+                                        <span className="font-medium text-gray-900 dark:text-white truncate flex-shrink-0 w-20">
+                                            {msg.sender_name}
+                                        </span>
+                                        <span className="text-gray-600 dark:text-gray-400 truncate">
+                                            {msg.content}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
