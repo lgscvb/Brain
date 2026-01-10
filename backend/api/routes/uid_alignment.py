@@ -150,12 +150,34 @@ async def get_unmatched_senders(
 @router.get("/customers-without-uid", response_model=CustomersWithoutUidResponse)
 async def get_customers_without_uid(
     search: Optional[str] = None,
-    status: str = "active"
+    status: str = "active",
+    has_contract: bool = True
 ):
     """
     取得所有沒有 LINE User ID 的 CRM 客戶
+
+    Args:
+        search: 搜尋關鍵字
+        status: 客戶狀態 (active/all)
+        has_contract: 是否只顯示有活躍合約的客戶 (預設 True)
     """
     try:
+        # 1. 先取得有活躍合約的客戶 ID 列表
+        active_contract_customer_ids = set()
+        if has_contract:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                contracts_response = await client.get(
+                    f"{CRM_API_BASE}/contracts",
+                    params={
+                        "select": "customer_id",
+                        "status": "eq.active",
+                        "limit": 2000
+                    }
+                )
+                contracts = contracts_response.json()
+                active_contract_customer_ids = set(c['customer_id'] for c in contracts if c.get('customer_id'))
+
+        # 2. 取得沒有 LINE UID 的客戶
         params = {
             "select": "id,legacy_id,name,company_name,phone,email,line_user_id,status",
             "line_user_id": "is.null",
@@ -172,7 +194,11 @@ async def get_customers_without_uid(
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"無法連接 CRM API: {str(e)}")
 
-    # 過濾搜尋
+    # 3. 過濾：只保留有活躍合約的客戶
+    if has_contract and active_contract_customer_ids:
+        customers = [c for c in customers if c.get('id') in active_contract_customer_ids]
+
+    # 4. 過濾搜尋
     if search:
         search_lower = search.lower()
         customers = [
@@ -256,7 +282,7 @@ async def unlink_uid(customer_id: int):
 @router.get("/stats")
 async def get_alignment_stats(db: AsyncSession = Depends(get_db)):
     """
-    取得 UID 對齊統計
+    取得 UID 對齊統計（只計算有活躍合約的客戶）
     """
     # Brain 中唯一發送者數
     brain_result = await db.execute(
@@ -264,24 +290,36 @@ async def get_alignment_stats(db: AsyncSession = Depends(get_db)):
     )
     brain_unique_senders = brain_result.scalar() or 0
 
-    # CRM 客戶統計
+    # CRM 客戶統計（只計算有活躍合約的客戶）
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
-            # 總客戶數
-            total_response = await client.get(
-                f"{CRM_API_BASE}/customers",
-                params={"select": "count", "status": "eq.active"},
-                headers={"Prefer": "count=exact"}
+            # 1. 先取得有活躍合約的客戶 ID 列表
+            contracts_response = await client.get(
+                f"{CRM_API_BASE}/contracts",
+                params={
+                    "select": "customer_id",
+                    "status": "eq.active",
+                    "limit": 2000
+                }
             )
-            total_customers = int(total_response.headers.get('content-range', '0-0/0').split('/')[-1])
+            contracts = contracts_response.json()
+            active_contract_customer_ids = set(c['customer_id'] for c in contracts if c.get('customer_id'))
 
-            # 有 LINE UID 的客戶數
-            with_uid_response = await client.get(
+            # 2. 取得這些客戶的詳細資料
+            customers_response = await client.get(
                 f"{CRM_API_BASE}/customers",
-                params={"select": "count", "status": "eq.active", "line_user_id": "not.is.null"},
-                headers={"Prefer": "count=exact"}
+                params={
+                    "select": "id,line_user_id",
+                    "status": "eq.active",
+                    "limit": 2000
+                }
             )
-            with_uid = int(with_uid_response.headers.get('content-range', '0-0/0').split('/')[-1])
+            all_customers = customers_response.json()
+
+            # 3. 只計算有活躍合約的客戶
+            customers_with_contract = [c for c in all_customers if c.get('id') in active_contract_customer_ids]
+            total_customers = len(customers_with_contract)
+            with_uid = len([c for c in customers_with_contract if c.get('line_user_id')])
 
     except Exception as e:
         print(f"無法取得 CRM 統計: {e}")
