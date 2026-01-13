@@ -381,6 +381,26 @@ const ChatPanel = memo(function ChatPanel({
                             <span>{hasDraft ? '重新生成' : `生成草稿 (${pendingMessages.length})`}</span>
                         </button>
                     )}
+                    {/* 送出回覆按鈕（標題列位置，更明顯）*/}
+                    {needsReply && hasDraft && (
+                        <button
+                            onClick={onSendReply}
+                            disabled={sending || !replyContent.trim()}
+                            className={`flex items-center space-x-1 px-3 py-1 text-xs rounded transition-colors ${
+                                sending || !replyContent.trim()
+                                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                    : 'bg-green-600 hover:bg-green-700 text-white'
+                            }`}
+                            title="發送回覆給客戶"
+                        >
+                            {sending ? (
+                                <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                                <Send className="w-3 h-3" />
+                            )}
+                            <span>{sending ? '發送中...' : '發送回覆'}</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
