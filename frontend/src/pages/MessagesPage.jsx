@@ -254,11 +254,18 @@ const ConversationListPanel = memo(function ConversationListPanel({
                                 className="w-full p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                             >
                                 <div className="flex items-center justify-between mb-1">
-                                    <div className="flex items-center space-x-2 min-w-0">
+                                    <div className="flex items-center space-x-2 min-w-0 flex-1">
                                         <span>{getSourceIcon(conv.source)}</span>
-                                        <span className="font-medium text-gray-900 dark:text-white truncate">
-                                            {conv.sender_name}
-                                        </span>
+                                        <div className="flex items-center space-x-1 min-w-0 flex-1">
+                                            <span className="font-medium text-gray-900 dark:text-white truncate">
+                                                {conv.sender_name}
+                                            </span>
+                                            {conv.company_name && (
+                                                <span className="text-xs text-gray-400 dark:text-gray-500 truncate flex-shrink-0">
+                                                    ({conv.company_name})
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     {conv.unread_count > 0 && (
                                         <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full flex-shrink-0">
@@ -352,9 +359,16 @@ const ChatPanel = memo(function ChatPanel({
                     </button>
                 )}
                 <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 dark:text-white truncate">
-                        {selectedConversation ? selectedConversation.sender_name : '對話'}
-                    </h3>
+                    <div className="flex items-center space-x-2">
+                        <h3 className="font-semibold text-gray-900 dark:text-white truncate">
+                            {selectedConversation ? selectedConversation.sender_name : '對話'}
+                        </h3>
+                        {selectedConversation?.company_name && (
+                            <span className="text-xs text-gray-400 dark:text-gray-500 truncate">
+                                ({selectedConversation.company_name})
+                            </span>
+                        )}
+                    </div>
                     {selectedConversation && (
                         <p className="text-xs text-gray-500">{conversationMessages.length} 則訊息</p>
                     )}

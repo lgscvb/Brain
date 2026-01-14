@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc, case
 from sqlalchemy.orm import selectinload
+import httpx
 from db.database import get_db
 from db.models import Message, Draft, Response
 from db.schemas import (
@@ -21,6 +22,9 @@ from db.schemas import (
 from brain.draft_generator import get_draft_generator
 from brain.learning import get_learning_engine
 from services.line_client import get_line_client
+
+# CRM API 設定
+CRM_API_BASE = "https://auto.yourspce.org/api/db"
 
 
 router = APIRouter()
@@ -377,6 +381,32 @@ async def list_conversations(
     result = await db.execute(query)
     rows = result.all()
 
+    # 從 CRM 批次取得客戶公司名稱（用 LINE user ID 對應）
+    company_name_map = {}
+    try:
+        # 取得所有 sender_id 對應的 CRM 客戶公司名稱
+        sender_ids = [row.sender_id for row in rows]
+        if sender_ids:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                # 取得所有有 LINE UID 的客戶
+                response = await client.get(
+                    f"{CRM_API_BASE}/customers",
+                    params={
+                        "select": "line_user_id,company_name",
+                        "line_user_id": f"not.is.null",
+                        "limit": 500
+                    }
+                )
+                if response.status_code == 200:
+                    customers = response.json()
+                    company_name_map = {
+                        c['line_user_id']: c.get('company_name', '')
+                        for c in customers
+                        if c.get('line_user_id')
+                    }
+    except Exception as e:
+        print(f"無法取得 CRM 公司名稱: {e}")
+
     # 取得每個對話的客戶名稱和最後一則訊息（用於預覽）
     conversations = []
     for row in rows:
@@ -411,9 +441,13 @@ async def list_conversations(
         if last_msg:
             preview = last_msg.content[:50] + "..." if len(last_msg.content) > 50 else last_msg.content
 
+        # 從 CRM 取得公司名稱
+        company_name = company_name_map.get(row.sender_id, "")
+
         conversations.append({
             "sender_id": row.sender_id,
             "sender_name": sender_name,
+            "company_name": company_name,  # 新增：公司名稱
             "source": source,
             "message_count": row.message_count,
             "unread_count": row.unread_count or 0,
