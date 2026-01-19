@@ -1,12 +1,18 @@
 """
 Brain - 草稿生成器
 整合 LLM Routing 意圖分類與 AI API 生成回覆草稿
-支援模型分流：簡單任務用便宜模型，複雜任務用高級模型
-支援對話上下文：取得同一客戶的歷史對話記錄
-支援 RAG：動態檢索相關知識注入 Prompt
-支援 Jungle CRM 整合：查詢客戶資料、合約狀態
+
+【核心功能】
+1. LLM Routing：簡單任務用便宜模型，複雜任務用高級模型
+2. 對話上下文：取得同一客戶的歷史對話記錄
+3. RAG：動態檢索相關知識注入 Prompt
+4. Jungle CRM 整合：查詢客戶資料、合約狀態
+
+【流程】
+客戶訊息 → Routing 判斷 → 選擇模型 → RAG 檢索 → CRM 查詢 → 生成草稿
 """
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Literal
+from typing import TypedDict
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from db.models import Message, Draft, Response, APIUsage
@@ -16,6 +22,53 @@ from services.jungle_client import get_jungle_client
 from brain.router import get_intent_router
 from api.routes.usage import calculate_cost
 from config import settings
+
+
+# ============================================================
+# 型別定義
+# ============================================================
+
+class UsageInfo(TypedDict, total=False):
+    """API 用量資訊"""
+    input_tokens: int
+    output_tokens: int
+    model: str
+
+
+Complexity = Literal["SIMPLE", "COMPLEX", "BOOKING", "PHOTO"]
+
+
+class RoutingResult(TypedDict, total=False):
+    """
+    LLM Routing 判斷結果
+
+    【複雜度等級】
+    - SIMPLE: 簡單問答 → 用 Fast Model（便宜）
+    - COMPLEX: 需要推理 → 用 Smart Model（強大）
+    - BOOKING: 會議室預約（特殊流程）
+    - PHOTO: 照片相關（視覺處理）
+    """
+    complexity: Complexity
+    reason: str
+    suggested_intent: str
+    _usage: UsageInfo
+
+
+class DraftResult(TypedDict, total=False):
+    """
+    草稿生成結果
+
+    【欄位說明】
+    - intent: AI 判斷的客戶意圖
+    - strategy: 回覆策略說明（如「SPIN-S 了解現況」）
+    - draft: 生成的回覆草稿
+    - next_action: 建議的下一步動作
+    """
+    intent: str
+    strategy: str
+    draft: str
+    next_action: str
+    _usage: UsageInfo
 
 
 class DraftGenerator:

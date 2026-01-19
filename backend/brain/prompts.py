@@ -302,10 +302,18 @@ def build_draft_prompt(
     source: str,
     conversation_history: str = "",
     rag_context: str = "",
-    customer_context: str = ""
+    customer_context: str = "",
+    # === 版本管理支援 ===
+    security_rules: str = None,
+    draft_prompt_template: str = None,
+    draft_prompt_fallback_template: str = None
 ) -> str:
     """
     構建草稿生成 Prompt
+
+    【版本管理整合】
+    可傳入從 DB 取得的 prompt templates，若未傳入則使用預設值
+    這提供了向後相容性：DB 不可用時自動降級到硬編碼
 
     Args:
         content: 客戶訊息內容
@@ -314,15 +322,23 @@ def build_draft_prompt(
         conversation_history: 對話歷史
         rag_context: RAG 檢索的相關知識
         customer_context: Jungle CRM 客戶資料
+        security_rules: 安全規則（從 DB 取得，可選）
+        draft_prompt_template: 草稿生成 Prompt（從 DB 取得，可選）
+        draft_prompt_fallback_template: 無 RAG 時的備用 Prompt（從 DB 取得，可選）
 
     Returns:
         完整的 Prompt 字串（含安全規則）
     """
+    # 使用傳入的值或預設值
+    _security_rules = security_rules or SECURITY_RULES
+    _draft_prompt = draft_prompt_template or DRAFT_PROMPT
+    _draft_prompt_fallback = draft_prompt_fallback_template or DRAFT_PROMPT_FALLBACK
+
     # 安全規則永遠放在最前面
-    base_prompt = SECURITY_RULES + "\n\n"
+    base_prompt = _security_rules + "\n\n"
 
     if rag_context:
-        base_prompt += DRAFT_PROMPT.format(
+        base_prompt += _draft_prompt.format(
             content=content,
             sender_name=sender_name,
             source=source,
@@ -331,7 +347,7 @@ def build_draft_prompt(
             customer_context=customer_context
         )
     else:
-        base_prompt += DRAFT_PROMPT_FALLBACK.format(
+        base_prompt += _draft_prompt_fallback.format(
             content=content,
             sender_name=sender_name,
             source=source,
@@ -342,15 +358,39 @@ def build_draft_prompt(
     return base_prompt
 
 
-def build_router_prompt(content: str) -> str:
+def build_router_prompt(
+    content: str,
+    # === 版本管理支援 ===
+    security_rules: str = None,
+    router_prompt_template: str = None
+) -> str:
     """
     構建 Router Prompt（帶安全規則）
 
+    【版本管理整合】
+    可傳入從 DB 取得的 prompt templates，若未傳入則使用預設值
+
     Args:
         content: 客戶訊息內容
+        security_rules: 安全規則（從 DB 取得，可選）
+        router_prompt_template: Router Prompt（從 DB 取得，可選）
 
     Returns:
         完整的 Router Prompt 字串
     """
+    # 使用傳入的值或預設值
+    _security_rules = security_rules or SECURITY_RULES
+    _router_prompt = router_prompt_template or ROUTER_PROMPT
+
     # Router 也需要安全規則，防止 prompt injection 改變分流結果
-    return SECURITY_RULES + "\n\n" + ROUTER_PROMPT.format(content=content)
+    return _security_rules + "\n\n" + _router_prompt.format(content=content)
+
+
+# === Prompt Key 常數（用於 DB 查詢）===
+PROMPT_KEYS = {
+    "SECURITY_RULES": "security_rules",
+    "DRAFT_PROMPT": "draft_prompt",
+    "DRAFT_PROMPT_FALLBACK": "draft_prompt_fallback",
+    "ROUTER_PROMPT": "router_prompt",
+    "MODIFICATION_ANALYSIS": "modification_analysis_prompt"
+}

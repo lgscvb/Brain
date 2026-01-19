@@ -1,13 +1,47 @@
 """
 Brain - RAG 服務
 負責知識檢索和上下文組合
+
+【RAG 是什麼】
+RAG = Retrieval-Augmented Generation（檢索增強生成）
+簡單說：先從知識庫找相關資料，再讓 AI 根據這些資料回答
+
+【搜尋策略】
+1. 優先使用 pgvector 向量搜尋（最精準）
+2. 向量搜尋失敗 → 使用 JSON 備用方案
+3. 無法生成向量 → 關鍵字搜尋（最後手段）
 """
 from typing import List, Dict, Optional, Any
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 from db.models import KnowledgeChunk
 from services.embedding_client import get_embedding_client
-import json
+
+# 在檔案內定義搜尋結果型別（避免循環導入）
+# 完整型別定義請參考 backend/types.py
+from typing import TypedDict
+
+
+class RAGSearchResult(TypedDict, total=False):
+    """
+    RAG 搜尋結果
+
+    【欄位說明】
+    - id: 知識塊 ID
+    - content: 知識內容
+    - category: 主分類
+    - sub_category: 子分類
+    - service_type: 服務類型
+    - metadata: 額外資料
+    - similarity: 相似度分數（0.0 ~ 1.0）
+    """
+    id: int
+    content: str
+    category: str
+    sub_category: Optional[str]
+    service_type: Optional[str]
+    metadata: Optional[Dict[str, Any]]
+    similarity: float
 
 
 class RAGService:
@@ -25,7 +59,7 @@ class RAGService:
         category: Optional[str] = None,
         service_type: Optional[str] = None,
         similarity_threshold: float = 0.7
-    ) -> List[Dict[str, Any]]:
+    ) -> List[RAGSearchResult]:
         """
         搜尋相關知識
 
@@ -66,7 +100,7 @@ class RAGService:
         category: Optional[str],
         service_type: Optional[str],
         similarity_threshold: float
-    ) -> List[Dict[str, Any]]:
+    ) -> List[RAGSearchResult]:
         """使用 pgvector 進行向量搜尋"""
         # 構建查詢
         embedding_str = "[" + ",".join(map(str, query_embedding)) + "]"
@@ -127,7 +161,7 @@ class RAGService:
         category: Optional[str],
         service_type: Optional[str],
         similarity_threshold: float
-    ) -> List[Dict[str, Any]]:
+    ) -> List[RAGSearchResult]:
         """使用 JSON 存儲的向量進行搜尋（備用方案）"""
         # 構建基本查詢
         stmt = select(KnowledgeChunk).where(
@@ -172,7 +206,7 @@ class RAGService:
         top_k: int,
         category: Optional[str],
         service_type: Optional[str]
-    ) -> List[Dict[str, Any]]:
+    ) -> List[RAGSearchResult]:
         """關鍵字搜尋（Embedding 不可用時的備用方案）"""
         stmt = select(KnowledgeChunk).where(
             KnowledgeChunk.is_active == True,

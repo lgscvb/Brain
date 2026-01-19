@@ -214,3 +214,33 @@ class MeetingRoomBooking(Base):
 
     # Relationships
     room = relationship("MeetingRoom", back_populates="bookings")
+
+
+class PromptVersion(Base):
+    """
+    Prompt 版本模型
+
+    【用途】
+    管理 AI Prompt 的版本歷史，支援：
+    1. 版本追蹤：記錄每次 prompt 修改
+    2. 快速回滾：新版本效果不好可以切回舊版
+    3. A/B 測試：準備多個版本快速切換
+
+    【唯一約束】
+    同一個 prompt_key 的版本號不能重複
+    例如：draft_prompt 只能有一個 v1, v2, v3...
+
+    【活躍版本規則】
+    每個 prompt_key 同時間只能有一個 is_active=True
+    啟用新版本時會自動將舊版本設為 is_active=False
+    """
+    __tablename__ = "prompt_versions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    prompt_key = Column(String(50), nullable=False, index=True)  # draft_prompt, router_prompt, etc.
+    version = Column(Integer, nullable=False)  # 版本號，從 1 開始
+    content = Column(Text, nullable=False)  # Prompt 內容
+    description = Column(String(500), nullable=True)  # 版本說明
+    is_active = Column(Boolean, default=False)  # 是否為當前使用版本
+    created_by = Column(String(100), default="system")  # 建立者
+    created_at = Column(DateTime, default=datetime.utcnow)

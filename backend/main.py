@@ -1,10 +1,13 @@
 """
 Brain - FastAPI 主程式
 啟動點：uvicorn main:app --reload --port 8787
+
+【CORS 說明】
+CORS 由 nginx 統一處理（見 v2-hj-crm/backend/nginx/nginx.conf）
+FastAPI 不再設定 CORSMiddleware，避免重複 headers
 """
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from db.database import create_tables
 
@@ -58,24 +61,8 @@ app = FastAPI(
     },
 )
 
-# CORS 設定（允許前端連接）
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",  # Vite 預設開發伺服器
-        "http://localhost:3000",  # 備用前端 port
-        "https://brain-app.yourspce.org",  # Brain 前端 (Production)
-        "https://hj-v2.yourspce.org",  # CRM v2 前端 (Production)
-        "https://hj-v2.pages.dev",  # CRM v2 Cloudflare Pages
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
 # ==================== 路由註冊 ====================
-from api.routes import messages, webhooks, stats, settings, logs, health, feedback, usage, knowledge, integration, uid_alignment, bookings, refinement, quotes, analysis, photos
+from api.routes import messages, webhooks, stats, settings, logs, health, feedback, usage, knowledge, integration, uid_alignment, bookings, refinement, quotes, analysis, photos, prompts
 
 app.include_router(health.router, prefix="/api", tags=["健康檢查 & 系統狀態"])
 app.include_router(messages.router, prefix="/api", tags=["訊息管理"])
@@ -93,6 +80,7 @@ app.include_router(refinement.router, prefix="/api", tags=["草稿修正 & 訓�
 app.include_router(quotes.router, prefix="/api", tags=["報價分析"])
 app.include_router(analysis.router, tags=["訊息分析"])
 app.include_router(photos.router, prefix="/api", tags=["照片管理"])
+app.include_router(prompts.router, prefix="/api", tags=["Prompt 版本管理"])
 
 
 
