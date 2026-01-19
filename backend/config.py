@@ -111,6 +111,14 @@ class Settings(BaseSettings):
     # === Google Calendar 設定 ===
     GOOGLE_CALENDAR_CREDENTIALS: Optional[str] = None  # Service Account JSON 路徑
 
+    # === Cloudflare R2 設定（與 v2-hj-crm 共用）===
+    R2_ACCOUNT_ID: Optional[str] = None
+    R2_ACCESS_KEY_ID: Optional[str] = None
+    R2_SECRET_ACCESS_KEY: Optional[str] = None
+    R2_BUCKET_NAME: str = "hourjungle"
+    R2_PHOTO_PREFIX: str = "brain-photos"  # 照片存放路徑前綴
+    R2_URL_EXPIRY: int = 1209600  # 簽名 URL 過期時間（秒），預設 2 週
+
     class Config:
         env_file = find_env_file()
         case_sensitive = True

@@ -196,6 +196,39 @@ async def line_webhook(
                     # 把 suggested_intent 標記為會議室租借
                     suggested_intent = "會議室租借"
 
+            # === PHOTO 意圖 → 發送照片 Flex Message ===
+            if complexity == "PHOTO":
+                print(f"📷 [Photo] LLM 判斷為看照片意圖")
+
+                # 記錄訊息到 Brain
+                photo_message = Message(
+                    source="line_oa",
+                    sender_id=user_id,
+                    sender_name=user_name,
+                    content=message_text,
+                    status="sent",  # 自動處理，標記為已發送
+                    priority="low"
+                )
+                db.add(photo_message)
+                await db.commit()
+                print(f"📝 [Brain] 已記錄照片請求 (ID: {photo_message.id})")
+
+                # 發送照片 Flex Message
+                from services.photo_service import send_photos_to_user
+                photo_result = await send_photos_to_user(user_id, category="all")
+
+                if photo_result.get("success"):
+                    print(f"✅ [Photo] 照片已發送給 {user_name}")
+                else:
+                    print(f"⚠️ [Photo] 照片發送失敗: {photo_result.get('error')}")
+                    # 發送失敗時，回覆文字訊息
+                    await line_client.reply_message(
+                        user_id,
+                        "抱歉，照片暫時無法載入，您可以直接來現場參觀，或加 LINE 私訊我們索取照片～"
+                    )
+
+                continue  # 照片意圖不進入草稿生成流程
+
             # === 其他意圖 → 正常草稿生成 ===
             # 建立訊息記錄（使用前面取得的 user_name）
             message = Message(
