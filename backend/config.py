@@ -119,6 +119,11 @@ class Settings(BaseSettings):
     R2_PHOTO_PREFIX: str = "brain-photos"  # 照片存放路徑前綴
     R2_URL_EXPIRY: int = 1209600  # 簽名 URL 過期時間（秒），預設 2 週
 
+    # === 知識庫資料來源設定 ===
+    # "json": 使用 logic_tree.json（預設，向後相容）
+    # "database": 使用資料庫（需先執行 migrate_knowledge_to_db.py）
+    KNOWLEDGE_SOURCE: str = "json"
+
     class Config:
         env_file = find_env_file()
         case_sensitive = True

@@ -244,3 +244,120 @@ class PromptVersion(Base):
     is_active = Column(Boolean, default=False)  # 是否為當前使用版本
     created_by = Column(String(100), default="system")  # 建立者
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# ============================================================
+# 意圖樹模型（知識庫 DB 化）
+# ============================================================
+
+class IntentNode(Base):
+    """
+    意圖節點模型
+
+    【用途】
+    將 logic_tree.json 的樹狀結構存入資料庫，實現：
+    1. 動態更新：不需重新部署即可調整意圖樹
+    2. 版本追蹤：記錄每次修改
+    3. A/B 測試：可以有多個意圖樹版本
+
+    【樹狀結構】
+    - parent_id 指向父節點，形成樹狀結構
+    - parent_id = NULL 的節點是根節點（如「服務諮詢」「異議處理」）
+    """
+    __tablename__ = "intent_nodes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    parent_id = Column(Integer, ForeignKey("intent_nodes.id", ondelete="CASCADE"), nullable=True)
+    node_key = Column(String(100), unique=True, nullable=False)  # 唯一識別碼，對應 JSON 的 id
+    name = Column(String(200), nullable=False)  # 節點名稱
+    keywords = Column(JSON, default=list)  # 觸發關鍵字列表
+    spin_phases = Column(JSON, default=list)  # 適用的 SPIN 階段，如 ["S", "P"]
+    spin_guidance = Column(Text, nullable=True)  # SPIN 指引說明
+    is_active = Column(Boolean, default=True)
+    sort_order = Column(Integer, default=0)  # 排序順序
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    parent = relationship("IntentNode", remote_side=[id], backref="children")
+    spin_questions = relationship("SpinQuestion", back_populates="intent_node", cascade="all, delete-orphan")
+
+
+class SpinQuestion(Base):
+    """
+    SPIN 問題模型
+
+    【用途】
+    儲存每個意圖節點對應的 SPIN 問題，例如：
+    - S（Situation）：「您目前公司登記在哪裡？」
+    - P（Problem）：「現在的地址有遇到什麼困擾嗎？」
+    - I（Implication）：「如果被認定不合規，可能面臨什麼後果？」
+    - N（Need-payoff）：「如果每天只要 60 元就能有金融商圈地址，有幫助嗎？」
+
+    【service_type】
+    可選欄位，用於針對特定服務類型的問題
+    例如：address_service（營業地址）、coworking（共享辦公）
+    """
+    __tablename__ = "spin_questions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    intent_node_id = Column(Integer, ForeignKey("intent_nodes.id", ondelete="CASCADE"), nullable=False)
+    phase = Column(String(1), nullable=False)  # S, P, I, N
+    question = Column(Text, nullable=False)
+    service_type = Column(String(50), nullable=True)  # 可選：針對特定服務類型
+    is_active = Column(Boolean, default=True)
+    sort_order = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    intent_node = relationship("IntentNode", back_populates="spin_questions")
+
+
+class SpinFramework(Base):
+    """
+    SPIN 框架設定模型
+
+    【用途】
+    儲存 SPIN 銷售框架的基本定義：
+    - S: Situation（現況了解）
+    - P: Problem（痛點挖掘）
+    - I: Implication（影響放大）
+    - N: Need-payoff（解決導向）
+    """
+    __tablename__ = "spin_framework"
+
+    id = Column(Integer, primary_key=True, index=True)
+    phase = Column(String(1), unique=True, nullable=False)  # S, P, I, N
+    name = Column(String(50), nullable=False)  # Situation, Problem, etc.
+    name_zh = Column(String(50), nullable=False)  # 現況了解, 痛點挖掘, etc.
+    purpose = Column(Text, nullable=False)  # 此階段的目的
+    signals_to_advance = Column(JSON, default=list)  # 進入下一階段的信號
+    is_active = Column(Boolean, default=True)
+    sort_order = Column(Integer, default=0)
+
+
+class SpinTransitionRule(Base):
+    """
+    SPIN 階段轉換規則模型
+
+    【用途】
+    定義 SPIN 階段之間的轉換邏輯：
+    - from_phase: 起始階段（可以是 "any" 表示任何階段）
+    - to_phase: 目標階段
+    - condition: 觸發條件描述
+    - trigger_keywords: 觸發關鍵字
+
+    【範例】
+    S → P：客戶已提供公司型態、業務類型
+    P → I：客戶承認有困擾、表達不滿
+    any → N：客戶主動表達強烈興趣
+    """
+    __tablename__ = "spin_transition_rules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    from_phase = Column(String(10), nullable=False)  # S, P, I, N, or "any"
+    to_phase = Column(String(1), nullable=False)  # S, P, I, N
+    condition = Column(Text, nullable=False)  # 觸發條件描述
+    trigger_keywords = Column(JSON, default=list)  # 觸發關鍵字列表
+    is_active = Column(Boolean, default=True)
+    sort_order = Column(Integer, default=0)

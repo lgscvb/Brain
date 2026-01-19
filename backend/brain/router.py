@@ -1,26 +1,61 @@
 """
 Brain - 意圖路由器
-使用 logic_tree.json 進行意圖分類
+使用 logic_tree.json 或資料庫進行意圖分類
+
+【資料來源切換】
+透過 config.KNOWLEDGE_SOURCE 設定：
+- "json": 使用 logic_tree.json（預設，向後相容）
+- "database": 使用資料庫（需先執行 migrate_knowledge_to_db.py）
+
+【DB 模式注意事項】
+DB 模式下需要傳入 db session，使用 classify_intent_async() 方法
 """
 import json
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from config import settings
+
 
 class IntentRouter:
-    """意圖路由器"""
-    
+    """
+    意圖路由器
+
+    【使用方式】
+    # JSON 模式（同步）
+    router = IntentRouter()
+    result = router.classify_intent("我想租辦公室")
+
+    # DB 模式（非同步）
+    from services.knowledge_service import get_knowledge_service
+    service = get_knowledge_service()
+    result = await service.classify_intent(db, "我想租辦公室")
+    """
+
     def __init__(self):
+        """載入 logic_tree.json（JSON 模式用）"""
+        self.source = settings.KNOWLEDGE_SOURCE
+
+        if self.source == "json":
+            self._load_json()
+        else:
+            # DB 模式：延遲載入，由 KnowledgeService 處理
+            self.logic_tree = {}
+            self.root_nodes = []
+            print(f"📦 IntentRouter: 使用 DB 模式，請透過 KnowledgeService 存取")
+
+    def _load_json(self):
         """載入 logic_tree.json"""
         logic_tree_path = Path(__file__).parent.parent.parent / "logic_tree.json"
-        
+
         try:
             with open(logic_tree_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 self.logic_tree = data.get("logic_tree", {})
                 self.root_nodes = self.logic_tree.get("root_nodes", [])
+                print(f"📖 IntentRouter: 從 JSON 載入 {len(self.root_nodes)} 個根節點")
         except FileNotFoundError:
-            print(f"警告：找不到 logic_tree.json，使用空白邏輯樹")
+            print(f"⚠️ 警告：找不到 logic_tree.json，使用空白邏輯樹")
             self.logic_tree = {}
             self.root_nodes = []
     
