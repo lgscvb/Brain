@@ -1,12 +1,21 @@
 """
 Brain - 學習引擎
 分析人工修改模式，持續優化 AI
+
+【型別提示說明】
+- ModificationRecord: 修改記錄（id, original_content, final_content, ...）
+
+【用途】
+1. 分析人工對 AI 草稿的修改原因
+2. 統計修改率，衡量 AI 品質
+3. 作為未來 Fine-tuning 的資料來源
 """
-from typing import Dict, List, Optional
+from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from db.models import Response
 from services.claude_client import get_claude_client
+from type_defs import ModificationRecord
 
 
 class LearningEngine:
@@ -51,16 +60,16 @@ class LearningEngine:
         self,
         db: AsyncSession,
         limit: int = 10
-    ) -> List[Dict]:
+    ) -> List[ModificationRecord]:
         """
         取得最近的修改記錄
-        
+
         Args:
             db: 資料庫 Session
-            limit: 回傳筆數
-        
+            limit: 回傳筆數（預設 10 筆）
+
         Returns:
-            修改記錄列表
+            List[ModificationRecord]: 修改記錄列表，按發送時間倒序
         """
         result = await db.execute(
             select(Response)
@@ -70,16 +79,17 @@ class LearningEngine:
         )
         responses = result.scalars().all()
         
-        modifications = []
+        modifications: List[ModificationRecord] = []
         for response in responses:
-            modifications.append({
+            record: ModificationRecord = {
                 "id": response.id,
-                "original_content": response.original_content,
-                "final_content": response.final_content,
+                "original_content": response.original_content or "",
+                "final_content": response.final_content or "",
                 "modification_reason": response.modification_reason,
-                "sent_at": response.sent_at
-            })
-        
+                "sent_at": response.sent_at.isoformat() if response.sent_at else "",
+            }
+            modifications.append(record)
+
         return modifications
     
     async def calculate_modification_rate(

@@ -1,13 +1,26 @@
 """
 Brain - 會議室預約處理器
 處理 LINE Bot 會議室預約對話流程
+
+【型別提示說明】
+- CustomerData: CRM 客戶資料
+- BookingIntentType: 預約意圖類型（book/query/cancel/None）
+- BookingRecord: 預約記錄
+- CancelResult: 取消結果
 """
 from datetime import datetime, timedelta
-from typing import Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from services.booking_service import BookingService
 from services.line_client import get_line_client
 from services.jungle_client import get_jungle_client
+from type_defs import (
+    CustomerData,
+    BookingIntentType,
+    BookingRecord,
+    CancelResult,
+    TimeSlot,
+)
 
 
 # 預約相關關鍵字
@@ -33,12 +46,18 @@ class BookingHandler:
         self.line_client = get_line_client()
         self.jungle_client = get_jungle_client()
 
-    async def _verify_member(self, user_id: str) -> Tuple[bool, Optional[Dict]]:
+    async def _verify_member(self, user_id: str) -> Tuple[bool, Optional[CustomerData]]:
         """
         驗證用戶是否為會員（有 active 合約）
 
+        Args:
+            user_id: LINE 用戶 ID
+
         Returns:
-            (是否為會員, 客戶資料)
+            Tuple[是否為會員, 客戶資料]
+            - (True, CustomerData): 有效會員
+            - (False, CustomerData): 有客戶資料但無有效合約
+            - (False, None): 完全沒有客戶資料
         """
         # 查詢 CRM 客戶資料
         customer = await self.jungle_client.get_customer_by_line_id(user_id)
@@ -58,13 +77,19 @@ class BookingHandler:
         print(f"✅ [Booking] 會員驗證通過: {customer.get('name')} (合約: {len(active_contracts)} 份)")
         return True, customer
 
-    def is_booking_intent(self, message: str) -> Tuple[bool, str]:
+    def is_booking_intent(self, message: str) -> Tuple[bool, BookingIntentType]:
         """
         判斷是否為預約相關意圖
 
+        Args:
+            message: 用戶訊息
+
         Returns:
-            (是否為預約意圖, 意圖類型)
-            意圖類型: "book" | "query" | "cancel" | None
+            Tuple[是否為預約意圖, 意圖類型]
+            - (True, "book"): 新預約
+            - (True, "query"): 查詢預約
+            - (True, "cancel"): 取消預約
+            - (False, None): 非預約相關
         """
         message_lower = message.lower().strip()
 
@@ -601,9 +626,15 @@ class BookingHandler:
                 f"❌ {error_msg}\n\n請重新選擇時段，或聯繫客服協助。"
             )
 
-    async def _show_my_bookings(self, db: AsyncSession, user_id: str):
-        """顯示我的預約"""
-        bookings = await self.booking_service.get_customer_bookings(db, user_id)
+    async def _show_my_bookings(self, db: AsyncSession, user_id: str) -> None:
+        """
+        顯示我的預約
+
+        Args:
+            db: 資料庫 Session
+            user_id: LINE 用戶 ID
+        """
+        bookings: List[BookingRecord] = await self.booking_service.get_customer_bookings(db, user_id)
 
         if not bookings:
             await self.line_client.send_text_message(
@@ -686,9 +717,16 @@ class BookingHandler:
         """顯示可取消的預約"""
         await self._show_my_bookings(db, user_id)
 
-    async def _cancel_booking(self, db: AsyncSession, user_id: str, booking_id: int):
-        """取消預約"""
-        result = await self.booking_service.cancel_booking(
+    async def _cancel_booking(self, db: AsyncSession, user_id: str, booking_id: int) -> None:
+        """
+        取消預約
+
+        Args:
+            db: 資料庫 Session
+            user_id: LINE 用戶 ID
+            booking_id: 預約 ID
+        """
+        result: CancelResult = await self.booking_service.cancel_booking(
             db=db,
             booking_id=booking_id,
             reason="客戶自行取消"

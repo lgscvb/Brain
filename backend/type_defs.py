@@ -383,3 +383,55 @@ class BookingInfo(TypedDict, total=False):
     time_slot: TimeSlot
     status: str
     notes: Optional[str]
+
+
+class BookingRecord(TypedDict):
+    """
+    預約記錄（用於 _show_my_bookings）
+
+    【欄位說明】
+    - id: 預約 ID
+    - booking_number: 預約編號
+    - date: 預約日期
+    - start_time: 開始時間
+    - end_time: 結束時間
+    - status: 狀態
+    """
+    id: int
+    booking_number: str
+    date: str
+    start_time: str
+    end_time: str
+    status: str
+
+
+# 預約意圖類型
+BookingIntentType = Literal["book", "query", "cancel", None]
+
+
+class CancelResult(TypedDict, total=False):
+    """取消預約結果"""
+    success: bool
+    error: str
+
+
+# ============================================================
+# 學習引擎相關型別
+# ============================================================
+
+class ModificationRecord(TypedDict, total=False):
+    """
+    修改記錄
+
+    【欄位說明】
+    - id: 記錄 ID
+    - original_content: 原始 AI 草稿
+    - final_content: 人工修改後的內容
+    - modification_reason: 修改原因分析
+    - sent_at: 發送時間
+    """
+    id: int
+    original_content: str
+    final_content: str
+    modification_reason: Optional[str]
+    sent_at: str
