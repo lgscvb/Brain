@@ -75,3 +75,7 @@ htmlcov/
 .cache/
 *.bak
 *.tmp
+
+# Claude Code hooks cache
+.claude/hooks-cache/
+.claude/

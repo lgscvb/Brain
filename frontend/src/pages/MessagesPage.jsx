@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, useCallback, memo } from 'react'
-import { MessageSquare, Clock, User, Send, RefreshCw, Archive, ChevronRight, ChevronLeft, X, Bell, BellOff, Volume2, VolumeX, Trash2, FileText, AlertCircle, Briefcase, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react'
+import { MessageSquare, Clock, User, Send, RefreshCw, Archive, ChevronRight, ChevronLeft, X, Bell, BellOff, Volume2, VolumeX, Trash2, FileText, AlertCircle, Briefcase, AlertTriangle, ChevronDown, ChevronUp, Camera } from 'lucide-react'
 import axios from 'axios'
 import FeedbackPanel from '../components/FeedbackPanel'
 import RefinementChat from '../components/RefinementChat'
 import QuoteSuggestionModal from '../components/QuoteSuggestionModal'
+import PhotoSendModal from '../components/PhotoSendModal'
 import notificationService from '../services/notificationService'
 
 // =====================================================
@@ -326,6 +327,7 @@ const ChatPanel = memo(function ChatPanel({
 }) {
     const chatContainerRef = useRef(null)
     const [quoteModalOpen, setQuoteModalOpen] = useState(false)
+    const [photoModalOpen, setPhotoModalOpen] = useState(false)
 
     // 自動滾動到最新訊息
     useEffect(() => {
@@ -374,6 +376,17 @@ const ChatPanel = memo(function ChatPanel({
                     )}
                 </div>
                 <div className="flex items-center space-x-1">
+                    {/* 發送照片按鈕 */}
+                    {selectedConversation && selectedConversation.sender_id && (
+                        <button
+                            onClick={() => setPhotoModalOpen(true)}
+                            className="flex items-center space-x-1 text-xs text-purple-600 hover:text-purple-700 px-2 py-1 rounded hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                            title="發送環境照片"
+                        >
+                            <Camera className="w-3 h-3" />
+                            <span>照片</span>
+                        </button>
+                    )}
                     {/* 建立報價單按鈕（開啟報價建議 Modal）*/}
                     {selectedConversation && selectedConversation.sender_id && (
                         <button
@@ -612,6 +625,14 @@ const ChatPanel = memo(function ChatPanel({
             <QuoteSuggestionModal
                 isOpen={quoteModalOpen}
                 onClose={() => setQuoteModalOpen(false)}
+                lineUserId={selectedConversation?.sender_id}
+                customerName={selectedConversation?.sender_name}
+            />
+
+            {/* 照片發送 Modal */}
+            <PhotoSendModal
+                isOpen={photoModalOpen}
+                onClose={() => setPhotoModalOpen(false)}
                 lineUserId={selectedConversation?.sender_id}
                 customerName={selectedConversation?.sender_name}
             />
