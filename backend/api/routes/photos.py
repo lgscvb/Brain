@@ -73,6 +73,52 @@ async def list_photos(category: Optional[str] = None):
     }
 
 
+@router.get("/photos/categories")
+async def get_categories():
+    """
+    取得所有照片分類
+    """
+    return {
+        "success": True,
+        "categories": [
+            {"key": k, "name": v}
+            for k, v in CATEGORY_NAMES.items()
+            if k != "all"
+        ],
+        "all_option": {"key": "all", "name": "全部照片"}
+    }
+
+
+@router.get("/photos/status")
+async def get_photo_status():
+    """
+    取得照片服務狀態（R2 配置狀態、照片數量等）
+    """
+    r2_client = get_r2_photo_client()
+    is_configured = r2_client.is_configured()
+
+    status = {
+        "success": True,
+        "r2_configured": is_configured,
+        "bucket": r2_client.bucket if is_configured else None,
+        "prefix": r2_client.prefix if is_configured else None,
+    }
+
+    if is_configured:
+        # 取得各分類照片數量
+        category_counts = {}
+        for cat in CATEGORY_NAMES.keys():
+            if cat == "all":
+                continue
+            result = await get_photos_by_category(cat)
+            category_counts[cat] = result.get("count", 0)
+
+        status["category_counts"] = category_counts
+        status["total_photos"] = sum(category_counts.values())
+
+    return status
+
+
 @router.get("/photos/{category}")
 async def list_photos_by_category(category: str):
     """
@@ -181,49 +227,3 @@ async def upload_photo(request: UploadPhotoRequest):
         "r2_path": result.get("r2_path"),
         "category": request.category
     }
-
-
-@router.get("/photos/categories")
-async def get_categories():
-    """
-    取得所有照片分類
-    """
-    return {
-        "success": True,
-        "categories": [
-            {"key": k, "name": v}
-            for k, v in CATEGORY_NAMES.items()
-            if k != "all"
-        ],
-        "all_option": {"key": "all", "name": "全部照片"}
-    }
-
-
-@router.get("/photos/status")
-async def get_photo_status():
-    """
-    取得照片服務狀態（R2 配置狀態、照片數量等）
-    """
-    r2_client = get_r2_photo_client()
-    is_configured = r2_client.is_configured()
-
-    status = {
-        "success": True,
-        "r2_configured": is_configured,
-        "bucket": r2_client.bucket if is_configured else None,
-        "prefix": r2_client.prefix if is_configured else None,
-    }
-
-    if is_configured:
-        # 取得各分類照片數量
-        category_counts = {}
-        for cat in CATEGORY_NAMES.keys():
-            if cat == "all":
-                continue
-            result = await get_photos_by_category(cat)
-            category_counts[cat] = result.get("count", 0)
-
-        status["category_counts"] = category_counts
-        status["total_photos"] = sum(category_counts.values())
-
-    return status
