@@ -61,7 +61,7 @@ class CompanyNameCache:
 # 全域快取實例
 _company_name_cache = CompanyNameCache(ttl_seconds=300)
 from db.database import get_db
-from db.models import Message, Draft, Response
+from db.models import Message, Draft, Response, Attachment
 from db.schemas import (
     MessageCreate,
     MessageRead,
@@ -135,17 +135,20 @@ async def get_message(
     message_id: int,
     db: AsyncSession = Depends(get_db)
 ):
-    """取得單一訊息詳情"""
+    """取得單一訊息詳情（含草稿和附件）"""
     result = await db.execute(
         select(Message)
-        .options(selectinload(Message.drafts))
+        .options(
+            selectinload(Message.drafts),
+            selectinload(Message.attachments)
+        )
         .where(Message.id == message_id)
     )
     message = result.scalar_one_or_none()
-    
+
     if not message:
         raise HTTPException(status_code=404, detail="訊息不存在")
-    
+
     return message
 
 
@@ -691,10 +694,13 @@ async def get_conversation_messages(
     # URL decode sender_id (LINE user ID 可能含特殊字元)
     decoded_sender_id = unquote(sender_id)
 
-    # 1. 查詢訊息（含草稿）
+    # 1. 查詢訊息（含草稿和附件）
     result = await db.execute(
         select(Message)
-        .options(selectinload(Message.drafts))
+        .options(
+            selectinload(Message.drafts),
+            selectinload(Message.attachments)
+        )
         .where(Message.sender_id == decoded_sender_id)
         .order_by(desc(Message.created_at))
     )
@@ -740,7 +746,21 @@ async def get_conversation_messages(
                 "final_content": resp.final_content,
                 "sent_at": resp.sent_at.isoformat() if resp.sent_at else None,
                 "is_modified": resp.is_modified
-            } if resp else None
+            } if resp else None,
+            # 新增：附件資訊（圖片、PDF 等媒體檔案）
+            "attachments": [
+                {
+                    "id": att.id,
+                    "media_type": att.media_type,
+                    "file_name": att.file_name,
+                    "file_size": att.file_size,
+                    "r2_url": att.r2_url,
+                    "ocr_text": att.ocr_text[:200] + "..." if att.ocr_text and len(att.ocr_text) > 200 else att.ocr_text,
+                    "ocr_status": att.ocr_status,
+                    "created_at": att.created_at.isoformat() if att.created_at else None
+                }
+                for att in msg.attachments
+            ] if msg.attachments else []
         }
         messages_data.append(msg_dict)
 

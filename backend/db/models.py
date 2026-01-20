@@ -30,6 +30,56 @@ class Message(Base):
     # Relationships
     drafts = relationship("Draft", back_populates="message", cascade="all, delete-orphan")
     responses = relationship("Response", back_populates="message", cascade="all, delete-orphan")
+    attachments = relationship("Attachment", back_populates="message", cascade="all, delete-orphan")
+
+
+class Attachment(Base):
+    """
+    媒體附件模型
+
+    【用途】
+    儲存客戶透過 LINE 傳送的圖片、PDF 等媒體檔案：
+    1. 從 LINE 下載媒體內容
+    2. 上傳到 Cloudflare R2 永久存儲
+    3. 使用 Claude Vision 做 OCR 提取文字
+    4. OCR 結果加入對話上下文，讓 AI 理解圖片/文件內容
+
+    【流程】
+    LINE 圖片 → download_media() → R2 上傳 → Claude Vision OCR → 存入 ocr_text
+    """
+    __tablename__ = "attachments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    message_id = Column(Integer, ForeignKey("messages.id"), nullable=False)
+
+    # LINE 訊息資訊
+    line_message_id = Column(String(50), unique=True, nullable=False)  # LINE 媒體訊息 ID
+
+    # 媒體類型
+    media_type = Column(String(20), nullable=False)  # image, pdf, file, video, audio
+    mime_type = Column(String(100), nullable=True)   # image/jpeg, application/pdf, etc.
+    file_name = Column(String(255), nullable=True)   # 原始檔名（PDF/file 才有）
+    file_size = Column(Integer, nullable=True)       # 檔案大小（bytes）
+
+    # R2 存儲
+    r2_path = Column(String(500), nullable=True)     # R2 上的路徑
+    r2_url = Column(String(1000), nullable=True)     # 簽名 URL（定期更新）
+    r2_url_expires_at = Column(DateTime, nullable=True)  # URL 過期時間
+
+    # OCR 結果
+    ocr_text = Column(Text, nullable=True)           # OCR 提取的文字
+    ocr_status = Column(String(20), default="pending")  # pending, processing, completed, failed
+    ocr_error = Column(Text, nullable=True)          # OCR 失敗原因
+
+    # 處理狀態
+    download_status = Column(String(20), default="pending")  # pending, downloaded, failed
+
+    # 時間戳
+    created_at = Column(DateTime, default=datetime.utcnow)
+    processed_at = Column(DateTime, nullable=True)   # OCR 完成時間
+
+    # Relationships
+    message = relationship("Message", back_populates="attachments")
 
 
 class Draft(Base):

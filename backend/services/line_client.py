@@ -11,6 +11,7 @@ from linebot.v3.messaging import (
     ApiClient,
     Configuration,
     MessagingApi,
+    MessagingApiBlob,  # 媒體下載 API
     PushMessageRequest,
     TextMessage,
     FlexMessage,
@@ -37,13 +38,15 @@ class LineClient:
             self.mock_mode = True
             self.api_client = None
             self.messaging_api = None
+            self.blob_api = None  # 媒體下載 API
             self.handler = None
         else:
             # 設定 LINE SDK
             configuration = Configuration(access_token=settings.LINE_CHANNEL_ACCESS_TOKEN)
             self.api_client = ApiClient(configuration)
             self.messaging_api = MessagingApi(self.api_client)
-            
+            self.blob_api = MessagingApiBlob(self.api_client)  # 媒體下載 API
+
             # Webhook Handler
             self.handler = WebhookHandler(settings.LINE_CHANNEL_SECRET)
     
@@ -182,6 +185,49 @@ class LineClient:
             是否發送成功
         """
         return await self.send_text_message(user_id, text)
+
+    def download_media(self, message_id: str) -> Dict:
+        """
+        下載 LINE 媒體內容（圖片、檔案、影片、音訊）
+
+        LINE 媒體內容在訊息送出後只保留 30 天，需要盡快下載保存。
+
+        Args:
+            message_id: LINE 訊息 ID（從 webhook event 取得）
+
+        Returns:
+            {
+                "success": True/False,
+                "content": bytes (媒體二進位內容),
+                "error": str (失敗時的錯誤訊息)
+            }
+        """
+        if self.mock_mode:
+            logger.debug(f"[模擬模式] 下載媒體 message_id={message_id}")
+            return {"success": False, "error": "Mock mode - 無法下載媒體"}
+
+        try:
+            # 使用 MessagingApiBlob 下載媒體內容
+            # get_message_content 返回的是 generator，需要轉換為 bytes
+            response = self.blob_api.get_message_content(message_id)
+
+            # 將 response 轉換為 bytes
+            # LINE SDK v3 返回的是 bytearray 或 generator
+            if hasattr(response, 'read'):
+                # 如果是 file-like object
+                content = response.read()
+            elif isinstance(response, (bytes, bytearray)):
+                content = bytes(response)
+            else:
+                # 可能是 generator，需要拼接
+                content = b''.join(response)
+
+            logger.info(f"成功下載媒體 message_id={message_id}, size={len(content)} bytes")
+            return {"success": True, "content": content}
+
+        except Exception as e:
+            logger.error(f"下載媒體失敗 message_id={message_id}: {e}")
+            return {"success": False, "error": str(e)}
 
 
 # 全域 LINE 客戶端實例

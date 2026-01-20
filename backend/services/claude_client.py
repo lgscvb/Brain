@@ -371,6 +371,116 @@ class ClaudeClient:
             logger.error(f"AI API 調用失敗: {e}")
             raise AIClientError(f"AI API 調用失敗: {str(e)}")
 
+    async def analyze_image(
+        self,
+        image_base64: str,
+        prompt: str,
+        media_type: str = "image/jpeg"
+    ) -> Dict:
+        """
+        使用 Claude Vision 分析圖片（OCR、內容理解）
+
+        這個方法用於：
+        1. OCR 提取圖片中的文字
+        2. 名片識別與資訊提取
+        3. 文件內容理解
+
+        Args:
+            image_base64: Base64 編碼的圖片內容
+            prompt: 分析提示詞（如「請提取圖片中的所有文字」）
+            media_type: 圖片 MIME 類型（image/jpeg, image/png, image/webp, image/gif）
+
+        Returns:
+            {
+                "success": True/False,
+                "content": str (分析結果),
+                "error": str (失敗時的錯誤訊息),
+                "_usage": dict (API 用量)
+            }
+        """
+        if self.mock_mode:
+            return {
+                "success": True,
+                "content": "[模擬模式] 這是一張圖片，內容為測試文字。",
+                "_usage": {"input_tokens": 0, "output_tokens": 0, "model": "mock"}
+            }
+
+        try:
+            if self.provider == "openrouter":
+                # OpenRouter 使用 OpenAI 相容格式
+                response = await self.openrouter_client.chat.completions.create(
+                    model=settings.MODEL_SMART,
+                    messages=[{
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:{media_type};base64,{image_base64}"
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "text": prompt
+                            }
+                        ]
+                    }],
+                    max_tokens=2000,
+                    temperature=0.3  # 低溫度以獲得更準確的 OCR 結果
+                )
+                content = response.choices[0].message.content
+                usage = {
+                    "input_tokens": response.usage.prompt_tokens if response.usage else 0,
+                    "output_tokens": response.usage.completion_tokens if response.usage else 0,
+                    "model": settings.MODEL_SMART
+                }
+            else:
+                # Anthropic 直連使用原生 Vision 格式
+                response = self.anthropic_client.messages.create(
+                    model=self.model,
+                    max_tokens=2000,
+                    temperature=0.3,
+                    messages=[{
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image",
+                                "source": {
+                                    "type": "base64",
+                                    "media_type": media_type,
+                                    "data": image_base64
+                                }
+                            },
+                            {
+                                "type": "text",
+                                "text": prompt
+                            }
+                        ]
+                    }]
+                )
+                content = response.content[0].text
+                usage = {
+                    "input_tokens": response.usage.input_tokens,
+                    "output_tokens": response.usage.output_tokens,
+                    "model": self.model
+                }
+
+            logger.info(f"Vision 分析完成，輸出 {len(content)} 字")
+            return {
+                "success": True,
+                "content": content.strip(),
+                "_usage": usage
+            }
+
+        except Exception as e:
+            logger.error(f"Vision 分析失敗: {e}")
+            return {
+                "success": False,
+                "content": "",
+                "error": str(e),
+                "_usage": {"input_tokens": 0, "output_tokens": 0, "model": "error"}
+            }
+
     async def analyze_modification(
         self,
         original: str,

@@ -16,8 +16,9 @@ from fastapi import APIRouter, Request, HTTPException, BackgroundTasks, Depends
 logger = logging.getLogger(__name__)
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.database import get_db
-from db.models import Message
+from db.models import Message, Attachment
 from brain.draft_generator import get_draft_generator
+from services.media_service import get_media_service
 from services.line_client import get_line_client
 from services.crm_client import get_crm_client
 from services.rate_limiter import get_rate_limiter
@@ -92,6 +93,212 @@ async def line_webhook(
                     logger.warning(f"[Booking] Postback 轉發失敗: {forward_result.get('error')}")
 
                 continue  # 跳過後續處理
+
+        # === 處理圖片訊息 ===
+        if event_type == 'message' and event.get('message', {}).get('type') == 'image':
+            line_message_id = event.get('message', {}).get('id', '')
+            if not line_message_id:
+                continue
+
+            logger.info(f"[Brain] 處理圖片訊息 message_id={line_message_id}")
+
+            # 建立訊息記錄（先用佔位文字，稍後更新）
+            message = Message(
+                source="line_oa",
+                sender_id=user_id,
+                sender_name=user_name,
+                content="[圖片] 處理中...",
+                status="pending",
+                priority="medium"
+            )
+            db.add(message)
+            await db.commit()
+            await db.refresh(message)
+
+            # 背景處理圖片（下載 → R2 → OCR）
+            async def process_image_task(msg_id: int, line_msg_id: str, uid: str, uname: str):
+                from db.database import AsyncSessionLocal
+                from datetime import datetime
+
+                async with AsyncSessionLocal() as task_db:
+                    try:
+                        media_service = get_media_service()
+                        result = await media_service.process_image(
+                            line_message_id=line_msg_id,
+                            sender_id=uid,
+                            mime_type="image/jpeg"
+                        )
+
+                        # 建立 Attachment 記錄
+                        attachment = Attachment(
+                            message_id=msg_id,
+                            line_message_id=line_msg_id,
+                            media_type="image",
+                            mime_type="image/jpeg",
+                            file_name=result.get("file_name"),
+                            file_size=result.get("file_size"),
+                            r2_path=result.get("r2_path"),
+                            r2_url=result.get("r2_url"),
+                            ocr_text=result.get("ocr_text", ""),
+                            ocr_status=result.get("ocr_status", "pending"),
+                            download_status=result.get("download_status", "pending"),
+                            processed_at=datetime.utcnow() if result.get("success") else None
+                        )
+                        task_db.add(attachment)
+
+                        # 更新 Message 內容（加入 OCR 結果摘要）
+                        from sqlalchemy import select
+                        msg_result = await task_db.execute(
+                            select(Message).where(Message.id == msg_id)
+                        )
+                        msg = msg_result.scalar_one_or_none()
+                        if msg:
+                            ocr_text = result.get("ocr_text", "")
+                            if ocr_text:
+                                # 截取前 200 字作為摘要
+                                summary = ocr_text[:200] + "..." if len(ocr_text) > 200 else ocr_text
+                                msg.content = f"[客戶傳送圖片]\n{summary}"
+                            else:
+                                msg.content = "[客戶傳送圖片] (無文字內容)"
+
+                        await task_db.commit()
+                        logger.info(f"[Brain] 圖片處理完成 message_id={msg_id}, attachment_id={attachment.id}")
+
+                        # 如果是自動回覆模式，觸發草稿生成
+                        if settings.AUTO_REPLY_MODE and ocr_text:
+                            draft_generator = get_draft_generator()
+                            await draft_generator.generate(
+                                db=task_db,
+                                message_id=msg_id,
+                                content=msg.content,
+                                sender_name=uname,
+                                source="line_oa",
+                                sender_id=uid
+                            )
+
+                    except Exception as e:
+                        logger.error(f"[Brain] 圖片處理失敗: {e}")
+
+            background_tasks.add_task(
+                process_image_task,
+                message.id, line_message_id, user_id, user_name
+            )
+            continue
+
+        # === 處理檔案訊息（包含 PDF）===
+        if event_type == 'message' and event.get('message', {}).get('type') == 'file':
+            line_message_id = event.get('message', {}).get('id', '')
+            file_name = event.get('message', {}).get('fileName', '')
+            file_size = event.get('message', {}).get('fileSize', 0)
+
+            if not line_message_id:
+                continue
+
+            logger.info(f"[Brain] 處理檔案訊息: {file_name} ({file_size} bytes)")
+
+            # 判斷是否為 PDF
+            is_pdf = file_name.lower().endswith('.pdf') if file_name else False
+
+            # 建立訊息記錄
+            message = Message(
+                source="line_oa",
+                sender_id=user_id,
+                sender_name=user_name,
+                content=f"[檔案: {file_name}] 處理中...",
+                status="pending",
+                priority="medium"
+            )
+            db.add(message)
+            await db.commit()
+            await db.refresh(message)
+
+            # 背景處理檔案
+            async def process_file_task(
+                msg_id: int, line_msg_id: str, uid: str, uname: str,
+                fname: str, fsize: int, pdf: bool
+            ):
+                from db.database import AsyncSessionLocal
+                from datetime import datetime
+
+                async with AsyncSessionLocal() as task_db:
+                    try:
+                        media_service = get_media_service()
+
+                        if pdf:
+                            # PDF 處理（含文字提取）
+                            result = await media_service.process_pdf(
+                                line_message_id=line_msg_id,
+                                sender_id=uid,
+                                file_name=fname
+                            )
+                            media_type = "pdf"
+                            mime_type = "application/pdf"
+                        else:
+                            # 一般檔案（僅存儲）
+                            result = await media_service.process_file(
+                                line_message_id=line_msg_id,
+                                sender_id=uid,
+                                file_name=fname,
+                                file_size=fsize
+                            )
+                            media_type = "file"
+                            mime_type = "application/octet-stream"
+
+                        # 建立 Attachment 記錄
+                        attachment = Attachment(
+                            message_id=msg_id,
+                            line_message_id=line_msg_id,
+                            media_type=media_type,
+                            mime_type=mime_type,
+                            file_name=result.get("file_name", fname),
+                            file_size=result.get("file_size", fsize),
+                            r2_path=result.get("r2_path"),
+                            r2_url=result.get("r2_url"),
+                            ocr_text=result.get("ocr_text", ""),
+                            ocr_status=result.get("ocr_status", "skipped"),
+                            download_status=result.get("download_status", "pending"),
+                            processed_at=datetime.utcnow() if result.get("success") else None
+                        )
+                        task_db.add(attachment)
+
+                        # 更新 Message 內容
+                        from sqlalchemy import select
+                        msg_result = await task_db.execute(
+                            select(Message).where(Message.id == msg_id)
+                        )
+                        msg = msg_result.scalar_one_or_none()
+                        if msg:
+                            ocr_text = result.get("ocr_text", "")
+                            if pdf and ocr_text:
+                                summary = ocr_text[:300] + "..." if len(ocr_text) > 300 else ocr_text
+                                msg.content = f"[客戶傳送 PDF: {fname}]\n{summary}"
+                            else:
+                                msg.content = f"[客戶傳送檔案: {fname}]"
+
+                        await task_db.commit()
+                        logger.info(f"[Brain] 檔案處理完成 message_id={msg_id}")
+
+                        # PDF 且有 OCR 結果時，觸發草稿生成
+                        if settings.AUTO_REPLY_MODE and pdf and ocr_text:
+                            draft_generator = get_draft_generator()
+                            await draft_generator.generate(
+                                db=task_db,
+                                message_id=msg_id,
+                                content=msg.content,
+                                sender_name=uname,
+                                source="line_oa",
+                                sender_id=uid
+                            )
+
+                    except Exception as e:
+                        logger.error(f"[Brain] 檔案處理失敗: {e}")
+
+            background_tasks.add_task(
+                process_file_task,
+                message.id, line_message_id, user_id, user_name,
+                file_name, file_size, is_pdf
+            )
+            continue
 
         # === 處理文字訊息 ===
         if event_type == 'message' and event.get('message', {}).get('type') == 'text':

@@ -14,7 +14,7 @@ Brain - 草稿生成器
 from typing import Dict, Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
-from db.models import Message, Draft, Response, APIUsage
+from db.models import Message, Draft, Response, APIUsage, Attachment
 from services.claude_client import get_claude_client
 from services.rag_service import get_rag_service
 from services.crm_client import get_crm_client
@@ -95,6 +95,70 @@ class DraftGenerator:
         history_parts.append("\n---\n\n")
         return "\n".join(history_parts)
 
+    async def get_media_context(
+        self,
+        db: AsyncSession,
+        sender_id: str,
+        current_message_id: int
+    ) -> str:
+        """
+        取得此對話中的媒體附件上下文（圖片 OCR、PDF 文字等）
+
+        這個上下文讓 LLM 知道客戶傳送了哪些檔案和圖片，
+        以及這些媒體中包含的文字內容。
+
+        Args:
+            db: 資料庫連線
+            sender_id: 發送者 ID
+            current_message_id: 當前訊息 ID
+
+        Returns:
+            格式化的媒體上下文字串
+        """
+        # 查詢此客戶最近的媒體附件（限制 5 個，只取 OCR 完成的）
+        result = await db.execute(
+            select(Attachment)
+            .join(Message)
+            .where(Message.sender_id == sender_id)
+            .where(Attachment.ocr_status == "completed")
+            .where(Attachment.ocr_text.isnot(None))
+            .where(Attachment.ocr_text != "")
+            .order_by(desc(Attachment.created_at))
+            .limit(5)
+        )
+        attachments = result.scalars().all()
+
+        if not attachments:
+            return ""
+
+        # 反轉順序，讓最舊的在前面
+        attachments = list(reversed(attachments))
+
+        parts = ["## 客戶傳送的媒體檔案\n"]
+
+        for att in attachments:
+            time_str = att.created_at.strftime("%m/%d %H:%M") if att.created_at else ""
+
+            if att.media_type == "image":
+                # 圖片 OCR 結果
+                ocr_preview = att.ocr_text[:500] + "..." if len(att.ocr_text) > 500 else att.ocr_text
+                parts.append(f"**[{time_str}] 圖片內容：**\n{ocr_preview}\n")
+
+            elif att.media_type == "pdf":
+                # PDF 文字內容
+                ocr_preview = att.ocr_text[:800] + "..." if len(att.ocr_text) > 800 else att.ocr_text
+                file_info = f" ({att.file_name})" if att.file_name else ""
+                parts.append(f"**[{time_str}] PDF 文件{file_info}：**\n{ocr_preview}\n")
+
+            elif att.media_type == "file":
+                # 一般檔案（通常沒有 OCR）
+                if att.ocr_text:
+                    ocr_preview = att.ocr_text[:500] + "..." if len(att.ocr_text) > 500 else att.ocr_text
+                    parts.append(f"**[{time_str}] 檔案 ({att.file_name})：**\n{ocr_preview}\n")
+
+        parts.append("\n---\n\n")
+        return "\n".join(parts)
+
     async def generate(
         self,
         db: AsyncSession,
@@ -125,6 +189,17 @@ class DraftGenerator:
                 )
                 if conversation_history:
                     print(f"📜 載入對話歷史 (sender_id: {sender_id[:20]}...)")
+
+            # === 第零.五步：取得媒體上下文（圖片 OCR、PDF 等）===
+            media_context = ""
+            if sender_id:
+                media_context = await self.get_media_context(
+                    db=db,
+                    sender_id=sender_id,
+                    current_message_id=message_id
+                )
+                if media_context:
+                    print(f"🖼️ 載入媒體上下文 (sender_id: {sender_id[:20]}...)")
 
             # === 第一步：LLM Routing 分流判斷 ===
             routing_result = await self.claude_client.route_task(content)
@@ -187,14 +262,21 @@ class DraftGenerator:
                 except Exception as e:
                     print(f"⚠️ 查詢 CRM 客戶資料失敗: {e}")
 
-            # === 第三步：生成草稿（含對話上下文 + RAG 知識 + 客戶資料）===
+            # === 第三步：生成草稿（含對話上下文 + 媒體上下文 + RAG 知識 + 客戶資料）===
+            # 合併媒體上下文和對話歷史（媒體在前，對話在後）
+            combined_history = ""
+            if media_context:
+                combined_history += media_context + "\n"
+            if conversation_history:
+                combined_history += conversation_history
+
             draft_result = await self.claude_client.generate_draft(
                 message=content,
                 sender_name=sender_name,
                 source=source,
                 context={"intent": suggested_intent, "routing": routing_result},
                 model=target_model if settings.AI_PROVIDER == "openrouter" else None,
-                conversation_history=conversation_history,
+                conversation_history=combined_history,
                 rag_context=rag_context,
                 customer_context=customer_context
             )
