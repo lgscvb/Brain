@@ -10,6 +10,7 @@ Brain - 訊息管理 API 路由
 【效能優化】
 - CRM 公司名稱快取：5 分鐘 TTL，避免每次請求都呼叫 CRM API
 """
+import logging
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 from urllib.parse import unquote
@@ -19,6 +20,8 @@ from sqlalchemy import select, func, desc, case, delete
 from sqlalchemy.orm import selectinload
 import httpx
 import time
+
+logger = logging.getLogger(__name__)
 
 
 # ====== CRM 公司名稱快取 ======
@@ -186,7 +189,7 @@ async def create_message(
                     sender_id=message.sender_id  # 用於取得對話歷史
                 )
             except Exception as e:
-                print(f"背景草稿生成失敗: {str(e)}")
+                logger.error(f"背景草稿生成失敗: {e}")
     
     background_tasks.add_task(generate_draft_task)
     
@@ -267,7 +270,7 @@ async def send_reply(
                 text=response_data.content
             )
         except Exception as e:
-            print(f"LINE 訊息發送失敗: {str(e)}")
+            logger.error(f"LINE 訊息發送失敗: {e}")
             # 不中斷流程，但記錄錯誤
     
     await db.commit()
@@ -442,7 +445,7 @@ async def _fetch_crm_company_names(sender_ids: List[str]) -> Dict[str, str]:
                 # 更新快取
                 _company_name_cache.update(company_name_map)
     except Exception as e:
-        print(f"無法取得 CRM 公司名稱: {e}")
+        logger.warning(f"無法取得 CRM 公司名稱: {e}")
         # API 失敗時，如果有舊快取就用舊快取
         if not _company_name_cache.is_empty():
             return {sid: _company_name_cache.get(sid) or "" for sid in sender_ids}
@@ -665,7 +668,7 @@ async def send_conversation_reply(
                 text=response_data.content
             )
         except Exception as e:
-            print(f"LINE 訊息發送失敗: {str(e)}")
+            logger.error(f"LINE 訊息發送失敗: {e}")
 
     await db.commit()
 

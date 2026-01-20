@@ -2,7 +2,10 @@
 Brain - 訊息分析摘要 API
 提供訊息優先級分類、摘要統計、CRM 交叉比對智能建議
 """
+import logging
 from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
 from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -377,7 +380,7 @@ async def analyze_message_intent(messages: List[str]) -> Dict[str, Any]:
                 if match:
                     return json.loads(match.group(0))
     except Exception as e:
-        print(f"⚠️ LLM 分析失敗: {e}")
+        logger.warning(f"LLM 分析失敗: {e}")
 
     # 回退到關鍵字分析
     text = " ".join(messages).lower()
@@ -517,7 +520,7 @@ async def get_crm_insights(
             suggestions.append(suggestion)
 
         except Exception as e:
-            print(f"⚠️ 分析 {sender_id} 失敗: {e}")
+            logger.warning(f"分析 {sender_id} 失敗: {e}")
             continue
 
     # 4. 生成摘要

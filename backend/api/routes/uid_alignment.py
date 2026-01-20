@@ -2,7 +2,10 @@
 Brain - UID 對齊 API
 用於將 LINE User ID 與 CRM 客戶進行手動配對
 """
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
+
+logger = logging.getLogger(__name__)
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, distinct, desc
 from typing import Optional, List
@@ -95,7 +98,7 @@ async def get_unmatched_senders(
             crm_customers = response.json()
             matched_uids = set(c['line_user_id'] for c in crm_customers if c.get('line_user_id'))
     except Exception as e:
-        print(f"無法連接 CRM API: {e}")
+        logger.warning(f"無法連接 CRM API: {e}")
         matched_uids = set()
 
     # 查詢 Brain 中所有唯一的 sender_id
@@ -322,7 +325,7 @@ async def get_alignment_stats(db: AsyncSession = Depends(get_db)):
             with_uid = len([c for c in customers_with_contract if c.get('line_user_id')])
 
     except Exception as e:
-        print(f"無法取得 CRM 統計: {e}")
+        logger.warning(f"無法取得 CRM 統計: {e}")
         total_customers = 0
         with_uid = 0
 

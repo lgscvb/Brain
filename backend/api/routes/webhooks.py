@@ -10,7 +10,10 @@ Brain - Webhook API 路由
 
 注意：預約相關的 Postback 事件也轉發到 MCP Server 處理
 """
+import logging
 from fastapi import APIRouter, Request, HTTPException, BackgroundTasks, Depends
+
+logger = logging.getLogger(__name__)
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.database import get_db
 from db.models import Message
@@ -72,7 +75,7 @@ async def line_webhook(
 
             # 檢查是否為預約相關的 postback
             if postback_data.startswith('action=book') or postback_data.startswith('action=cancel'):
-                print(f"📅 [Booking] 處理 postback: {postback_data[:50]}...")
+                logger.info(f"[Booking] 處理 postback: {postback_data[:50]}...")
 
                 # 轉發到 MCP Server 處理（MCP Server 的 LLM 有 booking tools）
                 crm_client = get_crm_client()
@@ -84,9 +87,9 @@ async def line_webhook(
                 )
 
                 if forward_result.get("success"):
-                    print(f"✅ [Booking] Postback 已轉發到 MCP Server")
+                    logger.info("[Booking] Postback 已轉發到 MCP Server")
                 else:
-                    print(f"⚠️ [Booking] Postback 轉發失敗: {forward_result.get('error')}")
+                    logger.warning(f"[Booking] Postback 轉發失敗: {forward_result.get('error')}")
 
                 continue  # 跳過後續處理
 
@@ -97,7 +100,7 @@ async def line_webhook(
             if not message_text:
                 continue
 
-            print(f"📝 [Brain] 處理訊息: '{message_text[:30]}...'")
+            logger.info(f"[Brain] 處理訊息: '{message_text[:30]}...'")
 
             # === 防洗頻檢查（放在 LLM routing 之前，節省 API 費用）===
             if settings.ENABLE_RATE_LIMIT:
@@ -105,7 +108,7 @@ async def line_webhook(
                 is_allowed, reason = rate_limiter.check_rate_limit(user_id, message_text)
 
                 if not is_allowed:
-                    print(f"🚫 訊息被攔截 (user: {user_id[:20]}...): {reason}")
+                    logger.info(f"訊息被攔截 (user: {user_id[:20]}...): {reason}")
 
                     # 可選：回覆用戶被限制的訊息
                     if reason.startswith("cooldown:"):
@@ -136,11 +139,11 @@ async def line_webhook(
             complexity = routing_result.get("complexity", "COMPLEX")
             suggested_intent = routing_result.get("suggested_intent", "其他")
 
-            print(f"🤖 [Routing] complexity={complexity}, intent={suggested_intent}")
+            logger.debug(f"[Routing] complexity={complexity}, intent={suggested_intent}")
 
             # === BOOKING 意圖 → 先檢查會員身份 ===
             if complexity == "BOOKING":
-                print(f"📅 [Booking] LLM 判斷為預約意圖，檢查會員身份")
+                logger.info("[Booking] LLM 判斷為預約意圖，檢查會員身份")
 
                 # 檢查是否為會員（有 active 合約）
                 crm_client = get_crm_client()
@@ -151,13 +154,13 @@ async def line_webhook(
                     contracts = customer.get("contracts", [])
                     active_contracts = [c for c in contracts if c.get("contract_status") == "active"]
                     is_member = len(active_contracts) > 0
-                    print(f"👤 [Booking] 客戶: {customer.get('name')}, 有效合約: {len(active_contracts)}")
+                    logger.debug(f"[Booking] 客戶: {customer.get('name')}, 有效合約: {len(active_contracts)}")
                 else:
-                    print(f"👤 [Booking] 非 CRM 客戶")
+                    logger.debug("[Booking] 非 CRM 客戶")
 
                 if is_member:
                     # === 會員 → 轉發到 MCP Server 自助預約 ===
-                    print(f"✅ [Booking] 會員，轉發到 MCP Server 自助預約")
+                    logger.info("[Booking] 會員，轉發到 MCP Server 自助預約")
 
                     # 記錄訊息到 Brain（狀態為 booking）
                     booking_message = Message(
@@ -170,7 +173,7 @@ async def line_webhook(
                     )
                     db.add(booking_message)
                     await db.commit()
-                    print(f"📝 [Brain] 已記錄預約訊息 (ID: {booking_message.id})")
+                    logger.debug(f"[Brain] 已記錄預約訊息 (ID: {booking_message.id})")
 
                     # 轉發到 MCP Server
                     forward_result = await crm_client.forward_line_event(
@@ -180,9 +183,9 @@ async def line_webhook(
                     )
 
                     if forward_result.get("success"):
-                        print(f"✅ [Booking] 已轉發到 MCP Server")
+                        logger.info("[Booking] 已轉發到 MCP Server")
                     else:
-                        print(f"⚠️ [Booking] 轉發失敗: {forward_result.get('error')}")
+                        logger.warning(f"[Booking] 轉發失敗: {forward_result.get('error')}")
                         await line_client.reply_message(
                             user_id,
                             "抱歉，預約系統暫時無法使用，請稍後再試或直接聯繫客服。"
@@ -191,14 +194,14 @@ async def line_webhook(
                     continue  # 會員預約不進入草稿生成流程
                 else:
                     # === 非會員 → 走正常草稿生成，讓 AI 引導付費租借方案 ===
-                    print(f"💰 [Booking] 非會員，走正常草稿生成（引導付費租借）")
+                    logger.info("[Booking] 非會員，走正常草稿生成（引導付費租借）")
                     # 不 continue，繼續往下走草稿生成流程
                     # 把 suggested_intent 標記為會議室租借
                     suggested_intent = "會議室租借"
 
             # === PHOTO 意圖 → 發送照片 Flex Message ===
             if complexity == "PHOTO":
-                print(f"📷 [Photo] LLM 判斷為看照片意圖")
+                logger.info("[Photo] LLM 判斷為看照片意圖")
 
                 # 記錄訊息到 Brain
                 photo_message = Message(
@@ -211,16 +214,16 @@ async def line_webhook(
                 )
                 db.add(photo_message)
                 await db.commit()
-                print(f"📝 [Brain] 已記錄照片請求 (ID: {photo_message.id})")
+                logger.debug(f"[Brain] 已記錄照片請求 (ID: {photo_message.id})")
 
                 # 發送照片 Flex Message
                 from services.photo_service import send_photos_to_user
                 photo_result = await send_photos_to_user(user_id, category="all")
 
                 if photo_result.get("success"):
-                    print(f"✅ [Photo] 照片已發送給 {user_name}")
+                    logger.info(f"[Photo] 照片已發送給 {user_name}")
                 else:
-                    print(f"⚠️ [Photo] 照片發送失敗: {photo_result.get('error')}")
+                    logger.warning(f"[Photo] 照片發送失敗: {photo_result.get('error')}")
                     # 發送失敗時，回覆文字訊息
                     await line_client.reply_message(
                         user_id,
@@ -291,10 +294,10 @@ async def line_webhook(
                                     msg.status = "sent"
                                     await task_db.commit()
 
-                                print(f"✅ 自動模式：已發送草稿給 {user_name}")
+                                logger.info(f"自動模式：已發送草稿給 {user_name}")
 
                     except Exception as e:
-                        print(f"背景草稿生成/發送失敗: {str(e)}")
+                        logger.error(f"背景草稿生成/發送失敗: {e}")
 
             background_tasks.add_task(generate_draft_task)
 

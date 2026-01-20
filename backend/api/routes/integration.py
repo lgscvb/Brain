@@ -2,7 +2,10 @@
 Brain - 整合 API
 提供給 Jungle CRM 調用的 API 端點
 """
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
+
+logger = logging.getLogger(__name__)
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc
 from typing import Optional, List
@@ -248,7 +251,7 @@ async def log_external_message(
                     except ValueError:
                         continue
             except Exception as e:
-                print(f"⚠️ 時間戳解析失敗: {log_data.timestamp}, 使用當前時間")
+                logger.warning(f"時間戳解析失敗: {log_data.timestamp}, 使用當前時間")
                 created_at = None
 
         # 根據 message_type 決定如何記錄
@@ -291,7 +294,7 @@ async def log_external_message(
         await db.commit()
         await db.refresh(message)
 
-        print(f"📝 [Integration] 記錄外部訊息: {log_data.message_type} - {log_data.content[:50]}...")
+        logger.debug(f"[Integration] 記錄外部訊息: {log_data.message_type} - {log_data.content[:50]}...")
 
         return ExternalMessageLogResponse(
             success=True,
@@ -299,7 +302,7 @@ async def log_external_message(
         )
 
     except Exception as e:
-        print(f"❌ [Integration] 記錄失敗: {str(e)}")
+        logger.error(f"[Integration] 記錄失敗: {e}")
         return ExternalMessageLogResponse(
             success=False,
             error=str(e)

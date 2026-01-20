@@ -2,8 +2,11 @@
 Brain - LINE SDK 客戶端
 封裝 LINE Messaging API
 """
+import logging
 from typing import Dict, Optional
 from linebot.v3 import WebhookHandler
+
+logger = logging.getLogger(__name__)
 from linebot.v3.messaging import (
     ApiClient,
     Configuration,
@@ -17,15 +20,20 @@ from linebot.v3.webhooks import MessageEvent, TextMessageContent
 from config import settings
 
 
+class LineClientError(Exception):
+    """LINE API 錯誤"""
+    pass
+
+
 class LineClient:
     """LINE Messaging API 客戶端"""
     
     def __init__(self):
         """初始化 LINE 客戶端"""
         self.mock_mode = False
-        
+
         if not settings.LINE_CHANNEL_ACCESS_TOKEN or not settings.LINE_CHANNEL_SECRET:
-            print("警告：LINE_CHANNEL_ACCESS_TOKEN 或 LINE_CHANNEL_SECRET 未設定，使用模擬模式")
+            logger.warning("LINE_CHANNEL_ACCESS_TOKEN 或 LINE_CHANNEL_SECRET 未設定，使用模擬模式")
             self.mock_mode = True
             self.api_client = None
             self.messaging_api = None
@@ -51,9 +59,9 @@ class LineClient:
             是否發送成功
         """
         if self.mock_mode:
-            print(f"[模擬模式] 發送 LINE 訊息給 {user_id}: {text}")
+            logger.debug(f"[模擬模式] 發送 LINE 訊息給 {user_id}: {text[:50]}...")
             return True
-        
+
         try:
             request = PushMessageRequest(
                 to=user_id,
@@ -62,7 +70,7 @@ class LineClient:
             self.messaging_api.push_message(request)
             return True
         except Exception as e:
-            print(f"發送 LINE 訊息失敗: {str(e)}")
+            logger.error(f"發送 LINE 訊息失敗: {e}")
             return False
     
     async def get_user_profile(self, user_id: str) -> Optional[Dict]:
@@ -97,7 +105,7 @@ class LineClient:
                 "status_message": getattr(profile, 'status_message', None),
             }
         except Exception as e:
-            print(f"取得 LINE 用戶資料失敗: {str(e)}")
+            logger.warning(f"取得 LINE 用戶資料失敗: {e}")
             return None
     
     def verify_signature(self, body: str, signature: str) -> bool:
@@ -128,7 +136,7 @@ class LineClient:
 
             return hmac.compare_digest(signature, expected_signature)
         except Exception as e:
-            print(f"簽名驗證失敗: {str(e)}")
+            logger.error(f"簽名驗證失敗: {e}")
             return False
 
     async def send_flex_message(self, user_id: str, alt_text: str, contents: Dict) -> bool:
@@ -144,7 +152,7 @@ class LineClient:
             是否發送成功
         """
         if self.mock_mode:
-            print(f"[模擬模式] 發送 Flex Message 給 {user_id}: {alt_text}")
+            logger.debug(f"[模擬模式] 發送 Flex Message 給 {user_id}: {alt_text}")
             return True
 
         try:
@@ -159,7 +167,7 @@ class LineClient:
             self.messaging_api.push_message(request)
             return True
         except Exception as e:
-            print(f"發送 Flex Message 失敗: {str(e)}")
+            logger.error(f"發送 Flex Message 失敗: {e}")
             return False
 
     async def reply_message(self, user_id: str, text: str) -> bool:

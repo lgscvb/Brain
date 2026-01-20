@@ -13,6 +13,11 @@ from config import settings
 logger = logging.getLogger(__name__)
 
 
+class AIClientError(Exception):
+    """AI API 錯誤"""
+    pass
+
+
 class ClaudeClient:
     """AI API 客戶端 - 支援 OpenRouter 和 Anthropic"""
 
@@ -27,7 +32,7 @@ class ClaudeClient:
         # 根據 Provider 設定初始化
         if self.provider == "openrouter":
             if not settings.OPENROUTER_API_KEY:
-                print("警告：OPENROUTER_API_KEY 未設定，使用模擬模式")
+                logger.warning("OPENROUTER_API_KEY 未設定，使用模擬模式")
                 self.mock_mode = True
             else:
                 self.openrouter_client = AsyncOpenAI(
@@ -38,17 +43,15 @@ class ClaudeClient:
                         "X-Title": "Hour Jungle Brain"
                     }
                 )
-                print(f"✅ OpenRouter 客戶端已初始化")
-                print(f"   Smart Model: {settings.MODEL_SMART}")
-                print(f"   Fast Model: {settings.MODEL_FAST}")
+                logger.info(f"OpenRouter 客戶端已初始化 (Smart: {settings.MODEL_SMART}, Fast: {settings.MODEL_FAST})")
         else:
             # Anthropic 直連模式
             if not settings.ANTHROPIC_API_KEY:
-                print("警告：ANTHROPIC_API_KEY 未設定，使用模擬模式")
+                logger.warning("ANTHROPIC_API_KEY 未設定，使用模擬模式")
                 self.mock_mode = True
             else:
                 self.anthropic_client = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-                print(f"✅ Anthropic 客戶端已初始化，模型: {self.model}")
+                logger.info(f"Anthropic 客戶端已初始化，模型: {self.model}")
 
     def _parse_json_response(self, content: str) -> Optional[Dict]:
         """
@@ -97,7 +100,7 @@ class ClaudeClient:
                 pass
 
         # 全部失敗
-        print(f"⚠️ JSON 解析失敗，原始內容前 200 字: {content[:200]}")
+        logger.warning(f"JSON 解析失敗，原始內容前 200 字: {content[:200]}")
         return None
 
     async def route_task(self, message: str) -> Dict:
@@ -163,7 +166,7 @@ class ClaudeClient:
                 }
 
         except Exception as e:
-            print(f"❌ 路由判斷失敗，預設為複雜模式: {e}")
+            logger.error(f"路由判斷失敗，預設為複雜模式: {e}")
             return {"complexity": "COMPLEX", "reason": f"分析失敗: {str(e)[:20]}", "suggested_intent": "其他"}
 
     async def generate_draft(
@@ -234,7 +237,7 @@ class ClaudeClient:
                             "max_tokens": settings.THINKING_BUDGET_TOKENS
                         }
                     }
-                    print(f"🧠 啟用 Extended Thinking (budget: {settings.THINKING_BUDGET_TOKENS} tokens)")
+                    logger.debug(f"啟用 Extended Thinking (budget: {settings.THINKING_BUDGET_TOKENS} tokens)")
 
                 response = await self.openrouter_client.chat.completions.create(**api_params)
                 content = response.choices[0].message.content
@@ -294,7 +297,7 @@ class ClaudeClient:
                         result["intent"] = inner_json.get("intent", result.get("intent", "其他"))
                         result["strategy"] = inner_json.get("strategy", result.get("strategy", ""))
                         result["next_action"] = inner_json.get("next_action", result.get("next_action", ""))
-                        print(f"⚠️ 偵測到雙重 JSON，已自動解析內層 draft")
+                        logger.warning("偵測到雙重 JSON，已自動解析內層 draft")
                 except (json.JSONDecodeError, TypeError):
                     pass  # 不是 JSON，保持原樣
 
@@ -302,7 +305,8 @@ class ClaudeClient:
             return result
 
         except Exception as e:
-            raise Exception(f"AI API 調用失敗 ({target_model}): {str(e)}")
+            logger.error(f"AI API 調用失敗 ({target_model}): {e}")
+            raise AIClientError(f"AI API 調用失敗 ({target_model}): {str(e)}")
 
     async def generate_response(
         self,
@@ -364,7 +368,8 @@ class ClaudeClient:
                     }
                 }
         except Exception as e:
-            raise Exception(f"AI API 調用失敗: {str(e)}")
+            logger.error(f"AI API 調用失敗: {e}")
+            raise AIClientError(f"AI API 調用失敗: {str(e)}")
 
     async def analyze_modification(
         self,
