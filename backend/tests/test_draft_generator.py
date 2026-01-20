@@ -108,7 +108,7 @@ def mock_rag_service():
 
 
 @pytest.fixture
-def mock_jungle_client():
+def mock_crm_client():
     """
     Mock CRM 客戶端
 
@@ -315,7 +315,7 @@ class TestGenerateRouting:
         async_client,
         mock_claude_client,
         mock_rag_service,
-        mock_jungle_client,
+        mock_crm_client,
         mock_settings
     ):
         """
@@ -351,13 +351,13 @@ class TestGenerateRouting:
             # 使用 mock
             with patch('brain.draft_generator.get_claude_client', return_value=mock_claude_client), \
                  patch('brain.draft_generator.get_rag_service', return_value=mock_rag_service), \
-                 patch('brain.draft_generator.get_jungle_client', return_value=mock_jungle_client), \
+                 patch('brain.draft_generator.get_crm_client', return_value=mock_crm_client), \
                  patch('brain.draft_generator.settings', mock_settings):
 
                 generator = DraftGenerator()
                 generator.claude_client = mock_claude_client
                 generator.rag_service = mock_rag_service
-                generator.jungle_client = mock_jungle_client
+                generator.crm_client = mock_crm_client
 
                 draft = await generator.generate(
                     db=db,
@@ -380,7 +380,7 @@ class TestGenerateRouting:
         async_client,
         mock_claude_client,
         mock_rag_service,
-        mock_jungle_client,
+        mock_crm_client,
         mock_settings
     ):
         """
@@ -412,13 +412,13 @@ class TestGenerateRouting:
 
             with patch('brain.draft_generator.get_claude_client', return_value=mock_claude_client), \
                  patch('brain.draft_generator.get_rag_service', return_value=mock_rag_service), \
-                 patch('brain.draft_generator.get_jungle_client', return_value=mock_jungle_client), \
+                 patch('brain.draft_generator.get_crm_client', return_value=mock_crm_client), \
                  patch('brain.draft_generator.settings', mock_settings):
 
                 generator = DraftGenerator()
                 generator.claude_client = mock_claude_client
                 generator.rag_service = mock_rag_service
-                generator.jungle_client = mock_jungle_client
+                generator.crm_client = mock_crm_client
 
                 draft = await generator.generate(
                     db=db,
@@ -446,7 +446,7 @@ class TestGenerateWithRAG:
         async_client,
         mock_claude_client,
         mock_rag_service,
-        mock_jungle_client,
+        mock_crm_client,
         mock_settings
     ):
         """
@@ -494,13 +494,13 @@ class TestGenerateWithRAG:
 
             with patch('brain.draft_generator.get_claude_client', return_value=mock_claude_client), \
                  patch('brain.draft_generator.get_rag_service', return_value=mock_rag_service), \
-                 patch('brain.draft_generator.get_jungle_client', return_value=mock_jungle_client), \
+                 patch('brain.draft_generator.get_crm_client', return_value=mock_crm_client), \
                  patch('brain.draft_generator.settings', mock_settings):
 
                 generator = DraftGenerator()
                 generator.claude_client = mock_claude_client
                 generator.rag_service = mock_rag_service
-                generator.jungle_client = mock_jungle_client
+                generator.crm_client = mock_crm_client
 
                 await generator.generate(
                     db=db,
@@ -521,7 +521,7 @@ class TestGenerateWithRAG:
         self,
         async_client,
         mock_claude_client,
-        mock_jungle_client,
+        mock_crm_client,
         mock_settings
     ):
         """
@@ -560,13 +560,13 @@ class TestGenerateWithRAG:
 
             with patch('brain.draft_generator.get_claude_client', return_value=mock_claude_client), \
                  patch('brain.draft_generator.get_rag_service', return_value=failing_rag), \
-                 patch('brain.draft_generator.get_jungle_client', return_value=mock_jungle_client), \
+                 patch('brain.draft_generator.get_crm_client', return_value=mock_crm_client), \
                  patch('brain.draft_generator.settings', mock_settings):
 
                 generator = DraftGenerator()
                 generator.claude_client = mock_claude_client
                 generator.rag_service = failing_rag
-                generator.jungle_client = mock_jungle_client
+                generator.crm_client = mock_crm_client
 
                 # 應該不會拋出異常，而是繼續執行
                 draft = await generator.generate(
@@ -596,7 +596,7 @@ class TestGenerateWithCRM:
         async_client,
         mock_claude_client,
         mock_rag_service,
-        mock_jungle_client,
+        mock_crm_client,
         mock_settings
     ):
         """
@@ -641,13 +641,13 @@ class TestGenerateWithCRM:
 
             with patch('brain.draft_generator.get_claude_client', return_value=mock_claude_client), \
                  patch('brain.draft_generator.get_rag_service', return_value=mock_rag_service), \
-                 patch('brain.draft_generator.get_jungle_client', return_value=mock_jungle_client), \
+                 patch('brain.draft_generator.get_crm_client', return_value=mock_crm_client), \
                  patch('brain.draft_generator.settings', mock_settings):
 
                 generator = DraftGenerator()
                 generator.claude_client = mock_claude_client
                 generator.rag_service = mock_rag_service
-                generator.jungle_client = mock_jungle_client
+                generator.crm_client = mock_crm_client
 
                 await generator.generate(
                     db=db,
@@ -669,7 +669,7 @@ class TestGenerateWithCRM:
         async_client,
         mock_claude_client,
         mock_rag_service,
-        mock_jungle_client,
+        mock_crm_client,
         mock_settings
     ):
         """
@@ -696,13 +696,13 @@ class TestGenerateWithCRM:
 
             with patch('brain.draft_generator.get_claude_client', return_value=mock_claude_client), \
                  patch('brain.draft_generator.get_rag_service', return_value=mock_rag_service), \
-                 patch('brain.draft_generator.get_jungle_client', return_value=mock_jungle_client), \
+                 patch('brain.draft_generator.get_crm_client', return_value=mock_crm_client), \
                  patch('brain.draft_generator.settings', mock_settings):
 
                 generator = DraftGenerator()
                 generator.claude_client = mock_claude_client
                 generator.rag_service = mock_rag_service
-                generator.jungle_client = mock_jungle_client
+                generator.crm_client = mock_crm_client
 
                 draft = await generator.generate(
                     db=db,
@@ -729,7 +729,7 @@ class TestGenerateErrorHandling:
         self,
         async_client,
         mock_rag_service,
-        mock_jungle_client,
+        mock_crm_client,
         mock_settings
     ):
         """
@@ -770,13 +770,13 @@ class TestGenerateErrorHandling:
 
             with patch('brain.draft_generator.get_claude_client', return_value=failing_client), \
                  patch('brain.draft_generator.get_rag_service', return_value=mock_rag_service), \
-                 patch('brain.draft_generator.get_jungle_client', return_value=mock_jungle_client), \
+                 patch('brain.draft_generator.get_crm_client', return_value=mock_crm_client), \
                  patch('brain.draft_generator.settings', mock_settings):
 
                 generator = DraftGenerator()
                 generator.claude_client = failing_client
                 generator.rag_service = mock_rag_service
-                generator.jungle_client = mock_jungle_client
+                generator.crm_client = mock_crm_client
 
                 # 應該拋出異常
                 with pytest.raises(Exception) as exc_info:
@@ -818,7 +818,7 @@ class TestRegenerate:
         async_client,
         mock_claude_client,
         mock_rag_service,
-        mock_jungle_client,
+        mock_crm_client,
         mock_settings
     ):
         """
@@ -846,13 +846,13 @@ class TestRegenerate:
 
             with patch('brain.draft_generator.get_claude_client', return_value=mock_claude_client), \
                  patch('brain.draft_generator.get_rag_service', return_value=mock_rag_service), \
-                 patch('brain.draft_generator.get_jungle_client', return_value=mock_jungle_client), \
+                 patch('brain.draft_generator.get_crm_client', return_value=mock_crm_client), \
                  patch('brain.draft_generator.settings', mock_settings):
 
                 generator = DraftGenerator()
                 generator.claude_client = mock_claude_client
                 generator.rag_service = mock_rag_service
-                generator.jungle_client = mock_jungle_client
+                generator.crm_client = mock_crm_client
 
                 draft = await generator.regenerate(
                     db=db,
@@ -868,7 +868,7 @@ class TestRegenerate:
         async_client,
         mock_claude_client,
         mock_rag_service,
-        mock_jungle_client,
+        mock_crm_client,
         mock_settings
     ):
         """
@@ -883,13 +883,13 @@ class TestRegenerate:
         async with TestSessionLocal() as db:
             with patch('brain.draft_generator.get_claude_client', return_value=mock_claude_client), \
                  patch('brain.draft_generator.get_rag_service', return_value=mock_rag_service), \
-                 patch('brain.draft_generator.get_jungle_client', return_value=mock_jungle_client), \
+                 patch('brain.draft_generator.get_crm_client', return_value=mock_crm_client), \
                  patch('brain.draft_generator.settings', mock_settings):
 
                 generator = DraftGenerator()
                 generator.claude_client = mock_claude_client
                 generator.rag_service = mock_rag_service
-                generator.jungle_client = mock_jungle_client
+                generator.crm_client = mock_crm_client
 
                 with pytest.raises(ValueError) as exc_info:
                     await generator.regenerate(
@@ -913,7 +913,7 @@ class TestGenerateForConversation:
         async_client,
         mock_claude_client,
         mock_rag_service,
-        mock_jungle_client,
+        mock_crm_client,
         mock_settings
     ):
         """
@@ -976,13 +976,13 @@ class TestGenerateForConversation:
 
             with patch('brain.draft_generator.get_claude_client', return_value=mock_claude_client), \
                  patch('brain.draft_generator.get_rag_service', return_value=mock_rag_service), \
-                 patch('brain.draft_generator.get_jungle_client', return_value=mock_jungle_client), \
+                 patch('brain.draft_generator.get_crm_client', return_value=mock_crm_client), \
                  patch('brain.draft_generator.settings', mock_settings):
 
                 generator = DraftGenerator()
                 generator.claude_client = mock_claude_client
                 generator.rag_service = mock_rag_service
-                generator.jungle_client = mock_jungle_client
+                generator.crm_client = mock_crm_client
 
                 draft = await generator.generate_for_conversation(
                     db=db,
@@ -1002,7 +1002,7 @@ class TestGenerateForConversation:
         async_client,
         mock_claude_client,
         mock_rag_service,
-        mock_jungle_client,
+        mock_crm_client,
         mock_settings
     ):
         """
@@ -1017,13 +1017,13 @@ class TestGenerateForConversation:
         async with TestSessionLocal() as db:
             with patch('brain.draft_generator.get_claude_client', return_value=mock_claude_client), \
                  patch('brain.draft_generator.get_rag_service', return_value=mock_rag_service), \
-                 patch('brain.draft_generator.get_jungle_client', return_value=mock_jungle_client), \
+                 patch('brain.draft_generator.get_crm_client', return_value=mock_crm_client), \
                  patch('brain.draft_generator.settings', mock_settings):
 
                 generator = DraftGenerator()
                 generator.claude_client = mock_claude_client
                 generator.rag_service = mock_rag_service
-                generator.jungle_client = mock_jungle_client
+                generator.crm_client = mock_crm_client
 
                 with pytest.raises(ValueError) as exc_info:
                     await generator.generate_for_conversation(
@@ -1060,7 +1060,7 @@ class TestGetDraftGenerator:
         with patch('brain.draft_generator.get_claude_client'), \
              patch('brain.draft_generator.get_intent_router'), \
              patch('brain.draft_generator.get_rag_service'), \
-             patch('brain.draft_generator.get_jungle_client'):
+             patch('brain.draft_generator.get_crm_client'):
 
             gen1 = get_draft_generator()
             gen2 = get_draft_generator()

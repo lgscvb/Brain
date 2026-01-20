@@ -439,7 +439,7 @@ Brain/
 │   ├── services/
 │   │   ├── rag_service.py       # RAG 檢索服務
 │   │   ├── embedding_client.py  # Embedding API 客戶端
-│   │   ├── jungle_client.py     # Jungle CRM API 客戶端
+│   │   ├── crm_client.py        # CRM API 客戶端（整合 PostgREST + MCP Tools）
 │   │   └── claude_client.py     # LLM 客戶端
 │   ├── scripts/
 │   │   └── init_knowledge.py    # 知識庫初始化腳本

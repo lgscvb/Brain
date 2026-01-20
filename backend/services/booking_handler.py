@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from services.booking_service import BookingService
 from services.line_client import get_line_client
-from services.jungle_client import get_jungle_client
+from services.crm_client import get_crm_client
 from type_defs import (
     CustomerData,
     BookingIntentType,
@@ -44,7 +44,7 @@ class BookingHandler:
     def __init__(self):
         self.booking_service = BookingService()
         self.line_client = get_line_client()
-        self.jungle_client = get_jungle_client()
+        self.crm_client = get_crm_client()
 
     async def _verify_member(self, user_id: str) -> Tuple[bool, Optional[CustomerData]]:
         """
@@ -60,7 +60,7 @@ class BookingHandler:
             - (False, None): 完全沒有客戶資料
         """
         # 查詢 CRM 客戶資料
-        customer = await self.jungle_client.get_customer_by_line_id(user_id)
+        customer = await self.crm_client.get_customer_by_line_id(user_id)
 
         if not customer:
             print(f"⚠️ [Booking] 用戶 {user_id[:20]}... 不在 CRM 中")

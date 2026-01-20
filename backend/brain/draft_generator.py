@@ -18,7 +18,7 @@ from sqlalchemy import select, desc
 from db.models import Message, Draft, Response, APIUsage
 from services.claude_client import get_claude_client
 from services.rag_service import get_rag_service
-from services.jungle_client import get_jungle_client
+from services.crm_client import get_crm_client
 from brain.router import get_intent_router
 from api.routes.usage import calculate_cost
 from config import settings
@@ -79,7 +79,7 @@ class DraftGenerator:
         self.claude_client = get_claude_client()
         self.intent_router = get_intent_router()
         self.rag_service = get_rag_service()
-        self.jungle_client = get_jungle_client()
+        self.crm_client = get_crm_client()
 
     async def get_conversation_history(
         self,
@@ -225,9 +225,9 @@ class DraftGenerator:
             customer_context = ""
             if sender_id and settings.ENABLE_JUNGLE_INTEGRATION:
                 try:
-                    customer_data = await self.jungle_client.get_customer_by_line_id(sender_id)
+                    customer_data = await self.crm_client.get_customer_by_line_id(sender_id)
                     if customer_data:
-                        customer_context = self.jungle_client.format_customer_context(customer_data)
+                        customer_context = self.crm_client.format_customer_context(customer_data)
                         print(f"👤 載入 CRM 客戶資料: {customer_data.get('name', '未知')}")
                     else:
                         print(f"ℹ️ CRM 中無此客戶記錄 (sender_id: {sender_id[:20]}...)")

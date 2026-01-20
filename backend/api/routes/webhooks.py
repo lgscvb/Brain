@@ -16,7 +16,7 @@ from db.database import get_db
 from db.models import Message
 from brain.draft_generator import get_draft_generator
 from services.line_client import get_line_client
-from services.jungle_client import get_jungle_client
+from services.crm_client import get_crm_client
 from services.rate_limiter import get_rate_limiter
 from services.claude_client import get_claude_client
 from config import settings
@@ -75,8 +75,8 @@ async def line_webhook(
                 print(f"📅 [Booking] 處理 postback: {postback_data[:50]}...")
 
                 # 轉發到 MCP Server 處理（MCP Server 的 LLM 有 booking tools）
-                jungle_client = get_jungle_client()
-                forward_result = await jungle_client.forward_line_event(
+                crm_client = get_crm_client()
+                forward_result = await crm_client.forward_line_event(
                     user_id=user_id,
                     message_text="",  # postback 沒有文字
                     event_type="postback",
@@ -143,8 +143,8 @@ async def line_webhook(
                 print(f"📅 [Booking] LLM 判斷為預約意圖，檢查會員身份")
 
                 # 檢查是否為會員（有 active 合約）
-                jungle_client = get_jungle_client()
-                customer = await jungle_client.get_customer_by_line_id(user_id)
+                crm_client = get_crm_client()
+                customer = await crm_client.get_customer_by_line_id(user_id)
 
                 is_member = False
                 if customer:
@@ -173,7 +173,7 @@ async def line_webhook(
                     print(f"📝 [Brain] 已記錄預約訊息 (ID: {booking_message.id})")
 
                     # 轉發到 MCP Server
-                    forward_result = await jungle_client.forward_line_event(
+                    forward_result = await crm_client.forward_line_event(
                         user_id=user_id,
                         message_text=message_text,
                         event_type="message"

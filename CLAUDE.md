@@ -42,19 +42,22 @@ Hour Jungle 生態系統 (V2)
 
 ### CRM 整合
 
-Brain 透過 `JungleClient` 連接 CRM：
+Brain 透過 `CRMClient` 連接 CRM：
 
 ```python
-# backend/services/jungle_client.py
+# backend/services/crm_client.py
 
-# 查詢客戶資料
-customer = await jungle_client.get_customer_by_line_id(line_user_id)
+from services.crm_client import get_crm_client
+crm = get_crm_client()
 
-# 取得合約狀態
-contracts = await jungle_client.get_customer_contracts(customer_id)
+# 查詢客戶資料（含合約、繳費狀態）
+customer = await crm.get_customer_by_line_id(line_user_id)
 
-# 取得繳費狀態
-payments = await jungle_client.get_pending_payments(customer_id)
+# 格式化為 AI Prompt 上下文
+context = crm.format_customer_context(customer)
+
+# MCP 工具調用
+result = await crm.call_tool("quote_create_from_service_plans", ...)
 ```
 
 ### 環境變數（CRM 整合）

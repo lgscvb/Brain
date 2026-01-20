@@ -12,7 +12,7 @@ import json
 
 from db.database import get_db
 from db.models import Message
-from services.jungle_client import get_jungle_client
+from services.crm_client import get_crm_client
 from services.claude_client import get_claude_client
 
 router = APIRouter(prefix="/api/analysis", tags=["analysis"])
@@ -448,7 +448,7 @@ async def get_crm_insights(
     """
     now = datetime.utcnow()
     start_time = now - timedelta(hours=hours)
-    jungle_client = get_jungle_client()
+    crm_client = get_crm_client()
 
     # 1. 查詢未處理的訊息（只取客戶發的，排除 bot 回覆）
     result = await db.execute(
@@ -476,7 +476,7 @@ async def get_crm_insights(
     for sender_id, msgs in list(sender_messages.items())[:limit]:
         try:
             # 取得 CRM 客戶資料
-            crm_data = await jungle_client.get_customer_by_line_id(sender_id)
+            crm_data = await crm_client.get_customer_by_line_id(sender_id)
 
             # 分析訊息意圖
             message_contents = [m.content for m in msgs if m.content]
