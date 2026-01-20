@@ -1,13 +1,18 @@
 """
 Brain - 訊息管理 API 路由
 處理訊息 CRUD 與草稿生成
+
+【N+1 查詢修復】
+- list_conversations: 使用 Window Function 避免迴圈查詢
+- delete_message: 使用批量刪除
+- delete_conversation: 使用 IN 子句批量刪除
 """
 from datetime import datetime
-from typing import List
+from typing import List, Dict, Any
 from urllib.parse import unquote
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc, case
+from sqlalchemy import select, func, desc, case, delete
 from sqlalchemy.orm import selectinload
 import httpx
 from db.database import get_db
@@ -275,7 +280,13 @@ async def delete_message(
     message_id: int,
     db: AsyncSession = Depends(get_db)
 ):
-    """刪除訊息（含相關草稿和回覆）"""
+    """
+    刪除訊息（含相關草稿和回覆）
+
+    【優化】使用批量刪除，避免 N+1 查詢
+    原本：SELECT → 迴圈 DELETE（每個項目一次 DELETE）
+    現在：DELETE WHERE（單一語句批量刪除）
+    """
     result = await db.execute(
         select(Message).where(Message.id == message_id)
     )
@@ -284,22 +295,15 @@ async def delete_message(
     if not message:
         raise HTTPException(status_code=404, detail="訊息不存在")
 
-    # 刪除相關草稿
+    # 批量刪除相關草稿（單一 DELETE 語句）
     await db.execute(
-        select(Draft).where(Draft.message_id == message_id)
+        delete(Draft).where(Draft.message_id == message_id)
     )
-    drafts = (await db.execute(
-        select(Draft).where(Draft.message_id == message_id)
-    )).scalars().all()
-    for draft in drafts:
-        await db.delete(draft)
 
-    # 刪除相關回覆
-    responses = (await db.execute(
-        select(Response).where(Response.message_id == message_id)
-    )).scalars().all()
-    for response in responses:
-        await db.delete(response)
+    # 批量刪除相關回覆（單一 DELETE 語句）
+    await db.execute(
+        delete(Response).where(Response.message_id == message_id)
+    )
 
     # 刪除訊息本身
     await db.delete(message)
@@ -313,44 +317,78 @@ async def delete_conversation(
     sender_id: str,
     db: AsyncSession = Depends(get_db)
 ):
-    """刪除整個對話（該客戶所有訊息）"""
+    """
+    刪除整個對話（該客戶所有訊息）
+
+    【優化】使用 IN 子句批量刪除，避免 N+1 查詢
+    原本：對每個訊息執行 2 次 SELECT + 多次 DELETE（N 則訊息 = 3N 次查詢）
+    現在：1 次 SELECT 取得 ID + 3 次批量 DELETE = 4 次查詢
+    """
     decoded_sender_id = unquote(sender_id)
 
-    # 查詢該客戶所有訊息
+    # 查詢該客戶所有訊息 ID
     result = await db.execute(
-        select(Message).where(Message.sender_id == decoded_sender_id)
+        select(Message.id).where(Message.sender_id == decoded_sender_id)
     )
-    messages = result.scalars().all()
+    message_ids = [row[0] for row in result.all()]
 
-    if not messages:
+    if not message_ids:
         raise HTTPException(status_code=404, detail="對話不存在")
 
-    deleted_count = 0
-    for message in messages:
-        # 刪除相關草稿
-        drafts = (await db.execute(
-            select(Draft).where(Draft.message_id == message.id)
-        )).scalars().all()
-        for draft in drafts:
-            await db.delete(draft)
+    # 批量刪除相關草稿（使用 IN 子句）
+    await db.execute(
+        delete(Draft).where(Draft.message_id.in_(message_ids))
+    )
 
-        # 刪除相關回覆
-        responses = (await db.execute(
-            select(Response).where(Response.message_id == message.id)
-        )).scalars().all()
-        for response in responses:
-            await db.delete(response)
+    # 批量刪除相關回覆（使用 IN 子句）
+    await db.execute(
+        delete(Response).where(Response.message_id.in_(message_ids))
+    )
 
-        # 刪除訊息
-        await db.delete(message)
-        deleted_count += 1
+    # 批量刪除所有訊息（使用 IN 子句）
+    await db.execute(
+        delete(Message).where(Message.id.in_(message_ids))
+    )
 
     await db.commit()
 
-    return {"success": True, "message": f"已刪除 {deleted_count} 則訊息"}
+    return {"success": True, "message": f"已刪除 {len(message_ids)} 則訊息"}
 
 
 # ====== 對話列表 API（三欄式佈局用）======
+
+async def _fetch_crm_company_names(sender_ids: List[str]) -> Dict[str, str]:
+    """
+    從 CRM 批次取得公司名稱
+
+    【獨立函數】方便測試和重用
+    """
+    if not sender_ids:
+        return {}
+
+    company_name_map = {}
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                f"{CRM_API_BASE}/customers",
+                params={
+                    "select": "line_user_id,company_name",
+                    "line_user_id": "not.is.null",
+                    "limit": 500
+                }
+            )
+            if response.status_code == 200:
+                customers = response.json()
+                company_name_map = {
+                    c['line_user_id']: c.get('company_name', '')
+                    for c in customers
+                    if c.get('line_user_id')
+                }
+    except Exception as e:
+        print(f"無法取得 CRM 公司名稱: {e}")
+
+    return company_name_map
+
 
 @router.get("/conversations")
 async def list_conversations(
@@ -360,9 +398,13 @@ async def list_conversations(
     取得對話列表（依 sender_id 分組）
 
     用於三欄式佈局的左欄，顯示所有客戶對話摘要
+
+    【N+1 修復】
+    原本：主查詢 + 每個對話 2 次子查詢（N 個對話 = 2N+1 次查詢）
+    現在：2 次查詢取得所有資料 + 1 次 CRM API 呼叫
     """
-    # 主查詢：只按 sender_id 分組統計（避免同一用戶因改名而出現重複）
-    query = (
+    # ====== 查詢 1：統計資料 ======
+    stats_query = (
         select(
             Message.sender_id,
             func.count(Message.id).label('message_count'),
@@ -377,77 +419,67 @@ async def list_conversations(
         .group_by(Message.sender_id)
         .order_by(func.max(Message.created_at).desc())
     )
+    stats_result = await db.execute(stats_query)
+    stats_rows = stats_result.all()
 
-    result = await db.execute(query)
-    rows = result.all()
+    if not stats_rows:
+        return {"conversations": [], "total": 0}
 
-    # 從 CRM 批次取得客戶公司名稱（用 LINE user ID 對應）
-    company_name_map = {}
-    try:
-        # 取得所有 sender_id 對應的 CRM 客戶公司名稱
-        sender_ids = [row.sender_id for row in rows]
-        if sender_ids:
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                # 取得所有有 LINE UID 的客戶
-                response = await client.get(
-                    f"{CRM_API_BASE}/customers",
-                    params={
-                        "select": "line_user_id,company_name",
-                        "line_user_id": f"not.is.null",
-                        "limit": 500
-                    }
-                )
-                if response.status_code == 200:
-                    customers = response.json()
-                    company_name_map = {
-                        c['line_user_id']: c.get('company_name', '')
-                        for c in customers
-                        if c.get('line_user_id')
-                    }
-    except Exception as e:
-        print(f"無法取得 CRM 公司名稱: {e}")
+    sender_ids = [row.sender_id for row in stats_rows]
 
-    # 取得每個對話的客戶名稱和最後一則訊息（用於預覽）
+    # ====== 查詢 2：批次取得每個 sender 的最新訊息資訊 ======
+    # 使用子查詢找出每個 sender 的最新訊息 ID
+    latest_msg_subquery = (
+        select(
+            Message.sender_id,
+            func.max(Message.id).label('latest_id')
+        )
+        .where(Message.sender_id.in_(sender_ids))
+        .group_by(Message.sender_id)
+        .subquery()
+    )
+
+    # 取得最新訊息的詳細資料
+    latest_msgs_query = (
+        select(
+            Message.sender_id,
+            Message.sender_name,
+            Message.source,
+            Message.content
+        )
+        .join(
+            latest_msg_subquery,
+            (Message.sender_id == latest_msg_subquery.c.sender_id) &
+            (Message.id == latest_msg_subquery.c.latest_id)
+        )
+    )
+    latest_msgs_result = await db.execute(latest_msgs_query)
+    latest_msgs = {row.sender_id: row for row in latest_msgs_result.all()}
+
+    # ====== 外部 API：批次取得 CRM 公司名稱 ======
+    company_name_map = await _fetch_crm_company_names(sender_ids)
+
+    # ====== 組合結果 ======
     conversations = []
-    for row in rows:
-        # 取得客戶發送的訊息（排除 bot 回覆）來獲取客戶名稱
-        customer_msg_result = await db.execute(
-            select(Message.sender_name, Message.source)
-            .where(Message.sender_id == row.sender_id)
-            .where(Message.source.notin_(['line_bot', 'system']))
-            .order_by(desc(Message.created_at))
-            .limit(1)
-        )
-        customer_msg = customer_msg_result.one_or_none()
+    for row in stats_rows:
+        latest_msg = latest_msgs.get(row.sender_id)
 
-        # 取得最後一則訊息（用於預覽）
-        last_msg_result = await db.execute(
-            select(Message.content, Message.source)
-            .where(Message.sender_id == row.sender_id)
-            .order_by(desc(Message.created_at))
-            .limit(1)
-        )
-        last_msg = last_msg_result.one_or_none()
-
-        preview = ""
         sender_name = "Unknown"
         source = "unknown"
+        preview = ""
 
-        # 優先使用客戶訊息的名稱
-        if customer_msg:
-            sender_name = customer_msg.sender_name
-            source = customer_msg.source
+        if latest_msg:
+            sender_name = latest_msg.sender_name or "Unknown"
+            source = latest_msg.source or "unknown"
+            content = latest_msg.content or ""
+            preview = content[:50] + "..." if len(content) > 50 else content
 
-        if last_msg:
-            preview = last_msg.content[:50] + "..." if len(last_msg.content) > 50 else last_msg.content
-
-        # 從 CRM 取得公司名稱
         company_name = company_name_map.get(row.sender_id, "")
 
         conversations.append({
             "sender_id": row.sender_id,
             "sender_name": sender_name,
-            "company_name": company_name,  # 新增：公司名稱
+            "company_name": company_name,
             "source": source,
             "message_count": row.message_count,
             "unread_count": row.unread_count or 0,
