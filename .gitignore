@@ -79,3 +79,4 @@ htmlcov/
 # Claude Code hooks cache
 .claude/hooks-cache/
 .claude/
+*.db

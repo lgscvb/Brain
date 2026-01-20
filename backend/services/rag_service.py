@@ -11,37 +11,14 @@ RAG = Retrieval-Augmented Generation（檢索增強生成）
 2. 向量搜尋失敗 → 使用 JSON 備用方案
 3. 無法生成向量 → 關鍵字搜尋（最後手段）
 """
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 from db.models import KnowledgeChunk
 from services.embedding_client import get_embedding_client
 
-# 在檔案內定義搜尋結果型別（避免循環導入）
-# 完整型別定義請參考 backend/types.py
-from typing import TypedDict
-
-
-class RAGSearchResult(TypedDict, total=False):
-    """
-    RAG 搜尋結果
-
-    【欄位說明】
-    - id: 知識塊 ID
-    - content: 知識內容
-    - category: 主分類
-    - sub_category: 子分類
-    - service_type: 服務類型
-    - metadata: 額外資料
-    - similarity: 相似度分數（0.0 ~ 1.0）
-    """
-    id: int
-    content: str
-    category: str
-    sub_category: Optional[str]
-    service_type: Optional[str]
-    metadata: Optional[Dict[str, Any]]
-    similarity: float
+# 型別定義統一從 type_defs 導入
+from type_defs import RAGSearchResult
 
 
 class RAGService:

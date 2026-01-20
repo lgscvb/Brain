@@ -11,8 +11,7 @@ Brain - 草稿生成器
 【流程】
 客戶訊息 → Routing 判斷 → 選擇模型 → RAG 檢索 → CRM 查詢 → 生成草稿
 """
-from typing import Dict, Optional, List, Literal
-from typing import TypedDict
+from typing import Dict, Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 from db.models import Message, Draft, Response, APIUsage
@@ -22,52 +21,8 @@ from services.crm_client import get_crm_client
 from api.routes.usage import calculate_cost
 from config import settings
 
-
-# ============================================================
-# 型別定義
-# ============================================================
-
-class UsageInfo(TypedDict, total=False):
-    """API 用量資訊"""
-    input_tokens: int
-    output_tokens: int
-    model: str
-
-
-Complexity = Literal["SIMPLE", "COMPLEX", "BOOKING", "PHOTO"]
-
-
-class RoutingResult(TypedDict, total=False):
-    """
-    LLM Routing 判斷結果
-
-    【複雜度等級】
-    - SIMPLE: 簡單問答 → 用 Fast Model（便宜）
-    - COMPLEX: 需要推理 → 用 Smart Model（強大）
-    - BOOKING: 會議室預約（特殊流程）
-    - PHOTO: 照片相關（視覺處理）
-    """
-    complexity: Complexity
-    reason: str
-    suggested_intent: str
-    _usage: UsageInfo
-
-
-class DraftResult(TypedDict, total=False):
-    """
-    草稿生成結果
-
-    【欄位說明】
-    - intent: AI 判斷的客戶意圖
-    - strategy: 回覆策略說明（如「SPIN-S 了解現況」）
-    - draft: 生成的回覆草稿
-    - next_action: 建議的下一步動作
-    """
-    intent: str
-    strategy: str
-    draft: str
-    next_action: str
-    _usage: UsageInfo
+# 型別定義統一從 type_defs 導入
+from type_defs import UsageInfo, RoutingResult, DraftResult, Complexity
 
 
 class DraftGenerator:

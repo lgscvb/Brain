@@ -20,54 +20,12 @@ draft_prompt = await service.get_active_prompt(db, "draft_prompt")
 ```
 """
 from typing import Optional, List, Dict, Any
-from typing import TypedDict
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, func
 from db.models import PromptVersion
 
-
-# ============================================================
-# 型別定義
-# ============================================================
-
-class PromptVersionInfo(TypedDict, total=False):
-    """
-    Prompt 版本資訊
-
-    【欄位說明】
-    - id: 版本記錄 ID
-    - prompt_key: Prompt 識別鍵
-    - version: 版本號
-    - content: Prompt 內容
-    - description: 版本說明
-    - is_active: 是否為活躍版本
-    - created_by: 建立者
-    - created_at: 建立時間
-    """
-    id: int
-    prompt_key: str
-    version: int
-    content: str
-    description: Optional[str]
-    is_active: bool
-    created_by: str
-    created_at: str
-
-
-class PromptSummary(TypedDict):
-    """
-    Prompt 摘要（用於列表顯示）
-
-    【欄位說明】
-    - prompt_key: Prompt 識別鍵
-    - active_version: 當前活躍版本號
-    - total_versions: 總版本數
-    - last_updated: 最後更新時間
-    """
-    prompt_key: str
-    active_version: Optional[int]
-    total_versions: int
-    last_updated: Optional[str]
+# 型別定義統一從 type_defs 導入
+from type_defs import PromptVersionInfo, PromptSummary
 
 
 # ============================================================
