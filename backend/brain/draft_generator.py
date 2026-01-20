@@ -85,12 +85,15 @@ class DraftGenerator:
             # 格式化時間
             time_str = msg.created_at.strftime("%m/%d %H:%M") if msg.created_at else ""
 
-            # 加入客戶訊息
-            history_parts.append(f"**[{time_str}] 客戶：**\n{msg.content}\n")
-
-            # 如果有回覆，加入回覆內容
+            # 加入客戶訊息，並標示回覆狀態
             if response and response.final_content:
-                history_parts.append(f"**[回覆] Hour Jungle：**\n{response.final_content}\n")
+                # 已回覆的訊息
+                history_parts.append(f"**[{time_str}] 客戶：**\n{msg.content}\n")
+                history_parts.append(f"**[✓ 已回覆] Hour Jungle：**\n{response.final_content}\n")
+            else:
+                # 尚未回覆的訊息 - 用醒目標記提醒 LLM
+                history_parts.append(f"**[{time_str}] 客戶：**\n{msg.content}\n")
+                history_parts.append(f"**[⚠️ 此訊息尚未回覆]**\n")
 
         history_parts.append("\n---\n\n")
         return "\n".join(history_parts)
