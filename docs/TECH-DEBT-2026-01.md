@@ -163,7 +163,7 @@ LINE Flex Message 模板在兩個地方定義。
 | 順序 | 項目 | 工作量 | 風險 | 狀態 |
 |------|------|--------|------|------|
 | 1 | 合併 CRM 客戶端 | M | 低 | ✅ 2026-01-20 完成 |
-| 2 | 移除重複 Flex 模板 | S | 低 | ⏳ |
+| 2 | 移除重複 Flex 模板 | S | 低 | ✅ 2026-01-20 完成（刪除死代碼） |
 | 3 | 統一 Intent 分類 | M | 中 | ⏳ |
 | 4 | 補齊型別提示 | L | 低 | ⏳ |
 | 5 | 修復 N+1 查詢 | S | 低 | ⏳ |
@@ -180,8 +180,7 @@ LINE Flex Message 模板在兩個地方定義。
 | CRM | services/crm_client.py | ~450 | 統一 CRM 客戶端（整合 PostgREST + MCP Tools） |
 | 路由 | brain/router.py | 181 | Intent 路由（JSON 模式） |
 | 知識 | services/knowledge_service.py | ~300 | 知識庫服務（DB 模式） |
-| 模板 | brain/flex_templates.py | ~200 | Flex 模板（重複） |
-| 模板 | services/flex_templates.py | ~200 | Flex 模板（保留） |
+| 模板 | services/flex_templates.py | ~310 | Flex 模板（照片展示） |
 | 核心 | brain/draft_generator.py | 300+ | LLM 回覆生成 |
 | API | api/routes/messages.py | 653 | 訊息 API（有 N+1） |
 
