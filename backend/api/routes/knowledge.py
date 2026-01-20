@@ -65,6 +65,7 @@ class SearchRequest(BaseModel):
     top_k: int = 5
     category: Optional[str] = None
     service_type: Optional[str] = None
+    similarity_threshold: float = 0.5  # 相似度閾值，預設 0.5
 
 
 class SearchResult(BaseModel):
@@ -349,7 +350,8 @@ async def search_knowledge(
         query=data.query,
         top_k=data.top_k,
         category=data.category,
-        service_type=data.service_type
+        service_type=data.service_type,
+        similarity_threshold=data.similarity_threshold
     )
 
     return [

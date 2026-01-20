@@ -35,7 +35,7 @@ class RAGService:
         top_k: int = 5,
         category: Optional[str] = None,
         service_type: Optional[str] = None,
-        similarity_threshold: float = 0.7
+        similarity_threshold: float = 0.5
     ) -> List[RAGSearchResult]:
         """
         搜尋相關知識
