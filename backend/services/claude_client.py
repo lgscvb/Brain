@@ -4,10 +4,13 @@ Brain - AI 客戶端
 實作 LLM Routing 模型分流功能
 """
 import json
+import logging
 from typing import Dict, Optional
 from openai import AsyncOpenAI
 from anthropic import Anthropic
 from config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class ClaudeClient:

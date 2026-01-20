@@ -6,15 +6,57 @@ Brain - 訊息管理 API 路由
 - list_conversations: 使用 Window Function 避免迴圈查詢
 - delete_message: 使用批量刪除
 - delete_conversation: 使用 IN 子句批量刪除
+
+【效能優化】
+- CRM 公司名稱快取：5 分鐘 TTL，避免每次請求都呼叫 CRM API
 """
 from datetime import datetime
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from urllib.parse import unquote
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc, case, delete
 from sqlalchemy.orm import selectinload
 import httpx
+import time
+
+
+# ====== CRM 公司名稱快取 ======
+class CompanyNameCache:
+    """
+    簡單的記憶體快取，用於儲存 CRM 公司名稱
+
+    【設計決策】
+    - 使用記憶體快取而非 Redis：Brain 是單一實例部署，不需要分散式快取
+    - 5 分鐘 TTL：公司名稱不常變動，但也不能太久
+    - 失效時重新載入整個快取：簡化邏輯，避免部分更新問題
+    """
+
+    def __init__(self, ttl_seconds: int = 300):  # 預設 5 分鐘
+        self._cache: Dict[str, str] = {}
+        self._last_update: float = 0
+        self._ttl = ttl_seconds
+
+    def is_expired(self) -> bool:
+        """檢查快取是否過期"""
+        return time.time() - self._last_update > self._ttl
+
+    def get(self, sender_id: str) -> Optional[str]:
+        """取得公司名稱（可能為 None 表示不在快取中）"""
+        return self._cache.get(sender_id)
+
+    def update(self, data: Dict[str, str]) -> None:
+        """更新整個快取"""
+        self._cache = data
+        self._last_update = time.time()
+
+    def is_empty(self) -> bool:
+        """檢查快取是否為空"""
+        return len(self._cache) == 0
+
+
+# 全域快取實例
+_company_name_cache = CompanyNameCache(ttl_seconds=300)
 from db.database import get_db
 from db.models import Message, Draft, Response
 from db.schemas import (
@@ -359,13 +401,26 @@ async def delete_conversation(
 
 async def _fetch_crm_company_names(sender_ids: List[str]) -> Dict[str, str]:
     """
-    從 CRM 批次取得公司名稱
+    從 CRM 批次取得公司名稱（含快取機制）
+
+    【效能優化】
+    - 使用 5 分鐘 TTL 快取
+    - 快取命中時直接返回，不呼叫 CRM API
+    - 快取未命中或過期時重新載入
 
     【獨立函數】方便測試和重用
     """
+    global _company_name_cache
+
     if not sender_ids:
         return {}
 
+    # 檢查快取是否有效
+    if not _company_name_cache.is_expired() and not _company_name_cache.is_empty():
+        # 快取命中，直接返回
+        return {sid: _company_name_cache.get(sid) or "" for sid in sender_ids}
+
+    # 快取未命中或過期，重新載入
     company_name_map = {}
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
@@ -384,10 +439,15 @@ async def _fetch_crm_company_names(sender_ids: List[str]) -> Dict[str, str]:
                     for c in customers
                     if c.get('line_user_id')
                 }
+                # 更新快取
+                _company_name_cache.update(company_name_map)
     except Exception as e:
         print(f"無法取得 CRM 公司名稱: {e}")
+        # API 失敗時，如果有舊快取就用舊快取
+        if not _company_name_cache.is_empty():
+            return {sid: _company_name_cache.get(sid) or "" for sid in sender_ids}
 
-    return company_name_map
+    return {sid: company_name_map.get(sid, "") for sid in sender_ids}
 
 
 @router.get("/conversations")
