@@ -1058,7 +1058,6 @@ class TestGetDraftGenerator:
         module._draft_generator = None
 
         with patch('brain.draft_generator.get_claude_client'), \
-             patch('brain.draft_generator.get_intent_router'), \
              patch('brain.draft_generator.get_rag_service'), \
              patch('brain.draft_generator.get_crm_client'):
 

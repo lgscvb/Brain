@@ -2,19 +2,14 @@
 Brain - 知識庫服務
 
 【用途】
-提供意圖樹和 SPIN 問題的資料庫存取介面，取代原本的 JSON 檔案載入。
-
-【向後相容】
-- 可以同時支援 JSON 和 DB 兩種資料來源
-- 透過 config.KNOWLEDGE_SOURCE 設定切換
-- 預設使用 JSON，確保平滑遷移
+提供意圖樹和 SPIN 問題的資料庫存取介面。
 
 【主要功能】
 1. get_intent_tree(): 取得完整意圖樹
 2. get_root_nodes(): 取得根節點列表
-3. classify_intent(): 分類訊息意圖
-4. get_spin_questions(): 取得 SPIN 問題
-5. get_intent_node(): 取得特定節點
+3. get_spin_questions(): 取得 SPIN 問題
+4. get_intent_node(): 取得特定節點
+5. get_spin_framework(): 取得 SPIN 框架設定
 """
 from typing import Dict, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,7 +17,6 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from db.models import IntentNode, SpinQuestion, SpinFramework, SpinTransitionRule
-from type_defs import IntentResult
 
 
 class KnowledgeService:
@@ -152,111 +146,6 @@ class KnowledgeService:
                 ]
 
         return node_dict
-
-    # ============================================================
-    # 意圖分類
-    # ============================================================
-
-    async def classify_intent(
-        self,
-        db: AsyncSession,
-        message: str
-    ) -> IntentResult:
-        """
-        分類訊息意圖（DB 版本）
-
-        使用與 router.py 相同的邏輯：
-        1. 遍歷根節點
-        2. 比對關鍵字
-        3. 遞迴尋找最佳匹配
-
-        Args:
-            db: 資料庫 Session
-            message: 客戶訊息
-
-        Returns:
-            IntentResult: 意圖分類結果
-        """
-        message_lower = message.lower()
-        best_match: IntentResult = {
-            "intent": "其他",
-            "sub_intent": None,
-            "matched_keywords": [],
-            "confidence": 0.0
-        }
-
-        # 取得根節點
-        root_nodes = await self.get_root_nodes(db)
-
-        # 遍歷根節點尋找最佳匹配
-        for root_node in root_nodes:
-            result = await self._match_node(db, root_node, message_lower)
-            if result["confidence"] > best_match["confidence"]:
-                best_match = result
-
-        return best_match
-
-    async def _match_node(
-        self,
-        db: AsyncSession,
-        node: IntentNode,
-        message: str,
-        parent_name: Optional[str] = None
-    ) -> IntentResult:
-        """
-        遞迴匹配節點
-
-        Args:
-            db: 資料庫 Session
-            node: 意圖節點
-            message: 訊息內容（小寫）
-            parent_name: 父節點名稱
-
-        Returns:
-            匹配結果
-        """
-        keywords = node.keywords or []
-
-        # 計算關鍵字匹配數
-        matched_keywords = [kw for kw in keywords if kw.lower() in message]
-        match_count = len(matched_keywords)
-
-        # 計算信心度
-        confidence = match_count / len(keywords) if keywords else 0.0
-
-        result: IntentResult = {
-            "intent": parent_name or node.name,
-            "sub_intent": node.name if parent_name else None,
-            "matched_keywords": matched_keywords,
-            "confidence": confidence
-        }
-
-        # 遞迴尋找子節點的更佳匹配
-        children_result = await db.execute(
-            select(IntentNode)
-            .where(IntentNode.parent_id == node.id)
-            .where(IntentNode.is_active == True)
-            .order_by(IntentNode.sort_order)
-        )
-        children = list(children_result.scalars().all())
-
-        if children:
-            best_child_match = result
-            for child in children:
-                child_result = await self._match_node(
-                    db,
-                    child,
-                    message,
-                    parent_name or node.name
-                )
-                if child_result["confidence"] > best_child_match["confidence"]:
-                    best_child_match = child_result
-
-            # 如果子節點匹配度更高，使用子節點結果
-            if best_child_match["confidence"] > confidence:
-                return best_child_match
-
-        return result
 
     # ============================================================
     # SPIN 問題操作

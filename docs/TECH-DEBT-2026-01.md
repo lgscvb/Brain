@@ -69,35 +69,29 @@ crm_client (1 處)：
 
 ---
 
-### 2. Intent 分類重複
+### 2. ~~Intent 分類重複~~ ✅ 2026-01-20 完成（死代碼清理）
 
-**檔案**：
-- `backend/brain/router.py` - JSON 模式（讀取 `logic_tree.json`）
-- `backend/services/knowledge_service.py` - DB 模式（讀取資料庫）
+**原檔案**：
+- `backend/brain/router.py` - JSON 模式（已刪除）
+- `backend/services/knowledge_service.py` - DB 模式
 
-**問題描述**：
-兩個地方都可以做意圖分類，邏輯不一致。
-
-**風險**：
-- 同一個問題可能分類不同
-- 修改邏輯要改兩處
-
-**建議方案**：
-統一使用 DB 模式，移除 JSON 載入邏輯。
+**解決**：
+經分析發現兩個 `classify_intent()` 都是死代碼，實際 routing 由 `claude_client.route_task()` 執行。
+- 刪除 `brain/router.py`（181 行）
+- 刪除 `tests/test_router.py`
+- 移除 `knowledge_service.py` 中的 `classify_intent()` 方法
+- 移除 `draft_generator.py` 中未使用的 `intent_router` 引用
 
 ---
 
-### 3. Flex Message 模板重複
+### 3. ~~Flex Message 模板重複~~ ✅ 2026-01-20 完成（死代碼清理）
 
-**檔案**：
-- `backend/brain/flex_templates.py`
-- `backend/services/flex_templates.py`
+**原檔案**：
+- `backend/brain/flex_templates.py`（已刪除）
+- `backend/services/flex_templates.py`（保留）
 
-**問題描述**：
-LINE Flex Message 模板在兩個地方定義。
-
-**建議方案**：
-保留 `services/flex_templates.py`，移除 `brain/flex_templates.py`。
+**解決**：
+`brain/flex_templates.py` 是未被引用的死代碼，直接刪除。
 
 ---
 
@@ -164,7 +158,7 @@ LINE Flex Message 模板在兩個地方定義。
 |------|------|--------|------|------|
 | 1 | 合併 CRM 客戶端 | M | 低 | ✅ 2026-01-20 完成 |
 | 2 | 移除重複 Flex 模板 | S | 低 | ✅ 2026-01-20 完成（刪除死代碼） |
-| 3 | 統一 Intent 分類 | M | 中 | ⏳ |
+| 3 | 清理 Intent 分類死代碼 | S | 低 | ✅ 2026-01-20 完成 |
 | 4 | 補齊型別提示 | L | 低 | ⏳ |
 | 5 | 修復 N+1 查詢 | S | 低 | ⏳ |
 | 6 | 統一錯誤處理 | M | 低 | ⏳ |
@@ -177,11 +171,10 @@ LINE Flex Message 模板在兩個地方定義。
 
 | 類別 | 檔案 | 行數 | 說明 |
 |------|------|------|------|
-| CRM | services/crm_client.py | ~450 | 統一 CRM 客戶端（整合 PostgREST + MCP Tools） |
-| 路由 | brain/router.py | 181 | Intent 路由（JSON 模式） |
-| 知識 | services/knowledge_service.py | ~300 | 知識庫服務（DB 模式） |
+| CRM | services/crm_client.py | ~600 | 統一 CRM 客戶端（整合 PostgREST + MCP Tools） |
+| 知識 | services/knowledge_service.py | ~300 | 知識庫服務（意圖樹、SPIN 問題） |
 | 模板 | services/flex_templates.py | ~310 | Flex 模板（照片展示） |
-| 核心 | brain/draft_generator.py | 300+ | LLM 回覆生成 |
+| 核心 | brain/draft_generator.py | ~400 | LLM 回覆生成 |
 | API | api/routes/messages.py | 653 | 訊息 API（有 N+1） |
 
 ---

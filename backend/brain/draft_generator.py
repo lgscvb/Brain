@@ -19,7 +19,6 @@ from db.models import Message, Draft, Response, APIUsage
 from services.claude_client import get_claude_client
 from services.rag_service import get_rag_service
 from services.crm_client import get_crm_client
-from brain.router import get_intent_router
 from api.routes.usage import calculate_cost
 from config import settings
 
@@ -77,7 +76,6 @@ class DraftGenerator:
     def __init__(self):
         """初始化草稿生成器"""
         self.claude_client = get_claude_client()
-        self.intent_router = get_intent_router()
         self.rag_service = get_rag_service()
         self.crm_client = get_crm_client()
 
