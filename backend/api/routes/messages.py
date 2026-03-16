@@ -74,7 +74,8 @@ from brain.learning import get_learning_engine
 from services.line_client import get_line_client
 
 # CRM API 設定
-CRM_API_BASE = "https://auto.yourspce.org/api/db"
+import os
+CRM_API_BASE = os.getenv("CRM_API_URL", "https://hj-mcp-server.onrender.com") + "/api/db"
 
 
 router = APIRouter()

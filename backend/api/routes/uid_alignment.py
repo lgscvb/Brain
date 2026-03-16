@@ -19,7 +19,8 @@ from db.models import Message
 router = APIRouter(prefix="/api/uid-alignment", tags=["uid-alignment"])
 
 # CRM API 端點
-CRM_API_BASE = "https://auto.yourspce.org/api/db"
+import os
+CRM_API_BASE = os.getenv("CRM_API_URL", "https://hj-mcp-server.onrender.com") + "/api/db"
 
 
 # === Pydantic Models ===
