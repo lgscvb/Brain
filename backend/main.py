@@ -23,9 +23,13 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("🚀 Brain 正在啟動...")
     print("🚀 Brain 正在啟動...")
-    await create_tables()
-    logger.info("✅ 資料庫已初始化")
-    print("✅ 資料庫已初始化")
+    try:
+        await create_tables()
+        logger.info("✅ 資料庫已初始化")
+        print("✅ 資料庫已初始化")
+    except Exception as e:
+        logger.error(f"⚠️ 資料庫初始化失敗（服務仍啟動）: {e}")
+        print(f"⚠️ 資料庫初始化失敗（服務仍啟動）: {e}")
     yield
     # Shutdown
     logger.info("👋 Brain 正在關閉...")

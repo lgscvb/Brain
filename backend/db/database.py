@@ -9,11 +9,21 @@ from db.models import Base
 
 
 # 建立非同步引擎
+if "sqlite" in settings.DATABASE_URL:
+    _connect_args = {"check_same_thread": False}
+    _poolclass = StaticPool
+elif "postgresql" in settings.DATABASE_URL:
+    _connect_args = {"ssl": "require"}  # Supabase 需要 SSL
+    _poolclass = None
+else:
+    _connect_args = {}
+    _poolclass = None
+
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,
-    connect_args={"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {},
-    poolclass=StaticPool if "sqlite" in settings.DATABASE_URL else None,
+    connect_args=_connect_args,
+    **( {"poolclass": _poolclass} if _poolclass is not None else {} ),
 )
 
 # 建立 Session Factory
