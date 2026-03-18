@@ -2,6 +2,7 @@
 Brain - 資料庫連接管理
 提供非同步資料庫引擎與 Session
 """
+import ssl as _ssl
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.pool import StaticPool
 from config import settings
@@ -13,7 +14,11 @@ if "sqlite" in settings.DATABASE_URL:
     _connect_args = {"check_same_thread": False}
     _poolclass = StaticPool
 elif "postgresql" in settings.DATABASE_URL:
-    _connect_args = {"ssl": True}  # Supabase 需要 SSL（asyncpg 不接受字串）
+    # Supabase 使用自簽憑證，需關閉驗證
+    _ssl_ctx = _ssl.create_default_context()
+    _ssl_ctx.check_hostname = False
+    _ssl_ctx.verify_mode = _ssl.CERT_NONE
+    _connect_args = {"ssl": _ssl_ctx}
     _poolclass = None
 else:
     _connect_args = {}
