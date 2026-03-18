@@ -13,7 +13,7 @@ if "sqlite" in settings.DATABASE_URL:
     _connect_args = {"check_same_thread": False}
     _poolclass = StaticPool
 elif "postgresql" in settings.DATABASE_URL:
-    _connect_args = {"ssl": "require"}  # Supabase 需要 SSL
+    _connect_args = {"ssl": True}  # Supabase 需要 SSL（asyncpg 不接受字串）
     _poolclass = None
 else:
     _connect_args = {}
